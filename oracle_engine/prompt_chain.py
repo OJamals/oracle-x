@@ -1,0 +1,389 @@
+import re
+import json
+import os
+from typing import Optional, Dict, Any, List
+
+
+def extract_scenario_tree(llm_output: str, strict: bool = False) -> Optional[Dict[str, Any]]:
+    """
+    Extracts the scenario_tree dictionary from LLM output, handling various formats and malformed JSON.
+    If strict=True, only accept valid dicts; else, fallback to best-effort extraction.
+    Returns a dict if found, else None.
+    """
+    def try_json_parse(text):
+        try:
+            return json.loads(text)
+        except Exception as e:
+            print(f"[DEBUG] JSON parse failed: {e}")
+            return None
+
+    def extract_from_data(data):
+        if not isinstance(data, dict):
+            return None
+        if 'scenario_tree' in data and isinstance(data['scenario_tree'], dict):
+            print("[DEBUG] scenario_tree found via direct JSON parse.")
+            return data['scenario_tree']
+        if 'trades' in data and isinstance(data['trades'], list):
+            for trade in data['trades']:
+                if isinstance(trade, dict) and 'scenario_tree' in trade and isinstance(trade['scenario_tree'], dict):
+                    print("[DEBUG] scenario_tree found in trade via JSON parse.")
+                    return trade['scenario_tree']
+        return None
+
+    # 1. Try direct JSON parse
+    data = try_json_parse(llm_output)
+    result = extract_from_data(data) if data else None
+    if result:
+        return result
+
+    # 2. Try to extract JSON block with scenario_tree
+    for match in re.finditer(r'```json(.*?)```', llm_output, re.DOTALL | re.IGNORECASE):
+        block = match.group(1)
+        data = try_json_parse(block)
+        result = extract_from_data(data) if data else None
+        if result:
+            print("[DEBUG] scenario_tree found in markdown JSON block.")
+            return result
+
+    # 3. Try regex for scenario_tree dict pattern
+    dict_pattern = r'"scenario_tree"\s*:\s*({.*?})'
+    match = re.search(dict_pattern, llm_output, re.DOTALL)
+    if match:
+        try:
+            return _extracted_from_extract_scenario_tree_42(match, "[DEBUG] scenario_tree found via regex dict pattern.")
+        except Exception as e:
+            print(f"[DEBUG] Regex dict pattern parse failed: {e}")
+
+    # 4. Try to extract from any code block containing scenario_tree
+    code_block = re.search(r'```[a-zA-Z]*\n(.*?scenario_tree.*?\n.*?)```', llm_output, re.DOTALL)
+    if code_block:
+        block = code_block[1]
+        match = re.search(dict_pattern, block, re.DOTALL)
+        if match:
+            try:
+                return _extracted_from_extract_scenario_tree_42(match, "[DEBUG] scenario_tree found in markdown code block.")
+            except Exception as e:
+                print(f"[DEBUG] Markdown code block parse failed: {e}")
+
+    # 5. Fallback: try to extract a dict-like string and parse it
+    if not strict:
+        dict_like = re.search(r'\{[\s\S]*?\}', llm_output)
+        if dict_like:
+            try:
+                candidate = dict_like[0].replace("'", '"')
+                parsed = json.loads(candidate)
+                if isinstance(parsed, dict) and all(k in parsed for k in ("base_case", "bull_case", "bear_case")):
+                    print("[DEBUG] scenario_tree fallback dict-like parse succeeded.")
+                    return parsed
+            except Exception as e:
+                print(f"[DEBUG] Fallback dict-like parse failed: {e}")
+
+    print("[DEBUG] scenario_tree not found in LLM output.")
+    return None
+
+
+# TODO Rename this here and in `extract_scenario_tree`
+def _extracted_from_extract_scenario_tree_42(match, arg1) -> Dict[str, Any]:
+    """
+    Helper to parse scenario_tree from regex match.
+    Args:
+        match: Regex match object containing the scenario_tree string.
+        arg1: Debug message to print.
+    Returns:
+        dict: Parsed scenario_tree dictionary.
+    """
+    scenario_tree_str = match.group(1)
+    scenario_tree_str = scenario_tree_str.replace("'", '"')
+    scenario_tree = json.loads(scenario_tree_str)
+    print(arg1)
+    return scenario_tree
+from openai import OpenAI
+from vector_db.qdrant_store import query_similar
+from vector_db.prompt_booster import build_boosted_prompt, batch_build_boosted_prompts
+
+# 🧩 Import your local scraper modules
+from data_feeds.market_internals import fetch_market_internals
+from data_feeds.options_flow import fetch_options_flow
+from data_feeds.dark_pools import fetch_dark_pool_data
+from data_feeds.sentiment import fetch_sentiment_data
+from data_feeds.earnings_calendar import fetch_earnings_calendar
+from oracle_engine.tools import get_sentiment, analyze_chart
+from data_feeds.twitter_sentiment import fetch_twitter_sentiment
+from data_feeds.google_trends import fetch_google_trends
+from data_feeds.news_scraper import fetch_headlines_yahoo_finance
+from data_feeds.finviz_scraper import fetch_finviz_breadth
+from data_feeds.ticker_universe import fetch_ticker_universe
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
+OPENAI_API_BASE = os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+
+client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE)
+
+MODEL_NAME = "gpt-4.1-2025-04-14"
+
+def get_signals_from_scrapers(prompt_text: str, chart_image_b64: str) -> Dict[str, Any]:
+    """
+    Pulls ALL your real-time signals from API scrapers + local NLP/image tools.
+    Args:
+        prompt_text (str): User prompt or market summary.
+        chart_image_b64 (str): Base64-encoded chart image.
+    Returns:
+        dict: All signals snapshot.
+    """
+    tickers = fetch_ticker_universe(sample_size=40)
+    internals = fetch_market_internals()
+    options_flow = fetch_options_flow(tickers)
+    dark_pools = fetch_dark_pool_data(tickers)
+    sentiment_web = fetch_sentiment_data(tickers)
+    earnings = fetch_earnings_calendar(tickers)
+    sentiment_llm = get_sentiment(prompt_text, model_name=MODEL_NAME)
+    chart_analysis = analyze_chart(chart_image_b64, model_name=MODEL_NAME)
+    google_trends = fetch_google_trends(tickers)
+    yahoo_headlines = fetch_headlines_yahoo_finance()
+    finviz_breadth = fetch_finviz_breadth()
+    return {
+        "tickers": tickers,
+        "market_internals": internals,
+        "options_flow": options_flow,
+        "dark_pools": dark_pools,
+        "sentiment_web": sentiment_web,
+        "sentiment_llm": sentiment_llm,
+        "chart_analysis": chart_analysis,
+        "earnings_calendar": earnings,
+        "google_trends": google_trends,
+        "yahoo_headlines": yahoo_headlines,
+        "finviz_breadth": finviz_breadth,
+    }
+
+def pull_similar_scenarios(thesis: str) -> str:
+    """
+    Query Qdrant for similar past scenarios to enrich the scenario tree.
+    Returns a formatted string of similar scenarios.
+    """
+    hits = query_similar(thesis, top_k=3)
+    if not hits:
+        return "None found."
+    text = ""
+    for hit in hits:
+        payload = hit.payload
+        text += (
+            f"- Ticker: {payload['ticker']}, "
+            f"Direction: {payload['direction']}, "
+            f"Thesis: {payload['thesis']}, "
+            f"Date: {payload['date']}\n"
+        )
+    return text.strip()
+
+def adjust_scenario_tree(signals: Dict[str, Any], similar_scenarios: str, model_name: str = MODEL_NAME) -> str:
+    """
+    Calls the LLM to produce an adjusted scenario tree with improved probabilities.
+    Returns the LLM's response as a string.
+    """
+    prompt = f"""
+Given these live signals:
+Market Internals: {signals['market_internals']}
+Options Flow: {signals['options_flow']}
+Dark Pools: {signals['dark_pools']}
+Sentiment (Web): {signals['sentiment_web']}
+Sentiment (LLM): {signals['sentiment_llm']}
+Chart Analysis: {signals['chart_analysis']}
+Earnings Calendar: {signals['earnings_calendar']}
+
+And these similar past scenarios:
+{similar_scenarios}
+
+Analyze and output a scenario tree with updated probabilities for base/bull/bear cases.
+Explain how the past scenarios influence your adjustments.
+""".strip()
+
+    for model in [model_name]:
+        print(f"[DEBUG] Trying model: {model}")
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_completion_tokens=600
+            )
+            if (content := resp.choices[0].message.content.strip()):
+                print(f"[DEBUG] Model {model} returned non-empty response.")
+                return content
+        except Exception as e:
+            print(f"[DEBUG] Model {model} failed: {e}")
+        break
+    print("[DEBUG] All models returned empty or failed.")
+    return ""
+
+def adjust_scenario_tree_with_boost(signals: Dict[str, Any], similar_scenarios: str, model_name: str = MODEL_NAME) -> str:
+    """
+    Calls the LLM to produce an adjusted scenario tree, boosting the prompt with similar scenarios from Qdrant.
+    Returns the LLM's response as a string.
+    """
+    base_prompt = f"""
+Given these live signals:
+Market Internals: {signals['market_internals']}
+Options Flow: {signals['options_flow']}
+Dark Pools: {signals['dark_pools']}
+Sentiment (Web): {signals['sentiment_web']}
+Sentiment (LLM): {signals['sentiment_llm']}
+Chart Analysis: {signals['chart_analysis']}
+Earnings Calendar: {signals['earnings_calendar']}
+
+And these similar past scenarios:
+{similar_scenarios}
+
+Analyze and output a scenario tree with updated probabilities for base/bull/bear cases.
+Explain how the past scenarios influence your adjustments.
+""".strip()
+    # Boost the prompt with Qdrant recall
+    boosted_prompt = build_boosted_prompt(base_prompt, str(signals.get('chart_analysis', '')))
+    for model in [model_name]:
+        print(f"[DEBUG] Trying model: {model} (boosted)")
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+                    {"role": "user", "content": boosted_prompt}
+                ],
+                max_completion_tokens=600
+            )
+            if (content := resp.choices[0].message.content.strip()):
+                print(f"[DEBUG] Model {model} returned non-empty response (boosted).")
+                return content
+        except Exception as e:
+            print(f"[DEBUG] Model {model} failed (boosted): {e}")
+        break
+    print("[DEBUG] All models returned empty or failed (boosted).")
+    return ""
+
+def batch_adjust_scenario_trees_with_boost(
+    signals_list: List[Dict[str, Any]],
+    similar_scenarios_list: List[str],
+    model_name: str = MODEL_NAME
+) -> List[str]:
+    """
+    Batch version: Calls the LLM to produce adjusted scenario trees for multiple prompts, boosting each with Qdrant recall.
+    Returns a list of LLM responses (one per prompt).
+    """
+    base_prompts = []
+    for signals, similar_scenarios in zip(signals_list, similar_scenarios_list):
+        base_prompt = f"""
+Given these live signals:
+Market Internals: {signals['market_internals']}
+Options Flow: {signals['options_flow']}
+Dark Pools: {signals['dark_pools']}
+Sentiment (Web): {signals['sentiment_web']}
+Sentiment (LLM): {signals['sentiment_llm']}
+Chart Analysis: {signals['chart_analysis']}
+Earnings Calendar: {signals['earnings_calendar']}
+
+And these similar past scenarios:
+{similar_scenarios}
+
+Analyze and output a scenario tree with updated probabilities for base/bull/bear cases.
+Explain how the past scenarios influence your adjustments.
+""".strip()
+        base_prompts.append(base_prompt)
+    # Use batch prompt boosting
+    trade_theses = [str(s.get('chart_analysis', '')) for s in signals_list]
+    boosted_prompts = batch_build_boosted_prompts(base_prompts, trade_theses)
+    results = []
+    for boosted_prompt in boosted_prompts:
+        try:
+            resp = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+                    {"role": "user", "content": boosted_prompt}
+                ],
+                max_completion_tokens=600
+            )
+            if (content := resp.choices[0].message.content.strip()):
+                results.append(content)
+            else:
+                results.append("")
+        except Exception as e:
+            print(f"[DEBUG] Batch model {model_name} failed: {e}")
+            results.append("")
+    return results
+
+def generate_final_playbook(signals, scenario_tree, model_name=MODEL_NAME):
+    """
+    Final LLM step: generates tomorrow's best trades + 'Tomorrow's Tape'.
+    """
+
+    prompt = f"""
+Signals:
+Market Internals: {signals['market_internals']}
+Options Flow: {signals['options_flow']}
+Dark Pools: {signals['dark_pools']}
+Sentiment (Web): {signals['sentiment_web']}
+Sentiment (LLM): {signals['sentiment_llm']}
+Chart Analysis: {signals['chart_analysis']}
+Earnings Calendar: {signals['earnings_calendar']}
+
+Adjusted Scenario Tree:
+{scenario_tree}
+
+Based on this, generate the 1–3 highest-confidence trades for tomorrow.
+Include: ticker, direction, instrument, entry range, profit target, stop-loss,
+counter-signal, and a 5-sentence 'Tomorrow's Tape'.
+python main.py
+Format your response as **valid JSON only** (no markdown, no extra text, no comments) with:
+- 'trades': a list of trade objects
+- 'tomorrows_tape': a string summary
+
+IMPORTANT: For each trade, include a 'thesis' field summarizing the core rationale in 1-2 sentences.
+IMPORTANT: For each trade, include a 'scenario_tree' field with a dictionary of scenario probabilities (base_case, bull_case, bear_case), e.g.:
+"scenario_tree": {{"base_case": "70% - ...", "bull_case": "20% - ...", "bear_case": "10% - ..."}}
+If you are unsure, make a reasonable estimate. Do NOT omit the 'scenario_tree' field.
+
+---
+EXAMPLE RESPONSE (strictly follow this structure):
+{{
+  "trades": [
+    {{
+      "ticker": "AAPL",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "190-192",
+      "profit_target": "198",
+      "stop_loss": "187",
+      "counter_signal": "Break below 187",
+      "thesis": "Apple is showing strong momentum after earnings.",
+      "scenario_tree": {{
+        "base_case": "70% - Continues up on strong demand.",
+        "bull_case": "20% - Explosive move if market rallies.",
+        "bear_case": "10% - Drops if market reverses."
+      }}
+    }}
+  ],
+  "tomorrows_tape": "Markets are poised for a breakout as tech leads..."
+}}
+---
+
+DO NOT include any text before or after the JSON. Output only the JSON object.
+""".strip()
+
+    for model in [model_name]:
+        print(f"[DEBUG] Trying model: {model}")
+        try:
+            resp = client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": "You are ORACLE-X, the final Playbook composer."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_completion_tokens=1024
+            )
+            if content := resp.choices[0].message.content.strip():
+                print(f"[DEBUG] Model {model} returned non-empty response.")
+                return content
+        except Exception as e:
+            print(f"[DEBUG] Model {model} failed: {e}")
+        break
+    print("[DEBUG] All models returned empty or failed.")
+    return ""

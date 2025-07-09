@@ -1,0 +1,33 @@
+name: Reddit Sentiment Data Pipeline
+
+on:
+  push:
+    paths:
+      - 'data_feeds/reddit_sentiment.py'
+      - 'data_feeds/test_reddit_sentiment_auto.py'
+  pull_request:
+    paths:
+      - 'data_feeds/reddit_sentiment.py'
+      - 'data_feeds/test_reddit_sentiment_auto.py'
+
+jobs:
+  test-reddit-sentiment:
+    runs-on: ubuntu-latest
+    env:
+      REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+      REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+      REDDIT_USER_AGENT: oracle-x-bot
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install vaderSentiment praw
+      - name: Run automated Reddit sentiment tests
+        run: |
+          python data_feeds/test_reddit_sentiment_auto.py

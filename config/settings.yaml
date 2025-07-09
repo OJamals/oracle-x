@@ -1,0 +1,4 @@
+market_data_source: "YourDataAPI"
+sentiment_source: "Twitter/Reddit/Trends"
+vector_db_path: "vector_db/"
+risk_threshold: 0.7

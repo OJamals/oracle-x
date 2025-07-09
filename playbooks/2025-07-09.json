@@ -1,0 +1,50 @@
+{
+  "trades": [
+    {
+      "ticker": "NFLX",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "650-660",
+      "profit_target": "685",
+      "stop_loss": "639",
+      "counter_signal": "Failure to hold 639 or heavy reversal in broad tech.",
+      "thesis": "NFLX exhibits strong bullish flow and dark pool accumulation ahead of earnings, historically leading to outsized gains in similarly robust market conditions.",
+      "scenario_tree": {
+        "base_case": "45% - Gradual upside drift leading into earnings on continued accumulation.",
+        "bull_case": "50% - Aggressive breakout higher as pre-earnings momentum intensifies.",
+        "bear_case": "5% - Quick reversal only if an unforeseen negative event emerges."
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "direction": "long",
+      "instrument": "call options",
+      "entry_range": "MSFT Jul 12 2025 $200 Call at $8.50-9.20",
+      "profit_target": "$12.00",
+      "stop_loss": "$6.80",
+      "counter_signal": "Sustained breakdown below $192.5 or broad market reversal.",
+      "thesis": "MSFT is seeing large call sweeps and notable dark pool blocks, indicating institutional accumulation into earnings and high probability of upside continuation.",
+      "scenario_tree": {
+        "base_case": "50% - Steady pre-earnings advance as accumulation continues.",
+        "bull_case": "40% - Breakout run-up if market momentum strengthens.",
+        "bear_case": "10% - Pullback on unexpected profit-taking or macro shock."
+      }
+    },
+    {
+      "ticker": "TSLA",
+      "direction": "short",
+      "instrument": "put options",
+      "entry_range": "TSLA Jul 12 2025 ATM Put at $11.50-12.50",
+      "profit_target": "$16.00",
+      "stop_loss": "$9.00",
+      "counter_signal": "TSLA squeezing back above recent highs with volume or strong sector catch-up.",
+      "thesis": "Despite bullish crowd sentiment, options flow and dark pool data reveal persistent hedging and possible institutional distribution, suggesting elevated near-term downside risk for TSLA.",
+      "scenario_tree": {
+        "base_case": "60% - Drift lower or stall as hedging pressure weighs.",
+        "bull_case": "15% - Short squeeze only if market surges and crowd enthusiasm reignites buying.",
+        "bear_case": "25% - Sharper decline if distribution accelerates or tech rotation intensifies."
+      }
+    }
+  ],
+  "tomorrows_tape": "Markets remain buoyed by broad participation and constructive sentiment, with leading tech names continuing to see accumulation and bullish momentum into earnings. NFLX stands out for possible breakout as strong options and dark pool flows underpin high conviction buying. MSFT shows robust institutional activity, suggesting further upside is likely unless a market-wide pullback materializes. TSLA, in contrast, faces potential near-term headwinds as defensive flows and hedging increase despite positive crowd chatter. Watch for any shifts in breadth or volatility that might foreshadow a sudden sector rotation or reversal."
+}
