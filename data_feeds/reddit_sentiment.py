@@ -55,19 +55,17 @@ def fetch_reddit_sentiment(subreddit="stocks", limit=100) -> dict:
                 if found:
                     print(f"[DEBUG] r/{sub} post: '{post.title[:80]}' | Tickers: {found}")
                 # Sentiment scoring
-                sentiment = analyzer.polarity_scores(post.title + " " + getattr(post, 'selftext', ''))
+                sentiment = analyzer.polarity_scores(
+                    f"{post.title} " + getattr(post, 'selftext', '')
+                )
                 for ticker in found:
-                    if ticker not in sentiment_by_ticker:
-                        sentiment_by_ticker[ticker] = {"mentions": 0, "compound": 0.0, "positive": 0.0, "neutral": 0.0, "negative": 0.0}
-                    sentiment_by_ticker[ticker]["mentions"] += 1
-                    sentiment_by_ticker[ticker]["compound"] += sentiment["compound"]
-                    sentiment_by_ticker[ticker]["positive"] += sentiment["pos"]
-                    sentiment_by_ticker[ticker]["neutral"] += sentiment["neu"]
-                    sentiment_by_ticker[ticker]["negative"] += sentiment["neg"]
+                    _extracted_from_fetch_reddit_sentiment_45(
+                        ticker, sentiment_by_ticker, sentiment
+                    )
         except Exception as e:
             print(f"[ERROR] Failed to fetch from r/{sub}: {e}")
     # Average sentiment scores per ticker
-    for ticker, stats in sentiment_by_ticker.items():
+    for stats in sentiment_by_ticker.values():
         if stats["mentions"] > 0:
             stats["compound"] /= stats["mentions"]
             stats["positive"] /= stats["mentions"]
@@ -76,3 +74,14 @@ def fetch_reddit_sentiment(subreddit="stocks", limit=100) -> dict:
     print("[DEBUG] Aggregated ticker sentiment:")
     pprint.pprint(sentiment_by_ticker)
     return sentiment_by_ticker
+
+
+# TODO Rename this here and in `fetch_reddit_sentiment`
+def _extracted_from_fetch_reddit_sentiment_45(ticker, sentiment_by_ticker, sentiment):
+    if ticker not in sentiment_by_ticker:
+        sentiment_by_ticker[ticker] = {"mentions": 0, "compound": 0.0, "positive": 0.0, "neutral": 0.0, "negative": 0.0}
+    sentiment_by_ticker[ticker]["mentions"] += 1
+    sentiment_by_ticker[ticker]["compound"] += sentiment["compound"]
+    sentiment_by_ticker[ticker]["positive"] += sentiment["pos"]
+    sentiment_by_ticker[ticker]["neutral"] += sentiment["neu"]
+    sentiment_by_ticker[ticker]["negative"] += sentiment["neg"]

@@ -21,17 +21,17 @@ def test_high_limit():
 def test_no_credentials():
     print("[TEST] No credentials scenario...")
     # Temporarily unset env vars
-    old_id = os.environ.pop("REDDIT_CLIENT_ID", None)
-    old_secret = os.environ.pop("REDDIT_CLIENT_SECRET", None)
+    old_id = os.environ.get("REDDIT_CLIENT_ID")
+    old_secret = os.environ.get("REDDIT_CLIENT_SECRET")
+    os.environ.pop("REDDIT_CLIENT_ID", None)
+    os.environ.pop("REDDIT_CLIENT_SECRET", None)
     try:
         result = fetch_reddit_sentiment(limit=5)
         assert result == {}
         print("[PASS] No credentials scenario")
     finally:
-        if old_id:
-            os.environ["REDDIT_CLIENT_ID"] = old_id
-        if old_secret:
-            os.environ["REDDIT_CLIENT_SECRET"] = old_secret
+        os.environ["REDDIT_CLIENT_ID"] = old_id if old_id is not None else ""
+        os.environ["REDDIT_CLIENT_SECRET"] = old_secret if old_secret is not None else ""
 
 def test_invalid_subreddit():
     print("[TEST] Invalid subreddit scenario...")

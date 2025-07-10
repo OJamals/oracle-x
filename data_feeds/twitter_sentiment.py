@@ -51,11 +51,16 @@ except Exception as ssl_patch_e:
     print(f"[ERROR] Could not patch requests for SSL globally: {ssl_patch_e}")
 
 def fetch_twitter_sentiment(query="AAPL", limit=100) -> list:
+
     """
-    Fetch tweets using Tweepy (Twitter API v2, bearer token required).
-    Returns a list of tweet texts for further sentiment analysis.
+    Fetch tweets using Tweepy (Twitter API v2, bearer token required),
+    apply advanced filtering, sentiment scoring, and refined ticker extraction.
+    Returns a list of dicts: [{text, sentiment, tickers, lang, filtered_out_reason}]
     """
     import os
+    import re
+    from langdetect import detect, LangDetectException
+    from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
     try:
         import tweepy
     except ImportError:
@@ -67,12 +72,69 @@ def fetch_twitter_sentiment(query="AAPL", limit=100) -> list:
         return []
     try:
         client = tweepy.Client(bearer_token=bearer_token, wait_on_rate_limit=True)
-        # Twitter API v2 requires max_results between 10 and 100
         max_results = min(max(limit, 10), 100)
-        tweets = client.search_recent_tweets(query=query, max_results=max_results, tweet_fields=["text"])
+        tweets = client.search_recent_tweets(query=query, max_results=max_results, tweet_fields=["text", "lang"])
         tweet_texts = [tweet.text for tweet in tweets.data] if tweets.data else []
         print(f"[DEBUG] Retrieved {len(tweet_texts)} tweets for query '{query}'")
-        return tweet_texts
     except Exception as e:
         print(f"[ERROR] Tweepy Twitter API fetch failed for {query}: {e}")
         return []
+
+    # Filtering and sentiment analysis
+    analyzer = SentimentIntensityAnalyzer()
+    # Ticker extraction: $TICKER, #TICKER, or plain TICKER (2-5 uppercase letters)
+    ticker_pattern = re.compile(r'(\$[A-Z]{2,5}|#[A-Z]{2,5}|\b[A-Z]{2,5}\b)')
+    # Load valid tickers
+    try:
+        from data_feeds.ticker_universe import fetch_ticker_universe
+        valid_tickers = set(fetch_ticker_universe(sample_size=500))
+    except Exception:
+        valid_tickers = {
+            "AAPL",
+            "TSLA",
+            "MSFT",
+            "GOOG",
+            "AMZN",
+            "NVDA",
+            "AMD",
+            "META",
+            "NFLX",
+            "SPY",
+        }
+
+    results = []
+    for text in tweet_texts:
+        filtered_out_reason = None
+        # Remove URLs, mentions, and hashtags for filtering
+        clean_text = re.sub(r"http\S+|www\S+|@\w+|#\w+", "", text)
+        # Language detection
+        try:
+            lang = detect(clean_text)
+        except LangDetectException:
+            lang = "unknown"
+        if lang != "en":
+            filtered_out_reason = "non-english"
+        # Spam/irrelevant filter: very short, mostly symbols, or empty
+        if not clean_text or len(clean_text.strip()) < 10:
+            filtered_out_reason = "too-short"
+        # Ticker extraction
+        tickers = set()
+        for match in ticker_pattern.findall(text):
+            t = match.replace("$", "").replace("#", "")
+            if t in valid_tickers:
+                tickers.add(t)
+        if not tickers:
+            filtered_out_reason = "no-ticker"
+        # Sentiment scoring
+        sentiment = analyzer.polarity_scores(text)
+        results.append({
+            "text": text,
+            "sentiment": sentiment,
+            "tickers": list(tickers),
+            "lang": lang,
+            "filtered_out_reason": filtered_out_reason
+        })
+    # Optionally, return only those that passed all filters
+    filtered = [r for r in results if r["filtered_out_reason"] is None]
+    print(f"[DEBUG] {len(filtered)} tweets passed all filters out of {len(results)}")
+    return filtered
