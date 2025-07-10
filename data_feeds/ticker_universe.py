@@ -35,15 +35,9 @@ def _extracted_from_fetch_ticker_universe_11(tickers):
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"
     ]
-    proxy = None
-    with contextlib.suppress(Exception):
-        with open("config/settings.yaml", "r") as f:
-            config = yaml.safe_load(f)
-            proxy = config.get("proxy")
-    proxies = {"http": proxy, "https": proxy} if proxy else None
     headers = {"User-Agent": random.choice(user_agents)}
     try:
-        resp = requests.get(url, headers=headers, timeout=10, proxies=proxies)
+        resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         for row in soup.select("tr.screener-body-table-nw"):  # Finviz table rows

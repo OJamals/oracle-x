@@ -109,6 +109,8 @@ def parse_and_save_playbook(playbook_json_str, today):
     return playbook
 
 def store_trades_to_qdrant(playbook, playbook_json_str, today):
+    # Ensure Qdrant collection exists before storing trades
+    ensure_collection()
     if "trades" not in playbook or not isinstance(playbook["trades"], list):
         print("⚠️ No valid trades found to store to Qdrant.\n")
         return

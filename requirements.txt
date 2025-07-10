@@ -1,6 +1,4 @@
 pandas
-requests
-beautifulsoup4
 openai>=1.0.0
 pillow
 scikit-learn
@@ -8,12 +6,4 @@ plotly
 yfinance
 qdrant-client
 tweepy
-pandas
-requests
-beautifulsoup4
-openai>=1.0.0
-pillow
-scikit-learn
-plotly
-yfinance
-qdrant-client
+twscrape
