@@ -1,12 +1,7 @@
-__pycache__/*
 *.pyc
 tests/*
 *.env
-ui_test_page_source.html
 .github/*
 .venv/*
-datafeeds/__pycache__/*
-oracle_engine/__pycache__/*
 playbooks/*
-vector_db/__pycache__/*
 charts/*
