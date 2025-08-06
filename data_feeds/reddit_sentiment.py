@@ -39,6 +39,7 @@ def fetch_reddit_sentiment(subreddit="stocks", limit=100) -> dict:
     valid_tickers = set(fetch_ticker_universe(source="finviz", sample_size=200))
     ticker_pattern = re.compile(r'\b([A-Z]{2,5})\b')
     sentiment_by_ticker = {}
+    post_texts_by_ticker = {}  # Store actual post texts for advanced analysis
     min_upvotes = 2
     for sub in subreddits:
         try:
@@ -62,15 +63,24 @@ def fetch_reddit_sentiment(subreddit="stocks", limit=100) -> dict:
                     _extracted_from_fetch_reddit_sentiment_45(
                         ticker, sentiment_by_ticker, sentiment
                     )
+                    # Store the post text for advanced sentiment analysis
+                    if ticker not in post_texts_by_ticker:
+                        post_texts_by_ticker[ticker] = []
+                    # Store the full post text (title + content)
+                    full_text = f"{post.title} " + getattr(post, 'selftext', '')
+                    post_texts_by_ticker[ticker].append(full_text.strip())
         except Exception as e:
             print(f"[ERROR] Failed to fetch from r/{sub}: {e}")
-    # Average sentiment scores per ticker
-    for stats in sentiment_by_ticker.values():
+    # Average sentiment scores per ticker and add sample texts
+    for ticker, stats in sentiment_by_ticker.items():
         if stats["mentions"] > 0:
             stats["compound"] /= stats["mentions"]
             stats["positive"] /= stats["mentions"]
             stats["neutral"] /= stats["mentions"]
             stats["negative"] /= stats["mentions"]
+            # Add sample texts for this ticker
+            stats["sample_texts"] = post_texts_by_ticker.get(ticker, [])
+    
     print("[DEBUG] Aggregated ticker sentiment:")
     pprint.pprint(sentiment_by_ticker)
     return sentiment_by_ticker

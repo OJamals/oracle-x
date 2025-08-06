@@ -1,7 +1,10 @@
 *.pyc
 tests/*
 *.env
+*.cpython
 .github/*
 .venv/*
 playbooks/*
 charts/*
+accounts.db
+backtest_data

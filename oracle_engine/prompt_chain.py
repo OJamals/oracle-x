@@ -1,3 +1,52 @@
+def clean_signals_for_llm(signals: dict, max_items: int = 5) -> dict:
+    """
+    Cleans and summarizes the signals dict to prevent prompt bloat and ensure only high-signal, deduplicated, and size-constrained data is sent to the LLM.
+    - Truncates long lists/arrays to top N items
+    - Deduplicates and filters empty/low-signal entries
+    - Summarizes verbose text fields
+    - Removes excessive whitespace and boilerplate
+    """
+    import re
+    from collections.abc import Sequence
+
+    def clean_text(text, max_len=400):
+        if not isinstance(text, str):
+            return ""
+        text = re.sub(r'\s+', ' ', text).strip()
+        text = re.sub(r'[^\x20-\x7E]', '', text)  # Remove non-ASCII
+        if len(text) > max_len:
+            return text[:max_len] + '...'
+        return text
+
+    def clean_list(lst, key=None, max_items=max_items):
+        if not isinstance(lst, Sequence) or isinstance(lst, str):
+            return []
+        seen = set()
+        cleaned = []
+        for item in lst:
+            val = item if key is None else item.get(key, "")
+            val = clean_text(str(val))
+            if val and val not in seen:
+                seen.add(val)
+                cleaned.append(item)
+            if len(cleaned) >= max_items:
+                break
+        return cleaned
+
+    cleaned = {}
+    # Clean each field specifically
+    cleaned["market_internals"] = clean_text(str(signals.get("market_internals", "")), 600)
+    cleaned["options_flow"] = clean_list(signals.get("options_flow", []), max_items=max_items)
+    cleaned["dark_pools"] = clean_list(signals.get("dark_pools", []), max_items=max_items)
+    cleaned["sentiment_web"] = clean_list(signals.get("sentiment_web", []), max_items=max_items)
+    cleaned["sentiment_llm"] = clean_text(str(signals.get("sentiment_llm", "")), 600)
+    cleaned["chart_analysis"] = clean_text(str(signals.get("chart_analysis", "")), 600)
+    cleaned["earnings_calendar"] = clean_list(signals.get("earnings_calendar", []), max_items=max_items)
+    cleaned["google_trends"] = clean_list(signals.get("google_trends", []), max_items=max_items)
+    cleaned["yahoo_headlines"] = clean_list(signals.get("yahoo_headlines", []), key="headline" if signals.get("yahoo_headlines") and isinstance(signals["yahoo_headlines"], list) and signals["yahoo_headlines"] and isinstance(signals["yahoo_headlines"][0], dict) and "headline" in signals["yahoo_headlines"][0] else None, max_items=max_items)
+    cleaned["finviz_breadth"] = clean_text(str(signals.get("finviz_breadth", "")), 400)
+    cleaned["tickers"] = clean_list(signals.get("tickers", []), max_items=10)
+    return cleaned
 import re
 import json
 import os
@@ -137,7 +186,14 @@ def get_signals_from_scrapers(prompt_text: str, chart_image_b64: str) -> Dict[st
     sentiment_web = fetch_sentiment_data(tickers)
     earnings = fetch_earnings_calendar(tickers)
     sentiment_llm = get_sentiment(prompt_text, model_name=MODEL_NAME)
-    chart_analysis = analyze_chart(chart_image_b64, model_name=MODEL_NAME)
+    import base64
+    chart_bytes = None
+    if chart_image_b64:
+        try:
+            chart_bytes = base64.b64decode(chart_image_b64)
+        except Exception as e:
+            print(f"[DEBUG] Failed to decode chart_image_b64: {e}")
+    chart_analysis = analyze_chart(chart_bytes, model_name=MODEL_NAME)
     google_trends = fetch_google_trends(tickers)
     yahoo_headlines = fetch_headlines_yahoo_finance()
     finviz_breadth = fetch_finviz_breadth()
@@ -166,12 +222,13 @@ def pull_similar_scenarios(thesis: str) -> str:
     text = ""
     for hit in hits:
         payload = hit.payload
-        text += (
-            f"- Ticker: {payload['ticker']}, "
-            f"Direction: {payload['direction']}, "
-            f"Thesis: {payload['thesis']}, "
-            f"Date: {payload['date']}\n"
-        )
+        if payload is not None:
+            text += (
+                f"- Ticker: {payload.get('ticker', 'N/A')}, "
+                f"Direction: {payload.get('direction', 'N/A')}, "
+                f"Thesis: {payload.get('thesis', 'N/A')}, "
+                f"Date: {payload.get('date', 'N/A')}\n"
+            )
     return text.strip()
 
 def adjust_scenario_tree(signals: Dict[str, Any], similar_scenarios: str, model_name: str = MODEL_NAME) -> str:
@@ -207,9 +264,12 @@ Explain how the past scenarios influence your adjustments.
                 ],
                 max_completion_tokens=600
             )
-            if (content := resp.choices[0].message.content.strip()):
-                print(f"[DEBUG] Model {model} returned non-empty response.")
-                return content
+            content = resp.choices[0].message.content
+            if content is not None:
+                content = content.strip()
+                if content:
+                    print(f"[DEBUG] Model {model} returned non-empty response.")
+                    return content
         except Exception as e:
             print(f"[DEBUG] Model {model} failed: {e}")
         break
@@ -250,9 +310,12 @@ Explain how the past scenarios influence your adjustments.
                 ],
                 max_completion_tokens=600
             )
-            if (content := resp.choices[0].message.content.strip()):
-                print(f"[DEBUG] Model {model} returned non-empty response (boosted).")
-                return content
+            content = resp.choices[0].message.content
+            if content is not None:
+                content = content.strip()
+                if content:
+                    print(f"[DEBUG] Model {model} returned non-empty response (boosted).")
+                    return content
         except Exception as e:
             print(f"[DEBUG] Model {model} failed (boosted): {e}")
         break
@@ -301,8 +364,13 @@ Explain how the past scenarios influence your adjustments.
                 ],
                 max_completion_tokens=600
             )
-            if (content := resp.choices[0].message.content.strip()):
-                results.append(content)
+            content = resp.choices[0].message.content
+            if content is not None:
+                content = content.strip()
+                if content:
+                    results.append(content)
+                else:
+                    results.append("")
             else:
                 results.append("")
         except Exception as e:
@@ -314,6 +382,10 @@ def generate_final_playbook(signals, scenario_tree, model_name=MODEL_NAME):
     """
     Final LLM step: generates tomorrow's best trades + 'Tomorrow's Tape'.
     """
+
+
+    # Clean signals before prompt construction
+    signals = clean_signals_for_llm(signals)
 
     prompt = f"""
 Signals:
@@ -379,9 +451,12 @@ DO NOT include any text before or after the JSON. Output only the JSON object.
                 ],
                 max_completion_tokens=1024
             )
-            if content := resp.choices[0].message.content.strip():
-                print(f"[DEBUG] Model {model} returned non-empty response.")
-                return content
+            content = resp.choices[0].message.content
+            if content is not None:
+                content = content.strip()
+                if content:
+                    print(f"[DEBUG] Model {model} returned non-empty response.")
+                    return content
         except Exception as e:
             print(f"[DEBUG] Model {model} failed: {e}")
         break

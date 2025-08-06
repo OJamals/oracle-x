@@ -9,15 +9,15 @@ PROMPTS = [
 CHARTS = [None, None]  # For now, no chart images
 
 
+
 def test_batch_pipeline_runs():
     playbooks = oracle_agent_batch_pipeline(PROMPTS, CHARTS)
     assert isinstance(playbooks, list)
     assert len(playbooks) == len(PROMPTS)
-    # Use pytest subtests to avoid loop in test
-    pytest.helpers.assert_playbooks_valid(playbooks)
+    assert_playbooks_valid(playbooks)
+
 
 # Helper for sub-assertions without a loop in the test
-@pytest.helpers.register
 def assert_playbooks_valid(playbooks):
     assert all(isinstance(pb, str) for pb in playbooks)
     assert all(

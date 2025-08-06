@@ -1,0 +1,135 @@
+edge_cases:
+  - id: edge-001
+    description: Market data API returns stale or invalid data during high volatility
+    likelihood: 4
+    impact: 5
+    risk_score: 20
+    mitigation: Multi-source validation with timestamp checking and anomaly detection
+    test_scenario: Inject stale data during simulated high volatility period
+    monitoring: Real-time data freshness alerts
+
+  - id: edge-002
+    description: Sentiment models produce conflicting signals (bullish vs bearish)
+    likelihood: 5
+    impact: 3
+    risk_score: 15
+    mitigation: Ensemble weighting based on historical accuracy and confidence thresholds
+    test_scenario: Create news articles with mixed sentiment signals
+    monitoring: Model disagreement tracking and correlation analysis
+
+  - id: edge-003
+    description: Options expire worthless due to timing prediction errors
+    likelihood: 4
+    impact: 5
+    risk_score: 20
+    mitigation: Conservative expiration selection and early exit criteria based on time decay
+    test_scenario: Backtest with various expiration windows and theta decay scenarios
+    monitoring: Options position time decay analysis
+
+  - id: edge-004
+    description: Reddit/Twitter API rate limits during high-volume news events
+    likelihood: 3
+    impact: 4
+    risk_score: 12
+    mitigation: Intelligent request prioritization and cached sentiment fallback
+    test_scenario: Simulate API failures during earnings announcements
+    monitoring: API response time and error rate tracking
+
+  - id: edge-005
+    description: ML models fail to adapt to changing market regime (bear to bull transition)
+    likelihood: 3
+    impact: 5
+    risk_score: 15
+    mitigation: Regime detection algorithms and model ensemble reweighting
+    test_scenario: Test model performance across different market conditions
+    monitoring: Model performance degradation alerts
+
+  - id: edge-006
+    description: High correlation between sentiment sources reduces prediction diversity
+    likelihood: 4
+    impact: 3
+    risk_score: 12
+    mitigation: Correlation monitoring and source diversification
+    test_scenario: Analyze sentiment correlation during major market events
+    monitoring: Cross-source sentiment correlation tracking
+
+  - id: edge-007
+    description: Backtesting framework produces optimistic results due to lookahead bias
+    likelihood: 3
+    impact: 5
+    risk_score: 15
+    mitigation: Strict temporal data separation and walk-forward validation
+    test_scenario: Introduce subtle lookahead bias and verify detection
+    monitoring: Backtest vs live performance comparison
+
+  - id: edge-008
+    description: Position sizing algorithm suggests excessive risk during volatile periods
+    likelihood: 3
+    impact: 5
+    risk_score: 15
+    mitigation: Volatility-adjusted position sizing and maximum exposure limits
+    test_scenario: Test position sizing during VIX >30 periods
+    monitoring: Portfolio volatility and exposure tracking
+
+  - id: edge-009
+    description: Prompt optimization gets stuck in local optimum
+    likelihood: 3
+    impact: 3
+    risk_score: 9
+    mitigation: Multi-objective optimization and random prompt mutation
+    test_scenario: Run optimization with deliberately suboptimal starting prompts
+    monitoring: Prompt performance plateau detection
+
+  - id: edge-010
+    description: Options data quality degrades without detection
+    likelihood: 4
+    impact: 4
+    risk_score: 16
+    mitigation: Options-specific data validation and IV consistency checks
+    test_scenario: Inject corrupt options data and verify detection
+    monitoring: Options data quality scoring and alerts
+
+  - id: edge-011
+    description: News sentiment analysis misinterprets sarcasm or complex financial language
+    likelihood: 5
+    impact: 3
+    risk_score: 15
+    mitigation: Financial domain-specific training data and confidence scoring
+    test_scenario: Test with financial news containing sarcasm and complex terminology
+    monitoring: Sentiment accuracy validation against market outcomes
+
+  - id: edge-012
+    description: System makes predictions during market holidays or pre-market hours
+    likelihood: 2
+    impact: 2
+    risk_score: 4
+    mitigation: Market hours validation and trading session awareness
+    test_scenario: Run system during market holidays and verify behavior
+    monitoring: Trading session compliance checking
+
+  - id: edge-013
+    description: Memory leaks in long-running ML model inference
+    likelihood: 2
+    impact: 4
+    risk_score: 8
+    mitigation: Regular model reloading and memory monitoring
+    test_scenario: Run continuous inference for 24+ hours and monitor memory usage
+    monitoring: System resource utilization alerts
+
+  - id: edge-014
+    description: Earnings announcements cause extreme sentiment spikes that skew models
+    likelihood: 4
+    impact: 4
+    risk_score: 16
+    mitigation: Event-aware sentiment normalization and outlier detection
+    test_scenario: Test sentiment analysis during major earnings announcements
+    monitoring: Sentiment spike detection and normalization effectiveness
+
+  - id: edge-015
+    description: Free API quotas exhausted during critical trading periods
+    likelihood: 3
+    impact: 4
+    risk_score: 12
+    mitigation: Quota monitoring, usage optimization, and backup data sources
+    test_scenario: Simulate quota exhaustion during high-activity periods
+    monitoring: API quota usage tracking and predictive alerts

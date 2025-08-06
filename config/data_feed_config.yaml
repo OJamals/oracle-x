@@ -1,0 +1,111 @@
+# Consolidated Financial Data Feed Configuration
+
+# Data source priorities (lower number = higher priority)
+data_sources:
+  quote:
+    - yfinance      # Free, unlimited
+    - fmp           # 250 calls/day
+    - finnhub       # 60 calls/minute
+    - alpha_vantage # 5 calls/minute
+  
+  historical:
+    - yfinance      # Free, unlimited
+    - fmp           # 250 calls/day
+    - finnhub       # 60 calls/minute
+  
+  company_info:
+    - yfinance      # Free, comprehensive
+    - fmp           # 250 calls/day
+    - finnhub       # 60 calls/minute
+  
+  financial_statements:
+    - fmp           # Best quality financials
+    - financetoolkit # Uses FMP under hood
+    - yfinance      # Basic financials
+  
+  news:
+    - finnhub       # Good quality, real-time
+    - yfinance      # Basic news
+    - alpha_vantage # News sentiment
+  
+  # Added priorities for new orchestrator endpoints and Twelve Data preference
+  priority:
+    quote:
+      - twelve_data
+      - yfinance
+    market_data_intraday:
+      - twelve_data
+      - yfinance
+    market_data_daily:
+      - twelve_data
+      - yfinance
+    market_breadth:
+      - finviz
+    group_performance:
+      - finviz
+
+# API Rate Limits (calls per time period in seconds)
+rate_limits:
+  finnhub:
+    calls: 60
+    period: 60  # 60 calls per minute
+  
+  fmp:
+    calls: 250
+    period: 86400  # 250 calls per day
+  
+  alpha_vantage:
+    calls: 5
+    period: 60  # 5 calls per minute
+    daily_limit: 500
+  
+  # Added provider-specific granular limits for new providers
+  twelve_data:
+    quote: { rps: 5, rpm: 60, burst: 5 }
+    intraday: { rps: 2, rpm: 30, burst: 2 }
+    daily: { rps: 1, rpm: 20, burst: 1 }
+  finviz:
+    market_breadth: { rps: 0.2, rpm: 12, burst: 1 }
+    group_performance: { rps: 0.1, rpm: 6, burst: 1 }
+
+# Cache TTL settings (in seconds)
+cache_ttl:
+  quote: 30           # 30 seconds for real-time quotes
+  historical_daily: 3600    # 1 hour for daily data
+  historical_intraday: 300  # 5 minutes for intraday
+  financial_statements: 86400  # 24 hours for financials
+  company_info: 604800       # 7 days for company info
+  news: 1800                 # 30 minutes for news
+  analyst_data: 43200        # 12 hours for analyst estimates
+  insider_trading: 3600      # 1 hour for insider data
+  # Added structured TTLs for new endpoints
+  market_breadth: { rth_seconds: 120, off_hours_seconds: 1800, swr_factor: 2.0 }
+  group_performance: { rth_seconds: 900, off_hours_seconds: 7200, swr_factor: 2.0 }
+
+# Data quality preferences
+data_quality:
+  primary_exchange_only: true
+  exclude_otc: true
+  minimum_volume: 1000
+  exclude_penny_stocks: true  # Under $1
+
+# Timeout settings (seconds)
+timeouts:
+  api_request: 10
+  batch_request: 30
+  historical_data: 60
+
+# Retry settings
+retry:
+  max_attempts: 3
+  backoff_factor: 2
+  retry_status_codes: [429, 500, 502, 503, 504]
+
+# Added providers metadata for adapters
+providers:
+  twelve_data:
+    api_base: https://api.twelvedata.com
+    api_key_env: TWELVEDATA_API_KEY
+    intervals_map: { 1min: 1min, 5min: 5min, 15min: 15min, 30min: 30min, 1h: 1h, 1d: 1day }
+  finviz:
+    base_url: https://finviz.com

@@ -1,0 +1,169 @@
+architecture:
+  description: Self-learning options trading system with consolidated data feeds and ML-driven optimization
+
+  components:
+    - name: DataFeedOrchestrator
+      description: Unified interface managing all data sources with quality scoring and fallback
+      interfaces:
+        - get_market_data(symbol, timeframe)
+        - get_sentiment_data(symbol, sources)
+        - get_options_data(symbol, expiration)
+        - validate_data_quality(data, source)
+      dependencies:
+        - Enhanced sentiment analyzers (VADER/BERT/FinBERT)
+        - Yahoo Finance, Reddit, Twitter APIs
+        - Options data from free sources
+
+    - name: SentimentEngine
+      description: Multi-model sentiment analysis with ensemble prediction
+      interfaces:
+        - analyze_sentiment(text, model_type)
+        - get_ensemble_score(symbol)
+        - calibrate_models(historical_data)
+        - validate_sentiment_accuracy()
+      models:
+        - VADER for general sentiment
+        - FinBERT for financial text
+        - Custom BERT fine-tuned on market data
+        - Ensemble weighting based on performance
+
+    - name: PredictionEngine
+      description: ML-driven price prediction with confidence scoring
+      interfaces:
+        - predict_price_movement(symbol, timeframe)
+        - calculate_confidence_score(prediction)
+        - update_model_weights(outcome_data)
+        - generate_trading_signals()
+      algorithms:
+        - LSTM for time series prediction
+        - Random Forest for feature-based prediction
+        - Ensemble method combining multiple models
+        - Online learning for continuous improvement
+
+    - name: BacktestingFramework
+      description: Comprehensive strategy validation and optimization
+      interfaces:
+        - run_backtest(strategy, data_range)
+        - calculate_metrics(trades, benchmark)
+        - optimize_parameters(strategy, objective)
+        - validate_robustness(strategy, scenarios)
+      features:
+        - Walk-forward analysis
+        - Monte Carlo simulation
+        - Risk-adjusted performance metrics
+        - Strategy comparison and ranking
+
+    - name: RiskManager
+      description: Position sizing and risk control
+      interfaces:
+        - calculate_position_size(signal, account_size)
+        - validate_risk_limits(position, portfolio)
+        - set_stop_loss(position, risk_tolerance)
+        - monitor_portfolio_risk()
+      algorithms:
+        - Kelly Criterion position sizing
+        - Value at Risk (VaR) calculation
+        - Maximum drawdown protection
+        - Correlation-based risk adjustment
+
+    - name: PromptOptimizer
+      description: A/B testing and optimization of AI prompts
+      interfaces:
+        - test_prompt_variation(prompt_template, test_data)
+        - track_prompt_performance(prompt_id, outcomes)
+        - generate_optimized_prompt(context, objective)
+        - analyze_prompt_effectiveness()
+      features:
+        - Genetic algorithm for prompt evolution
+        - Performance-based prompt ranking
+        - Context-aware prompt selection
+        - Automated prompt refinement
+
+data_flow:
+  - step: 1
+    description: DataFeedOrchestrator collects market data, news, and social sentiment
+    inputs: [API calls, web scraping, cached data]
+    outputs: [validated market data, sentiment scores]
+
+  - step: 2
+    description: SentimentEngine processes text data through multiple models
+    inputs: [raw text from news, Reddit, Twitter]
+    outputs: [ensemble sentiment score with confidence]
+
+  - step: 3
+    description: PredictionEngine combines market data and sentiment for price prediction
+    inputs: [market data, sentiment scores, technical indicators]
+    outputs: [price prediction with confidence and timeframe]
+
+  - step: 4
+    description: RiskManager calculates optimal position size and risk parameters
+    inputs: [prediction, confidence, account size, current positions]
+    outputs: [position size, stop loss, profit target]
+
+  - step: 5
+    description: BacktestingFramework validates strategy performance
+    inputs: [trading signals, historical data]
+    outputs: [performance metrics, optimization recommendations]
+
+  - step: 6
+    description: System updates models based on actual outcomes
+    inputs: [actual prices, trade outcomes, performance metrics]
+    outputs: [updated model weights, improved prompts]
+
+interfaces:
+  - name: TradingSignalAPI
+    description: Main interface for generating trading recommendations
+    endpoints:
+      - POST /analyze/{symbol}
+      - GET /signals/active
+      - GET /performance/metrics
+      - POST /backtest/strategy
+
+  - name: DataQualityAPI
+    description: Monitor and validate data source quality
+    endpoints:
+      - GET /data/quality/score
+      - GET /data/sources/status
+      - POST /data/validate
+
+risk_mitigations:
+  - risk: Poor data quality affecting predictions
+    mitigation: Multi-source data validation with quality scoring
+    monitoring: Automated data quality alerts
+    
+  - risk: Model overfitting to historical data
+    mitigation: Walk-forward validation and out-of-sample testing
+    monitoring: Performance degradation alerts
+
+  - risk: Sentiment model drift over time
+    mitigation: Continuous model retraining and validation
+    monitoring: Sentiment-to-price correlation tracking
+
+  - risk: Options timing precision requirements
+    mitigation: Confidence-based position sizing and early exit signals
+    monitoring: Time decay impact analysis
+
+  - risk: API rate limits affecting data collection
+    mitigation: Intelligent caching and request prioritization
+    monitoring: API usage tracking and optimization
+
+performance_targets:
+  - metric: Prediction accuracy
+    target: ">70% for directional predictions"
+    measurement: Rolling 30-day accuracy
+
+  - metric: Risk-adjusted returns
+    target: "Sharpe ratio >1.5"
+    measurement: Quarterly performance review
+
+  - metric: Maximum drawdown
+    target: "<15% portfolio drawdown"
+    measurement: Real-time monitoring
+
+  - metric: Data latency
+    target: "<5 seconds for market data"
+    measurement: Average response time
+
+  - metric: System uptime
+    target: "99.5% during market hours"
+    measurement: Availability monitoring

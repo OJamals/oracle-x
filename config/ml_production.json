@@ -1,0 +1,41 @@
+{
+  "symbols": [
+    "AAPL",
+    "GOOGL",
+    "MSFT",
+    "TSLA",
+    "NVDA",
+    "AMD",
+    "SPY",
+    "QQQ"
+  ],
+  "prediction_types": [
+    "PRICE_DIRECTION",
+    "PRICE_TARGET",
+    "VOLATILITY"
+  ],
+  "training": {
+    "schedule": "daily",
+    "time": "02:00",
+    "lookback_days": 252,
+    "min_data_quality": 0.7
+  },
+  "monitoring": {
+    "check_interval_hours": 1,
+    "alert_thresholds": {
+      "accuracy": 0.4,
+      "error_rate": 0.5,
+      "confidence": 0.3
+    }
+  },
+  "deployment": {
+    "auto_deploy": true,
+    "backup_models": true,
+    "rollback_threshold": 0.3
+  },
+  "resources": {
+    "max_concurrent_training": 3,
+    "prediction_cache_ttl": 300,
+    "model_cleanup_days": 30
+  }
+}
