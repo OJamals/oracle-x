@@ -5,6 +5,16 @@ tests/*
 .github/*
 .venv/*
 playbooks/*
-charts/*
+charts
 accounts.db
 backtest_data
+backtest_tracker
+checkpoints
+docs
+tests
+examples
+signals
+spec
+models
+config
+agent_bundle
