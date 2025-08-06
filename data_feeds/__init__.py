@@ -6,3 +6,22 @@
 # - Twitter/X: sentiment, trending tickers (snscrape)
 # - Google Trends: search interest (pytrends)
 # - News scraping: headlines, sentiment (newspaper3k, requests, bs4)
+
+# Public exports for adapter utilities
+from .investiny_adapter import (
+    search_investing_id,
+    fetch_historical_by_id,
+    get_history,
+)
+__all__ = [
+    "search_investing_id",
+    "fetch_historical_by_id",
+    "get_history",
+]
+
+# Public exports for adapter utilities
+from .investiny_adapter import (
+    search_investing_id,
+    fetch_historical_by_id,
+    get_history,
+)

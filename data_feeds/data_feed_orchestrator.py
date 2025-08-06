@@ -27,6 +27,12 @@ from data_feeds.finviz_adapter import FinVizAdapter  # New import
 from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem, Quote  # absolute imports as required
 from dotenv import load_dotenv
 from data_feeds.twitter_feed import TwitterSentimentFeed  # New import
+from data_feeds.cache_service import CacheService  # SQLite-backed cache
+# Optional Investiny compact formatter
+try:
+    from data_feeds.investiny_adapter import format_daily_oc as investiny_format_daily_oc
+except Exception:
+    investiny_format_daily_oc = None  # optional
 # Standardized adapter protocol wrappers (additive; not yet used for routing)
 try:
     from data_feeds.adapter_protocol import SourceAdapterProtocol  # type: ignore
@@ -846,6 +852,12 @@ class DataFeedOrchestrator:
             quotas_config=quotas_cfg if isinstance(quotas_cfg, dict) else None,
         )
         self.performance_tracker = PerformanceTracker()
+        # Initialize persistent cache (SQLite) for long-lived artifacts
+        try:
+            self.persistent_cache = CacheService(db_path=os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
+        except Exception as _e:
+            logger.warning(f"CacheService initialization failed, falling back to in-memory only: {_e}")
+            self.persistent_cache = None
         self.validator = DataValidator()
         
         # Initialize data source adapters
@@ -868,8 +880,41 @@ class DataFeedOrchestrator:
         self.preferred_quality_score = 80.0
         
         logger.info("DataFeedOrchestrator initialized with quality validation")
+        # Trends TTL fallback (hours)
+        try:
+            self.trends_ttl_seconds = int(os.getenv("TRENDS_TTL_H", "24")) * 3600
+        except Exception:
+            self.trends_ttl_seconds = 24 * 3600
+
+        # Defaults for new endpoints
+        try:
+            self.DIVSPLITS_TTL_D = int(os.getenv("DIVSPLITS_TTL_D", "7"))
+        except Exception:
+            self.DIVSPLITS_TTL_D = 7
+        try:
+            self.EARNINGS_TTL_H = int(os.getenv("EARNINGS_TTL_H", "24"))
+        except Exception:
+            self.EARNINGS_TTL_H = 24
+        try:
+            self.OPTIONS_TTL_MIN = int(os.getenv("OPTIONS_TTL_MIN", "15"))
+        except Exception:
+            self.OPTIONS_TTL_MIN = 15
+        self.CONSERVE_FMP_BANDWIDTH = os.getenv("CONSERVE_FMP_BANDWIDTH", "true").lower() in ("1","true","yes")
+        self.RISK_FREE_RATE = float(os.getenv("RISK_FREE_RATE", "0.0"))
+        self.CONTRACT_MULTIPLIER = 100.0
+
         # Lazy consolidated feed for delegation parity with legacy ConsolidatedDataFeed
         self._consolidated_feed: Optional[ConsolidatedDataFeed] = None
+
+        # Feature flags / config for Investiny compact formatter
+        self.enable_investiny_compact: bool = True
+        self.investiny_default_range: Optional[str] = None
+        try:
+            # If external config object exposes these, honor them
+            self.enable_investiny_compact = bool(getattr(loaded_config, "enable_investiny_compact", True))
+            self.investiny_default_range = getattr(loaded_config, "investiny_date_range", None)
+        except Exception:
+            pass
 
         # Initialize standardized adapter wrappers for future orchestration use.
         # This is guarded and does not change behavior if initialization fails.
@@ -877,6 +922,12 @@ class DataFeedOrchestrator:
             self._init_standard_adapters()
         except Exception as _e:
             logger.warning(f"Standard adapter wrapper initialization skipped: {_e}")
+        # Initialize options snapshot schema (best-effort)
+        try:
+            from data_feeds import options_store as _opts_store  # type: ignore
+            _opts_store.ensure_schema(os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
+        except Exception:
+            pass
     
     def get_quote(self, symbol: str, preferred_sources: Optional[List[DataSource]] = None) -> Optional[Quote]:
         """
@@ -1058,6 +1109,478 @@ class DataFeedOrchestrator:
         if self._consolidated_feed is None:
             self._consolidated_feed = ConsolidatedDataFeed()
         return self._consolidated_feed
+
+    # =========================
+    # New endpoints
+    # =========================
+    def get_dividends_and_splits(self, symbol: str) -> Optional[dict]:
+        """
+        Uses yfinance.Ticker(symbol).dividends and .splits
+        Normalizes to dict: {"dividends":[{date,amount}], "splits":[{date,ratio}]}
+        Persists via CacheService with TTL days from DIVSPLITS_TTL_D (default 7)
+        """
+        if not symbol:
+            return None
+        params = {"symbol": symbol}
+        key_hash = None
+        entry = None
+        if getattr(self, "persistent_cache", None):
+            try:
+                key_hash = self.persistent_cache.make_key("dividends_splits", params)  # type: ignore
+                entry = self.persistent_cache.get(key_hash)  # type: ignore
+                if entry and not entry.is_expired() and entry.payload_json:
+                    return entry.payload_json  # type: ignore
+            except Exception:
+                entry = None
+
+        try:
+            t = yf.Ticker(symbol)
+            div = t.dividends
+            spl = t.splits
+            out = {"dividends": [], "splits": []}
+            if div is not None and hasattr(div, "items"):
+                for idx, val in div.items():
+                    try:
+                        date_s = str(idx.date())
+                    except Exception:
+                        date_s = str(idx)
+                    try:
+                        amt = float(val)
+                    except Exception:
+                        amt = None
+                    if amt is not None:
+                        out["dividends"].append({"date": date_s, "amount": amt})
+            if spl is not None and hasattr(spl, "items"):
+                for idx, val in spl.items():
+                    try:
+                        date_s = str(idx.date())
+                    except Exception:
+                        date_s = str(idx)
+                    try:
+                        ratio = float(val)
+                    except Exception:
+                        ratio = None
+                    if ratio is not None:
+                        out["splits"].append({"date": date_s, "ratio": ratio})
+        except Exception as e:
+            logger.error(f"dividends/splits fetch failed for {symbol}: {e}")
+            return None
+
+        if getattr(self, "persistent_cache", None):
+            try:
+                if key_hash is None:
+                    key_hash = self.persistent_cache.make_key("dividends_splits", params)  # type: ignore
+                self.persistent_cache.set(  # type: ignore
+                    key=key_hash,
+                    endpoint="dividends_splits",
+                    symbol=symbol,
+                    ttl_seconds=int(self.DIVSPLITS_TTL_D) * 86400,
+                    payload_json=out,
+                    source="yfinance",
+                    metadata_json={"params": params},
+                )
+            except Exception as e:
+                logger.warning(f"[cache] dividends_splits write failed: {e}")
+        return out
+
+    def get_earnings_calendar_detailed(self, tickers: Optional[list[str]] = None) -> Optional[list[dict]]:
+        """
+        Uses FMP earning_calendar for the next 60 days.
+        Respects CONSERVE_FMP_BANDWIDTH (default true). TTL EARNINGS_TTL_H (default 24h).
+        If FMP fails (e.g., 403), falls back to FinViz earnings and normalizes to the same schema.
+        """
+        base_params = {"tickers": tickers or []}
+        key_hash = None
+        entry = None
+        if getattr(self, "persistent_cache", None):
+            try:
+                key_hash = self.persistent_cache.make_key("earnings_calendar", base_params)  # type: ignore
+                entry = self.persistent_cache.get(key_hash)  # type: ignore
+                if entry and not entry.is_expired() and entry.payload_json:
+                    return entry.payload_json  # type: ignore
+            except Exception:
+                entry = None
+
+        if self.CONSERVE_FMP_BANDWIDTH and entry and not entry.is_expired() and entry.payload_json:
+            return entry.payload_json  # type: ignore
+
+        out_list: list[dict] = []
+        source_used = "fmp"
+        success = False
+
+        # Try FMP first when API key present
+        api_key = os.getenv("FINANCIALMODELINGPREP_API_KEY")
+        if api_key:
+            today = datetime.utcnow().date()
+            to_date = today + timedelta(days=60)
+            url = (
+                "https://financialmodelingprep.com/api/v3/earning_calendar"
+                f"?from={today.isoformat()}&to={to_date.isoformat()}&apikey={api_key}"
+            )
+            try:
+                resp = requests.get(url, timeout=20)
+                resp.raise_for_status()
+                data = resp.json()
+                if isinstance(data, list):
+                    for item in data:
+                        try:
+                            sym = str(item.get("symbol") or item.get("ticker") or "")
+                            date_s = str(item.get("date") or item.get("epsDate") or "")
+                            time_day = item.get("time") or item.get("timeOfDay")
+                            if time_day is not None:
+                                time_day = str(time_day).lower()
+                            eps_est = item.get("epsEstimated") if "epsEstimated" in item else item.get("epsEstimate")
+                            eps_act = item.get("eps") if "eps" in item else item.get("epsActual")
+                            rev_est = item.get("revenueEstimated") if "revenueEstimated" in item else item.get("revenueEstimate")
+                            rev_act = item.get("revenue") if "revenue" in item else item.get("revenueActual")
+                            out_list.append(
+                                {
+                                    "symbol": sym,
+                                    "date": date_s,
+                                    "time": time_day if time_day in ("bmo", "amc") else (None if time_day in (None, "", "none") else str(time_day)),
+                                    "eps_estimate": float(eps_est) if eps_est is not None else None,
+                                    "eps_actual": float(eps_act) if eps_act is not None else None,
+                                    "revenue_estimate": float(rev_est) if rev_est is not None else None,
+                                    "revenue_actual": float(rev_act) if rev_act is not None else None,
+                                }
+                            )
+                        except Exception:
+                            continue
+                    success = True
+            except Exception as e:
+                logger.error(f"FMP earnings calendar fetch failed: {e}")
+
+        # Fallback to FinViz when FMP failed or no key
+        if not success:
+            adapter = self.adapters.get(DataSource.FINVIZ)
+            try:
+                finviz_payload = adapter.get_earnings() if adapter and hasattr(adapter, "get_earnings") else None
+                df = None
+                if isinstance(finviz_payload, dict):
+                    # Try common keys first
+                    for k in ["earnings", "upcoming_earnings", "calendar", "Earnings"]:
+                        if k in finviz_payload:
+                            df = finviz_payload[k]
+                            break
+                    # Otherwise pick the first DataFrame-like value
+                    if df is None:
+                        for v in finviz_payload.values():
+                            if hasattr(v, "empty"):
+                                df = v
+                                break
+                if df is not None and hasattr(df, "empty") and not df.empty:
+                    cols = {c.lower(): c for c in df.columns}
+                    def pick(*names):
+                        for n in names:
+                            if n in cols:
+                                return cols[n]
+                        return None
+                    sym_c = pick("ticker", "symbol")
+                    date_c = pick("date", "earnings date", "earnings_date")
+                    time_c = pick("time", "time of day", "time_of_day")
+                    eps_est_c = pick("eps estimate", "eps_estimate", "estimate")
+                    eps_act_c = pick("eps", "eps actual", "eps_actual")
+                    rev_est_c = pick("revenue estimate", "revenue_estimate")
+                    rev_act_c = pick("revenue", "revenue_actual")
+                    for _, row in df.iterrows():
+                        try:
+                            sym = str(row[sym_c]) if sym_c in df.columns else ""
+                            date_s = str(row[date_c]) if date_c in df.columns else ""
+                            time_day = None
+                            if time_c in df.columns:
+                                td = str(row[time_c]).lower() if row[time_c] is not None else None
+                                if td in ("bmo", "amc"):
+                                    time_day = td
+                                elif td in ("before market open", "pre-market", "premarket"):
+                                    time_day = "bmo"
+                                elif td in ("after market close", "post-market", "after-hours", "after hours"):
+                                    time_day = "amc"
+                            def fget(c):
+                                if c in df.columns and row[c] is not None and str(row[c]).strip() != "":
+                                    try:
+                                        return float(row[c])
+                                    except Exception:
+                                        return None
+                                return None
+                            out_list.append(
+                                {
+                                    "symbol": sym,
+                                    "date": date_s,
+                                    "time": time_day,
+                                    "eps_estimate": fget(eps_est_c),
+                                    "eps_actual": fget(eps_act_c),
+                                    "revenue_estimate": fget(rev_est_c),
+                                    "revenue_actual": fget(rev_act_c),
+                                }
+                            )
+                        except Exception:
+                            continue
+                    success = True
+                    source_used = "finviz"
+            except Exception as e:
+                logger.error(f"FinViz earnings fallback failed: {e}")
+
+        # Optional filter by tickers
+        if tickers and out_list:
+            tset = set(s.upper() for s in tickers)
+            out_list = [x for x in out_list if (x.get("symbol","") or "").upper() in tset]
+
+        # Persist if successful
+        if success and out_list and getattr(self, "persistent_cache", None):
+            try:
+                if key_hash is None:
+                    key_hash = self.persistent_cache.make_key("earnings_calendar", base_params)  # type: ignore
+                self.persistent_cache.set(  # type: ignore
+                    key=key_hash,
+                    endpoint="earnings_calendar",
+                    symbol=None,
+                    ttl_seconds=int(self.EARNINGS_TTL_H) * 3600,
+                    payload_json=out_list,
+                    source=source_used,
+                    metadata_json={"params": base_params},
+                )
+            except Exception as e:
+                logger.warning(f"[cache] earnings_calendar write failed: {e}")
+
+        return out_list if success and out_list else (entry.payload_json if entry and entry.payload_json else None)
+
+    def get_options_analytics(self, symbol: str, include: list[str] | None = None) -> Optional[dict]:
+        """
+        Uses yfinance to fetch nearest expiry chain, snapshots via options_store, and computes:
+        IV, Greeks, GEX, Max Pain. Caches analytics for OPTIONS_TTL_MIN.
+        """
+        include = include or ['chain','iv','greeks','gex','max_pain']
+        if not symbol:
+            return None
+
+        params = {"symbol": symbol, "include": sorted(include)}
+        key_hash = None
+        if getattr(self, "persistent_cache", None):
+            try:
+                key_hash = self.persistent_cache.make_key("options_analytics", params)  # type: ignore
+                entry = self.persistent_cache.get(key_hash)  # type: ignore
+                if entry and not entry.is_expired() and entry.payload_json:
+                    return entry.payload_json  # type: ignore
+            except Exception:
+                pass
+
+        # Imports
+        try:
+            from data_feeds import options_store as _opts_store  # type: ignore
+            from data_feeds import options_math as _opts_math   # type: ignore
+        except Exception as e:
+            logger.error(f"Options modules import failed: {e}")
+            return None
+
+        # Underlying price and info
+        try:
+            t = yf.Ticker(symbol)
+            info = t.info or {}
+            S = None
+            for k in ("regularMarketPrice", "currentPrice", "previousClose", "close"):
+                if info.get(k) is not None:
+                    try:
+                        S = float(info.get(k))
+                        if S and S > 0:
+                            break
+                    except Exception:
+                        continue
+            if not S or S <= 0:
+                hist = t.history(period="5d", interval="1d")
+                if hist is not None and not hist.empty and "Close" in hist.columns:
+                    S = float(hist["Close"].iloc[-1])
+        except Exception as e:
+            logger.error(f"Failed to get underlying price for {symbol}: {e}")
+            return None
+        if not S or S <= 0:
+            return None
+
+        # Dividend yield estimate q from dividendRate / price
+        q = 0.0
+        try:
+            div_rate = info.get("dividendRate")
+            if div_rate is not None and S > 0:
+                q = max(0.0, float(div_rate) / float(S))
+        except Exception:
+            q = 0.0
+        r = self.RISK_FREE_RATE
+
+        # Nearest expiry
+        try:
+            expirations = t.options or []
+            if not expirations:
+                return None
+            today = datetime.utcnow().date()
+            exps_sorted = sorted(expirations, key=lambda d: abs((datetime.strptime(d, "%Y-%m-%d").date() - today).days))
+            nearest_exp = exps_sorted[0]
+            expiry_date = datetime.strptime(nearest_exp, "%Y-%m-%d").date()
+        except Exception as e:
+            logger.error(f"Failed to get options expirations for {symbol}: {e}")
+            return None
+
+        T_days = max(1, (expiry_date - today).days)
+        T = T_days / 365.0
+
+        # Chains
+        try:
+            oc = t.option_chain(nearest_exp)
+            calls = oc.calls
+            puts = oc.puts
+        except Exception as e:
+            logger.error(f"Failed to get option chain for {symbol} {nearest_exp}: {e}")
+            return None
+
+        now_ts = int(time.time())
+        db_path = os.getenv("CACHE_DB_PATH", "./model_monitoring.db")
+        rows = []
+
+        def safe_num(v, cast=float):
+            try:
+                if v is None:
+                    return None
+                return cast(v)
+            except Exception:
+                return None
+
+        def build_rows(df, put_call: str):
+            if df is None:
+                return
+            for _, row in df.iterrows():
+                rows.append(
+                    {
+                        "symbol": symbol,
+                        "expiry": nearest_exp,
+                        "chain_date": now_ts,
+                        "put_call": put_call,
+                        "strike": safe_num(row.get("strike"), float),
+                        "last": safe_num(row.get("lastPrice"), float),
+                        "bid": safe_num(row.get("bid"), float),
+                        "ask": safe_num(row.get("ask"), float),
+                        "volume": safe_num(row.get("volume"), int),
+                        "open_interest": safe_num(row.get("openInterest"), int),
+                        "underlying": float(S),
+                        "source": "yfinance",
+                    }
+                )
+
+        build_rows(calls, "call")
+        build_rows(puts, "put")
+
+        # Snapshot upsert
+        try:
+            _opts_store.upsert_snapshot_many(db_path, rows)
+        except Exception as e:
+            logger.warning(f"Options snapshot upsert failed: {e}")
+
+        result: dict = {}
+        strikes = []
+
+        # IV and Greeks
+        iv_map = {}
+        greeks_map = {}
+        if 'iv' in include or 'greeks' in include or 'gex' in include:
+            for rrow in rows:
+                pc = rrow["put_call"]
+                strike = rrow["strike"]
+                if strike is None:
+                    continue
+                strikes.append(strike)
+                mid = None
+                bid = rrow.get("bid")
+                ask = rrow.get("ask")
+                last_p = rrow.get("last")
+                if bid is not None and ask is not None and bid <= ask and bid >= 0 and ask > 0:
+                    mid = 0.5 * (bid + ask)
+                elif last_p is not None and last_p > 0:
+                    mid = float(last_p)
+                if mid is None or mid <= 0:
+                    continue
+                try:
+                    iv = _opts_math.implied_vol(mid, S, strike, r, q, T, put_call=pc)
+                except Exception:
+                    iv = None
+                if iv is not None:
+                    iv_map[(pc, strike)] = iv
+                    try:
+                        greeks = _opts_math.bs_greeks(S, strike, r, q, iv, T, put_call=pc)
+                    except Exception:
+                        greeks = None
+                    if greeks:
+                        greeks_map[(pc, strike)] = greeks
+
+        if 'iv' in include:
+            result['iv'] = [{"put_call": pc, "strike": k, "iv": float(v)} for (pc, k), v in iv_map.items()]
+        if 'greeks' in include:
+            out_g = []
+            for (pc, k), g in greeks_map.items():
+                gg = dict(g)
+                out_g.append({"put_call": pc, "strike": k, **gg})
+            result['greeks'] = out_g
+
+        if 'chain' in include:
+            result['chain'] = rows
+
+        # GEX heuristic: gamma * contract_multiplier * S^2 * OI
+        if 'gex' in include:
+            total_gex = 0.0
+            for rrow in rows:
+                pc = rrow["put_call"]
+                strike = rrow["strike"]
+                oi = rrow.get("open_interest") or 0
+                g = greeks_map.get((pc, strike))
+                if not g:
+                    continue
+                gamma = float(g.get("gamma") or 0.0)
+                total_gex += gamma * self.CONTRACT_MULTIPLIER * (S ** 2) * float(oi)
+            result['gex'] = {"total_gamma_exposure": float(total_gex)}
+
+        # Max Pain
+        if 'max_pain' in include and strikes:
+            unique_strikes = sorted(set([s for s in strikes if s is not None]))
+            oi_map = {}
+            for rrow in rows:
+                pc = rrow["put_call"]
+                strike = rrow["strike"]
+                if strike is None:
+                    continue
+                oi_map.setdefault((pc, strike), 0)
+                oi_map[(pc, strike)] += int(rrow.get("open_interest") or 0)
+
+            def pain_at_price(P):
+                pain = 0.0
+                for (pc, k), oi in oi_map.items():
+                    intrinsic = max(0.0, P - k) if pc == "call" else max(0.0, k - P)
+                    pain += intrinsic * oi * self.CONTRACT_MULTIPLIER
+                return pain
+
+            best_P = None
+            best_pain = None
+            for k in unique_strikes:
+                p = pain_at_price(k)
+                if best_pain is None or p < best_pain:
+                    best_pain = p
+                    best_P = k
+            result['max_pain'] = {"strike": float(best_P) if best_P is not None else None,
+                                  "pain": float(best_pain) if best_pain is not None else None}
+
+        # Cache analytics
+        if getattr(self, "persistent_cache", None):
+            try:
+                if key_hash is None:
+                    key_hash = self.persistent_cache.make_key("options_analytics", params)  # type: ignore
+                self.persistent_cache.set(  # type: ignore
+                    key=key_hash,
+                    endpoint="options_analytics",
+                    symbol=symbol,
+                    ttl_seconds=int(self.OPTIONS_TTL_MIN) * 60,
+                    payload_json=result,
+                    source="yfinance",
+                    metadata_json={"params": params, "expiry": nearest_exp},
+                )
+            except Exception as e:
+                logger.warning(f"[cache] options_analytics write failed: {e}")
+
+        return result
 
     def get_company_info(self, symbol: str) -> Optional[CompanyInfo]:
         """
@@ -1520,6 +2043,93 @@ class DataFeedOrchestrator:
             logger.error(f"FinViz crypto error: {e}")
             return None
 
+    # ---------------------------------------------------------------------
+    # Google Trends (new orchestrator endpoint with persistent caching)
+    # ---------------------------------------------------------------------
+    def get_google_trends(self, keywords: Union[str, List[str]], timeframe: str = "now 7-d", geo: str = "US") -> Optional[Dict[str, Dict[str, Any]]]:
+        """
+        Fetch Google Trends interest over time for the given keywords using pytrends,
+        with SQLite-backed caching to minimize repeated fetches.
+
+        Returns dict: keyword -> {timestamp_str: value}
+        """
+        try:
+            from data_feeds.google_trends import fetch_google_trends as _fetch_trends
+        except Exception as e:
+            logger.error(f"Google Trends module import failed: {e}")
+            return None
+
+        # Build a stable cache key using persistent cache service if available
+        params = {
+            "keywords": keywords if isinstance(keywords, list) else [keywords],
+            "timeframe": timeframe,
+            "geo": geo,
+        }
+        key_hash = None
+        if getattr(self, "persistent_cache", None):
+            try:
+                key_hash = self.persistent_cache.make_key("google_trends", params)  # type: ignore
+                entry = self.persistent_cache.get(key_hash)  # type: ignore
+                if entry and not entry.is_expired() and entry.payload_json:
+                    return entry.payload_json  # type: ignore
+            except Exception as e:
+                logger.debug(f"Persistent cache read failed, proceeding to fetch: {e}")
+
+        # Rate limiting nominally via SmartCache/none for Google (pytrends throttled internally)
+        start_time = time.time()
+        try:
+            result = _fetch_trends(params["keywords"], timeframe=timeframe, geo=geo)
+            # Normalize to strictly JSON-serializable dict[str, dict[str, int]]
+            if isinstance(result, dict):
+                normalized: Dict[str, Dict[str, int]] = {}
+                for kw, series in result.items():
+                    kw_str = str(kw)
+                    norm_series: Dict[str, int] = {}
+                    if isinstance(series, dict):
+                        for ts, val in series.items():
+                            # force keys to strings; pandas.Timestamp will stringify here
+                            ts_s = str(ts)
+                            # coerce values to int, safely
+                            v_i = 0
+                            try:
+                                v_i = int(val) if val is not None else 0
+                            except Exception:
+                                try:
+                                    v_i = int(float(val)) if val is not None else 0
+                                except Exception:
+                                    v_i = 0
+                            norm_series[ts_s] = v_i
+                    normalized[kw_str] = norm_series
+                result = normalized
+            quality_score = 90.0 if isinstance(result, dict) and len(result) > 0 else 60.0
+            # Record performance under GOOGLE_TRENDS
+            self.performance_tracker.record_success(DataSource.GOOGLE_TRENDS.value, (time.time()-start_time)*1000, quality_score)
+        except Exception as e:
+            self.performance_tracker.record_error(DataSource.GOOGLE_TRENDS.value, str(e))
+            logger.error(f"Google Trends fetch failed: {e}")
+            return None
+
+        # Persist in SQLite cache
+        if getattr(self, "persistent_cache", None) and isinstance(result, dict):
+            try:
+                if key_hash is None:
+                    key_hash = self.persistent_cache.make_key("google_trends", params)  # type: ignore
+                self.persistent_cache.set(  # type: ignore
+                    key=key_hash,
+                    endpoint="google_trends",
+                    symbol=None,
+                    ttl_seconds=getattr(self, "trends_ttl_seconds", 24*3600),
+                    payload_json=result,
+                    source=DataSource.GOOGLE_TRENDS.value,
+                    metadata_json={"params": params},
+                )
+                logger.info(f"[cache] google_trends persisted key={key_hash} ttl={getattr(self, 'trends_ttl_seconds', 24*3600)}s")
+            except Exception as e:
+                # Emit first 120 chars of error for visibility
+                logger.warning(f"[cache] google_trends write failed: {str(e)[:120]}")
+
+        return result
+
 # ----------------------------------------------------------------------------
 # New delegation methods to ConsolidatedDataFeed for compatibility during consolidation
 # ----------------------------------------------------------------------------
@@ -1552,6 +2162,27 @@ def get_orchestrator() -> DataFeedOrchestrator:
     if _global_orchestrator is None:
         _global_orchestrator = DataFeedOrchestrator()
     return _global_orchestrator
+
+
+# ----------------------------------------------------------------------------
+# Investiny compact helpers (unified interface)
+# ----------------------------------------------------------------------------
+def get_investiny_daily_oc(symbols: List[str], date_range_or_start: str, end_date: Optional[str] = None) -> Dict[str, str]:
+    """
+    Return compact daily open/close strings for each symbol using Investiny:
+      {'AAPL': 'YYYY-MM-DD o:x, c:y YYYY-MM-DD o:x, c:y ...', ...}
+
+    Accepts either 'YYYY-MM-DD-YYYY-MM-DD' or ('YYYY-MM-DD', 'YYYY-MM-DD')
+    """
+    out: Dict[str, str] = {}
+    if investiny_format_daily_oc is None:
+        return out
+    for s in symbols or []:
+        try:
+            out[s] = investiny_format_daily_oc(s, date_range_or_start, end_date)  # type: ignore
+        except Exception as e:
+            out[s] = f"error:{e}"
+    return out
 
 def get_quote(symbol: str) -> Optional[Quote]:
     """Get real-time quote (unified interface)"""
