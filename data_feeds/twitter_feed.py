@@ -17,6 +17,13 @@ logger.setLevel(logging.WARNING)
 logging.getLogger('httpx').setLevel(logging.WARNING)
 logging.getLogger('httpcore').setLevel(logging.WARNING)
 
+logging.captureWarnings(True)
+class CardFilter(logging.Filter):
+    def filter(self, record):
+        return "Unknown card type" not in record.getMessage()
+
+logging.getLogger('py.warnings').addFilter(CardFilter())
+
 # Optional imports with graceful fallback
 try:
     from textblob import TextBlob
@@ -171,6 +178,11 @@ class TwitterSentimentFeed:
         results = []
         processed_count = 0
         
+        import sys
+        import os
+        original_stderr = sys.stderr
+        sys.stderr = open(os.devnull, 'w')
+
         try:
             # Reduce limit to improve performance
             reduced_limit = min(limit, 20)  # Cap at 20 tweets for faster processing
@@ -234,6 +246,9 @@ class TwitterSentimentFeed:
                 
         except Exception as e:
             logger.error(f"Error fetching tweets for query '{query}': {e}")
+        finally:
+            sys.stderr.close()
+            sys.stderr = original_stderr
             
         logger.info(f"Fetched {len(results)} tweets for query '{query}' (processed {processed_count})")
         return results
