@@ -16,6 +16,8 @@ Behavior:
   - Exit code 0 on success with data, non-zero if fetch fails or invalid input
   - Gracefully handles missing API keys and prints "skipped (missing key)" when applicable
   - Respects orchestrator's .env loading via config_loader inside orchestrator
+  - Supports --json flag for structured output without status messages
+  - Supports --exit-zero-even-on-error flag for test continuity
 
 Examples:
   python cli_validate.py quote --symbol AAPL
@@ -29,6 +31,7 @@ Examples:
   python cli_validate.py market_breadth
   python cli_validate.py sector_performance
   python cli_validate.py compare --value 195.23 --ref_value 196.5 --tolerance_pct 2.0
+  python cli_validate.py quote --symbol AAPL --json --exit-zero-even-on-error
 """
 
 import argparse
@@ -38,13 +41,17 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 from decimal import Decimal
 
+# Global flags for structured output mode
+_STRUCTURED_OUTPUT = False
+_EXIT_ZERO_EVEN_ON_ERROR = False
+
 # Import orchestrator module-level forwards
 try:
     from data_feeds import data_feed_orchestrator as orch
 except Exception as e:
-    print(json.dumps({"ok": False, "error": f"Failed to import orchestrator: {e}"}))
-    sys.exit(2)
-
+    if not _STRUCTURED_OUTPUT:
+        print(json.dumps({"ok": False, "error": f"Failed to import orchestrator: {e}"}))
+    sys.exit(2 if not _EXIT_ZERO_EVEN_ON_ERROR else 0)
 
 def _dt_iso(dt: Optional[datetime]) -> Optional[str]:
     if dt is None:
@@ -107,7 +114,7 @@ def _df_last_row_summary(df) -> Optional[Dict[str, Any]]:
 
 def out(obj: Dict[str, Any], code: int) -> None:
     print(json.dumps(obj, default=_json_default, ensure_ascii=False))
-    sys.exit(code)
+    sys.exit(code if not _EXIT_ZERO_EVEN_ON_ERROR else 0)
 
 
 def cmd_quote(args: argparse.Namespace) -> None:
@@ -372,6 +379,10 @@ def cmd_compare(args: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Oracle-X CLI Validation")
+    # Add global flags to main parser
+    p.add_argument("--json", action="store_true", help="Output full JSON without status messages")
+    p.add_argument("--exit-zero-even-on-error", action="store_true", help="Exit with code 0 even on error for test continuity")
+    
     sub = p.add_subparsers(dest="command", required=True)
 
     # quote
@@ -379,7 +390,7 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--symbol", required=True)
     sp.add_argument("--preferred_sources", required=False, help="Comma-separated list, e.g., yfinance,twelve_data")
     sp.set_defaults(func=cmd_quote)
-
+    
     # market_data
     sp = sub.add_parser("market_data", help="Get historical market data")
     sp.add_argument("--symbol", required=True)
@@ -387,59 +398,65 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--interval", default="1d")
     sp.add_argument("--preferred_sources", required=False, help="Comma-separated list, e.g., yfinance,twelve_data")
     sp.set_defaults(func=cmd_market_data)
-
+    
     # company_info
     sp = sub.add_parser("company_info", help="Get company info")
     sp.add_argument("--symbol", required=True)
     sp.set_defaults(func=cmd_company_info)
-
+    
     # news
     sp = sub.add_parser("news", help="Get company news")
     sp.add_argument("--symbol", required=True)
     sp.add_argument("--limit", type=int, default=5)
     sp.set_defaults(func=cmd_news)
-
+    
     # multiple_quotes
     sp = sub.add_parser("multiple_quotes", help="Get multiple quotes")
     sp.add_argument("--symbols", required=True, help="Comma-separated symbols, e.g., AAPL,MSFT,SPY")
     sp.set_defaults(func=cmd_multiple_quotes)
-
+    
     # financial_statements
     sp = sub.add_parser("financial_statements", help="Get financial statements if available")
     sp.add_argument("--symbol", required=True)
     sp.set_defaults(func=cmd_financial_statements)
-
+    
     # sentiment
     sp = sub.add_parser("sentiment", help="Get sentiment by source")
     sp.add_argument("--symbol", required=True)
     sp.set_defaults(func=cmd_sentiment)
-
+    
     # advanced_sentiment
     sp = sub.add_parser("advanced_sentiment", help="Get advanced sentiment if texts available")
     sp.add_argument("--symbol", required=True)
     sp.set_defaults(func=cmd_advanced_sentiment)
-
+    
     # market_breadth
     sp = sub.add_parser("market_breadth", help="Get market breadth summary")
     sp.set_defaults(func=cmd_market_breadth)
-
+    
     # sector_performance
     sp = sub.add_parser("sector_performance", help="Get sector performance summary")
     sp.set_defaults(func=cmd_sector_performance)
-
+    
     # compare
     sp = sub.add_parser("compare", help="Compare values and evaluate tolerance")
     sp.add_argument("--value", required=True)
     sp.add_argument("--ref_value", required=True)
     sp.add_argument("--tolerance_pct", required=True)
     sp.set_defaults(func=cmd_compare)
-
+    
     return p
 
 
 def main(argv: Optional[List[str]] = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
+    
+    # Set global flags
+    global _STRUCTURED_OUTPUT, _EXIT_ZERO_EVEN_ON_ERROR
+    _STRUCTURED_OUTPUT = args.json
+    _EXIT_ZERO_EVEN_ON_ERROR = args.exit_zero_even_on_error
+    
     args.func(args)
 
 

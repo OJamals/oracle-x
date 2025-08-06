@@ -11,6 +11,11 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
 # Configure logging to reduce verbosity
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.WARNING)
+
+# Suppress httpx and other verbose logging
+logging.getLogger('httpx').setLevel(logging.WARNING)
+logging.getLogger('httpcore').setLevel(logging.WARNING)
 
 # Optional imports with graceful fallback
 try:
@@ -167,8 +172,10 @@ class TwitterSentimentFeed:
         processed_count = 0
         
         try:
-            async for tweet in api.search(query, limit=limit):
-                if processed_count >= limit:
+            # Reduce limit to improve performance
+            reduced_limit = min(limit, 20)  # Cap at 20 tweets for faster processing
+            async for tweet in api.search(query, limit=reduced_limit):
+                if processed_count >= reduced_limit:
                     break
                 
                 # Get tweet content
@@ -196,11 +203,22 @@ class TwitterSentimentFeed:
                 likes = getattr(tweet, 'likeCount', 0) or 0
                 retweets = getattr(tweet, 'retweetCount', 0) or 0
                 
+                # Truncate text to reduce memory usage and token consumption
+                truncated_text = text[:200] + "..." if len(text) > 200 else text
+                truncated_clean = clean_text[:150] + "..." if len(clean_text) > 150 else clean_text
+                
+                # Further truncate text to reduce token consumption and clean up URLs
+                if len(truncated_text) > 100:
+                    # Remove long URLs and replace with placeholder
+                    cleaned_truncated = self.URL_PATTERN.sub('[URL]', truncated_text[:100] + "...")
+                else:
+                    cleaned_truncated = truncated_text
+                
                 tweet_data = {
-                    "text": text,
-                    "clean_text": clean_text,
+                    "text": cleaned_truncated,
+                    "clean_text": truncated_clean,
                     "sentiment": sentiment,
-                    "tickers": tickers,
+                    "tickers": tickers[:3],  # Limit tickers
                     "language": language,
                     "likes": likes,
                     "retweets": retweets,

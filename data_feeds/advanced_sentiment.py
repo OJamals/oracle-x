@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
 import threading
+import torch.multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import statistics
 
@@ -56,7 +57,7 @@ class SentimentSummary:
     quality_score: float
 
 class FinancialLexicon:
-    """Enhanced financial sentiment lexicon"""
+    """Enhanced financial sentiment lexicon with sector/macro/context markers and dispersion-aware scoring."""
     
     def __init__(self):
         # Bullish terms with intensity scores
@@ -66,7 +67,9 @@ class FinancialLexicon:
             'outperform': 1.2, 'upgrade': 1.3, 'target': 1.1, 'beat': 1.4,
             'strong': 1.2, 'momentum': 1.1, 'bullish': 1.5, 'pump': 1.8,
             'hodl': 1.3, 'diamond hands': 2.0, 'to the moon': 2.5,
-            'earnings beat': 1.6, 'guidance raise': 1.7, 'revenue growth': 1.3
+            'earnings beat': 1.6, 'guidance raise': 1.7, 'revenue growth': 1.3,
+            'pricing power': 1.4, 'backlog expanded': 1.2, 'book-to-bill': 1.1,
+            'beat and raise': 1.8, 'reacceleration': 1.3, 'visibility improved': 1.1
         }
         
         # Bearish terms with intensity scores
@@ -76,29 +79,72 @@ class FinancialLexicon:
             'underperform': -1.2, 'downgrade': -1.3, 'miss': -1.4, 'weak': -1.2,
             'bearish': -1.5, 'bubble': -1.6, 'overvalued': -1.3, 'resistance': -1.1,
             'paper hands': -1.8, 'rugpull': -2.5, 'bag holder': -1.9,
-            'earnings miss': -1.6, 'guidance cut': -1.7, 'revenue decline': -1.3
+            'earnings miss': -1.6, 'guidance cut': -1.7, 'revenue decline': -1.3,
+            'margin compression': -1.4, 'inventory overhang': -1.2, 'order cancellations': -1.3,
+            'probe': -1.1, 'settlement': -0.6, 'class action': -1.2, 'regulatory risk': -1.1,
+            'weak sell-through': -1.0, 'credit losses': -1.1, 'liquidity stress': -1.2
         }
         
-        # Market regime terms
+        # Macro/sector regime terms (contextual, smaller weights)
         self.regime_terms = {
             'volatility': -0.5, 'uncertainty': -0.8, 'correction': -1.2,
             'rotation': 0.0, 'consolidation': -0.3, 'institutional': 0.5,
-            'retail': 0.2, 'volume': 0.1, 'options flow': 0.3
+            'retail': 0.2, 'volume': 0.1, 'options flow': 0.3,
+            'soft landing': 0.6, 'hard landing': -0.9, 'disinflation': 0.5,
+            'stagflation': -1.4, 'tightening': -0.6, 'easing': 0.5,
+            'recession risk': -1.1, 'credit crunch': -1.2
         }
+
+        # Qualifiers: intensifiers/diminishers/negations affect weighting
+        self.intensifiers = {'materially': 1.25, 'significantly': 1.2, 'substantially': 1.2, 'meaningfully': 1.15, 'strongly': 1.1}
+        self.diminishers = {'slightly': 0.85, 'modestly': 0.9, 'marginally': 0.9, 'somewhat': 0.92}
+        self.negations = {"not", "no", "without", "lack", "isn't", "wasn't", "aren't", "weren't", "never"}
+        
+        # Forward-looking markers vs backward-looking
+        self.forward_markers = {'expects', 'guiding', 'outlook', 'forecast', 'project', 'anticipate', 'targets', 'sees'}
+        self.backward_markers = {'reported', 'was', 'were', 'had', 'realized'}
+
+    def _apply_qualifiers(self, text_tokens: List[str], base_weight: float, hit_index: int) -> float:
+        window = 3
+        w = base_weight
+        start = max(0, hit_index - window)
+        end = min(len(text_tokens), hit_index + window + 1)
+        context = set(text_tokens[start:end])
+        if any(tok in self.negations for tok in context):
+            w = -abs(w) * 0.8 if w > 0 else abs(w) * 0.8
+        for tok in context:
+            if tok in self.intensifiers:
+                w *= self.intensifiers[tok]
+            elif tok in self.diminishers:
+                w *= self.diminishers[tok]
+        return w
+
+    def _context_boost(self, text_tokens: List[str], score: float) -> float:
+        tokens = set(text_tokens)
+        if any(t in tokens for t in self.forward_markers):
+            score *= 1.08
+        if any(t in tokens for t in self.backward_markers):
+            score *= 0.96
+        return score
     
     def get_lexicon_score(self, text: str) -> Tuple[float, int]:
-        """Get sentiment score based on financial lexicon"""
+        """Get sentiment score based on financial lexicon with contextual qualifiers"""
         text_lower = text.lower()
+        tokens = text_lower.split()
         score = 0.0
         matches = 0
-        
-        # Check all lexicons
         for terms_dict in [self.bullish_terms, self.bearish_terms, self.regime_terms]:
             for term, weight in terms_dict.items():
                 if term in text_lower:
-                    score += weight
+                    try:
+                        term_first = term.split()[0]
+                        hit_index = tokens.index(term_first) if term_first in tokens else 0
+                    except Exception:
+                        hit_index = 0
+                    adj_weight = self._apply_qualifiers(tokens, weight, hit_index)
+                    score += adj_weight
                     matches += 1
-        
+        score = self._context_boost(tokens, score)
         return score, matches
 
 class FinBERTAnalyzer:
@@ -111,6 +157,10 @@ class FinBERTAnalyzer:
         self.pipeline = None
         self.is_loaded = False
         self._load_lock = threading.Lock()
+        # Single re-entrant lock to serialize tokenizer/pipeline usage and avoid "Already borrowed"
+        self._instance_lock = threading.RLock()
+        # Dedicated inference lock to prevent concurrent HF tokenizer borrow issues
+        self._inference_lock = threading.Lock()
         
         # Try to load model on initialization (non-blocking)
         self._load_model()
@@ -125,10 +175,13 @@ class FinBERTAnalyzer:
                 logger.info(f"Loading FinBERT model: {self.model_name}")
                 
                 # Load tokenizer and model
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
+                self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=True)
                 self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
+                self.model.eval()
                 
-                # Create pipeline for easier inference
+                # Create pipeline for easier inference (disable parallelism to avoid HF tokenizers borrow issues)
+                import os
+                os.environ["TOKENIZERS_PARALLELISM"] = "false"
                 self.pipeline = pipeline(
                     "sentiment-analysis",
                     model=self.model,
@@ -155,32 +208,47 @@ class FinBERTAnalyzer:
             return 0.0, 0.0
 
         try:
-            # Truncate text by tokens, not characters
+            # To fully avoid shared Encoding borrows, bypass pipeline and call model directly with fresh tensors
             max_length = 512
-            tokens = self.tokenizer.encode(text, add_special_tokens=True, truncation=True, max_length=max_length)
-            if len(tokens) > max_length:
-                tokens = tokens[:max_length]
-            if hasattr(self.tokenizer, 'decode'):
-                truncated_text = self.tokenizer.decode(tokens, skip_special_tokens=True)
-            else:
-                logger.error("FinBERT tokenizer has no decode method.")
-                return 0.0, 0.0
-
-            # Get prediction
-            if callable(self.pipeline):
-                pipeline_result = self.pipeline(truncated_text)
-                if isinstance(pipeline_result, list) and len(pipeline_result) > 0 and isinstance(pipeline_result[0], dict):
-                    result = pipeline_result[0]
-                else:
-                    logger.error("FinBERT pipeline did not return expected result format.")
+            with self._inference_lock:
+                enc = self.tokenizer(
+                    text,
+                    add_special_tokens=True,
+                    truncation=True,
+                    max_length=max_length,
+                    return_tensors="pt",
+                    padding=False
+                )
+                input_ids = enc.get("input_ids")
+                attention_mask = enc.get("attention_mask")
+                if input_ids is None or input_ids.numel() == 0:
                     return 0.0, 0.0
-            else:
-                logger.error("FinBERT pipeline is not callable.")
-                return 0.0, 0.0
+
+            # Inference: call model directly (no pipeline) to avoid any internal parallel tokenizers usage
+            with self._instance_lock, torch.no_grad():
+                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                logits = outputs.logits if hasattr(outputs, "logits") else outputs[0]
+                # Softmax to get probabilities
+                probs = torch.softmax(logits, dim=-1).cpu().numpy()[0]
+                # FinBERT label order typically: [negative, neutral, positive]
+                neg, neu, pos = float(probs[0]), float(probs[1]), float(probs[2])
+                # Choose label with highest probability
+                if pos >= max(neg, neu):
+                    label = "POSITIVE"
+                    score_val = pos
+                elif neg >= max(pos, neu):
+                    label = "NEGATIVE"
+                    score_val = neg
+                else:
+                    label = "NEUTRAL"
+                    score_val = neu
+
+                # Build result dict compatible with previous logic
+                result = {"label": label, "score": score_val}
 
             # Convert to standardized score (-1 to 1)
             label = result.get('label', '').upper()
-            confidence = result.get('score', 0.0)
+            confidence = float(result.get('score', 0.0) or 0.0)
 
             if label == 'POSITIVE':
                 sentiment_score = confidence
@@ -189,9 +257,10 @@ class FinBERTAnalyzer:
             else:  # NEUTRAL or unknown
                 sentiment_score = 0.0
 
-            return sentiment_score, confidence
+            return float(sentiment_score), confidence
 
         except Exception as e:
+            # Log once without duplicating upstream
             logger.error(f"FinBERT analysis error: {e}")
             return 0.0, 0.0
 
@@ -258,11 +327,11 @@ class AdvancedSentimentEngine:
             logger.error(f"Lexicon analysis error: {e}")
             lexicon_score, lexicon_matches, lexicon_sentiment = 0.0, 0, 0.0
 
-        # FinBERT analysis (may be slow, so we'll timeout)
+        # FinBERT analysis (guarded)
         try:
             finbert_sentiment, finbert_confidence = self.finbert_analyzer.analyze(text)
         except Exception as e:
-            logger.error(f"FinBERT analysis error: {e}")
+            # Already logged inside analyzer; avoid duplicate logs here
             finbert_sentiment, finbert_confidence = 0.0, 0.0
 
         # Calculate ensemble score with dynamic weighting
@@ -297,10 +366,17 @@ class AdvancedSentimentEngine:
             if best[0] > 0:
                 ensemble_score = best[1]
 
-        # Calculate overall confidence
-        confidence = self._calculate_confidence(
+        # Calculate overall confidence with simple dispersion penalty for inter-model disagreement
+        try:
+            model_vals = [vader_sentiment, lexicon_sentiment, finbert_sentiment]
+            dispersion = np.std(model_vals) if len(model_vals) >= 2 else 0.0
+            dispersion_penalty = float(min(0.15, dispersion * 0.2))  # cap penalty
+        except Exception:
+            dispersion_penalty = 0.0
+
+        confidence = max(0.0, self._calculate_confidence(
             vader_scores, lexicon_matches, finbert_confidence, len(text)
-        )
+        ) - dispersion_penalty)
 
         result = SentimentResult(
             symbol=symbol,

@@ -41,7 +41,7 @@ except Exception:
     SourceAdapterProtocol = None  # type: ignore
 load_dotenv()
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
 # ============================================================================
 # Core Data Models
@@ -546,9 +546,11 @@ class RedditAdapter:
         
         # Check if we need to refresh the all-sentiment cache
         current_time = time.time()
-        if (self._all_sentiment_cache is None or 
-            self._cache_timestamp is None or 
-            current_time - self._cache_timestamp > self._cache_duration):
+        debug_bypass = os.environ.get("DEBUG_REDDIT", "0") == "1"
+        if (self._all_sentiment_cache is None or
+            self._cache_timestamp is None or
+            current_time - self._cache_timestamp > self._cache_duration or
+            debug_bypass):
             
             if not self.rate_limiter.wait_if_needed(self.source):
                 return None
@@ -558,8 +560,12 @@ class RedditAdapter:
                 from data_feeds.reddit_sentiment import fetch_reddit_sentiment
                 
                 start_time = time.time()
-                self._all_sentiment_cache = fetch_reddit_sentiment()
+                # Increase coverage a bit; limit is capped internally at 50
+                self._all_sentiment_cache = fetch_reddit_sentiment(limit=100)
                 self._cache_timestamp = current_time
+                if os.environ.get("DEBUG_REDDIT", "0") == "1":
+                    keys = len(self._all_sentiment_cache) if isinstance(self._all_sentiment_cache, dict) else "N/A"
+                    logger.error(f"[DEBUG][orchestrator] reddit batch fetched keys={keys}")
                 
                 # Track the batch performance
                 response_time = (time.time() - start_time) * 1000
@@ -572,16 +578,30 @@ class RedditAdapter:
                 return None
         
         # Now extract specific symbol data from cached results
-        if not self._all_sentiment_cache or symbol not in self._all_sentiment_cache:
+        if not self._all_sentiment_cache:
+            return None
+        # Normalize symbol casing to match keys from reddit_sentiment (tickers are uppercase)
+        symbol_key = symbol.upper()
+        if not (isinstance(self._all_sentiment_cache, dict) and (symbol_key in self._all_sentiment_cache or symbol in self._all_sentiment_cache)):
+            if os.environ.get("DEBUG_REDDIT", "0") == "1" and isinstance(self._all_sentiment_cache, dict):
+                logger.error(f"[DEBUG][orchestrator] reddit cache has {len(self._all_sentiment_cache)} keys but missing {symbol_key}")
             return None
         
         start_time = time.time()
         try:
-            symbol_data = self._all_sentiment_cache[symbol]
+            # Safely pick symbol data and ensure it's a dict
+            symbol_data = None
+            if isinstance(self._all_sentiment_cache, dict):
+                if symbol_key in self._all_sentiment_cache:
+                    symbol_data = self._all_sentiment_cache[symbol_key]
+                elif symbol in self._all_sentiment_cache:
+                    symbol_data = self._all_sentiment_cache[symbol]
+            if not isinstance(symbol_data, dict):
+                return None
             
             # Check if we have enhanced sentiment data
-            if 'enhanced_sentiment' in symbol_data:
-                enhanced = symbol_data['enhanced_sentiment']
+            enhanced = symbol_data.get('enhanced_sentiment') if isinstance(symbol_data, dict) else None
+            if isinstance(enhanced, dict):
                 sentiment_data = SentimentData(
                     symbol=symbol,
                     sentiment_score=enhanced.get('ensemble_score', 0.0),
@@ -594,14 +614,17 @@ class RedditAdapter:
                 quality_score = enhanced.get('quality_score', 0)
             else:
                 # Fallback to basic sentiment data
-                sentiment_score = symbol_data.get('sentiment_score', 0.0)
-                confidence = symbol_data.get('confidence', 0.5)
-                sample_size = symbol_data.get('sample_size', 0)
+                sentiment_score = float(symbol_data.get('sentiment_score', 0.0)) if isinstance(symbol_data, dict) else 0.0
+                confidence = float(symbol_data.get('confidence', 0.5)) if isinstance(symbol_data, dict) else 0.5
+                sample_size = int(symbol_data.get('sample_size', 0)) if isinstance(symbol_data, dict) else 0
                 
                 # Include sample texts in raw_data for ML engine
-                raw_data = symbol_data.copy()
-                if 'sample_texts' in symbol_data:
-                    raw_data['sample_texts'] = symbol_data['sample_texts']
+                raw_data = dict(symbol_data) if isinstance(symbol_data, dict) else {}
+                if isinstance(symbol_data, dict) and 'sample_texts' in symbol_data:
+                    # Truncate sample texts to reduce token consumption
+                    sample_texts = symbol_data.get('sample_texts') or []
+                    truncated_texts = [text[:150] + "..." if isinstance(text, str) and len(text) > 150 else text for text in sample_texts[:3]]
+                    raw_data['sample_texts'] = truncated_texts
                 
                 sentiment_data = SentimentData(
                     symbol=symbol,
@@ -699,9 +722,9 @@ class TwitterAdapter:
                 timestamp=datetime.now(),
                 sample_size=len(sentiments),
                 raw_data={
-                    'tweets': tweets,
-                    'sample_texts': texts,
-                    'individual_sentiments': sentiments,
+                    'tweets': tweets[:10],  # Limit tweets to reduce output
+                    'sample_texts': [text[:150] + "..." if len(text) > 150 else text for text in texts[:5]],
+                    'individual_sentiments': sentiments[:10],
                     'variance': sentiment_variance,
                     'execution_time': execution_time
                 }
@@ -710,7 +733,8 @@ class TwitterAdapter:
             # Cache the result
             self.cache.set(cache_key, sentiment_data, "sentiment", quality_score)
             
-            logger.info(f"Twitter sentiment for {symbol}: {overall_sentiment:.3f} "
+            # Reduce logging verbosity
+            logger.debug(f"Twitter sentiment for {symbol}: {overall_sentiment:.3f} "
                       f"(confidence: {confidence:.3f}, samples: {len(sentiments)})")
             
             return sentiment_data
@@ -799,7 +823,7 @@ class DataFeedOrchestrator:
     Provides intelligent data source selection, quality validation, and fallback mechanisms.
     """
     
-    def __init__(self, config: Optional["Config"] = None):
+    def __init__(self, config: Optional[Any] = None):
         # Load optional external configuration (non-breaking if unavailable)
         loaded_config = None
         if config is None:
@@ -1124,19 +1148,126 @@ class DataFeedOrchestrator:
     
     def get_advanced_sentiment_data(self, symbol: str, texts: Optional[List[str]] = None, sources: Optional[List[str]] = None) -> Optional[SentimentData]:
         """
-        Get advanced multi-model sentiment analysis
+        Get advanced multi-model sentiment analysis.
+        Enhanced: aggregates Reddit, Twitter, and News texts with batching, caps, truncation, and deduplication.
         """
+        # If explicit texts are provided, honor them directly
         if texts:
             return self.advanced_sentiment_adapter.get_sentiment(symbol, texts, sources if sources is not None else None)
-        else:
-            reddit_sentiment = self.get_sentiment_data(symbol)
-            if reddit_sentiment and reddit_sentiment.get(DataSource.REDDIT.value):
-                reddit_data = reddit_sentiment[DataSource.REDDIT.value]
-                raw = reddit_data.raw_data or {}
-                if isinstance(raw, dict) and 'sample_texts' in raw:
-                    sample_texts = raw['sample_texts']
-                    return self.advanced_sentiment_adapter.get_sentiment(symbol, sample_texts, None)
+
+        # Parameters for safe batching/caps
+        MAX_PER_SOURCE = 200
+        TRUNCATE_LEN = 256
+
+        aggregated_texts: List[str] = []
+
+        # 1) Reddit: pull aggregated sentiment and use sample_texts (may be many if upstream increased limits)
+        reddit_data_map = self.get_sentiment_data(symbol)
+        if reddit_data_map and reddit_data_map.get(DataSource.REDDIT.value):
+            reddit_data = reddit_data_map[DataSource.REDDIT.value]
+            raw = reddit_data.raw_data or {}
+            if isinstance(raw, dict):
+                sample_texts = raw.get('sample_texts') or []
+                # Ensure strings, truncate, take up to cap
+                red_texts = [
+                    (t[:TRUNCATE_LEN] + "…") if isinstance(t, str) and len(t) > TRUNCATE_LEN else t
+                    for t in sample_texts if isinstance(t, str)
+                ][:MAX_PER_SOURCE]
+                aggregated_texts.extend(red_texts)
+
+        # 2) Twitter: fetch tweets and include their text field
+        tw_adapter = self.adapters.get(DataSource.TWITTER)
+        try:
+            if tw_adapter and hasattr(tw_adapter, "get_sentiment"):
+                tw_sent = tw_adapter.get_sentiment(symbol, limit=MAX_PER_SOURCE)
+                if tw_sent and isinstance(tw_sent.raw_data, dict):
+                    tweets = tw_sent.raw_data.get("tweets") or []
+                    # Each tweet is a dict with 'text'
+                    tw_texts = []
+                    for tw in tweets[:MAX_PER_SOURCE]:
+                        txt = tw.get("text") if isinstance(tw, dict) else None
+                        if isinstance(txt, str) and txt:
+                            if len(txt) > TRUNCATE_LEN:
+                                txt = txt[:TRUNCATE_LEN] + "…"
+                            tw_texts.append(txt)
+                    aggregated_texts.extend(tw_texts)
+        except Exception as e:
+            logger.warning(f"Twitter aggregation for advanced sentiment failed for {symbol}: {e}")
+
+        # 3) News: consolidate Yahoo Finance headlines scraper + optional additional news API + Google Trends
+        news_texts: List[str] = []
+        # 3a) Yahoo Finance headlines (existing scraper)
+        try:
+            from data_feeds.news_scraper import fetch_headlines_yahoo_finance
+            yh = fetch_headlines_yahoo_finance()
+            if isinstance(yh, list) and yh:
+                news_texts.extend([h for h in yh if isinstance(h, str)])
+        except Exception as e:
+            logger.warning(f"Yahoo Finance headlines fetch failed: {e}")
+
+        # 3b) Additional news via FinViz adapter endpoint already implemented
+        try:
+            finviz_adapter = self.adapters.get(DataSource.FINVIZ)
+            if finviz_adapter and hasattr(finviz_adapter, "get_news"):
+                finviz_news = finviz_adapter.get_news()
+                # finviz.get_news() returns Optional[Dict[str, pd.DataFrame]] per implementation
+                # Extract recent headlines from the 'news' DataFrame if present
+                if isinstance(finviz_news, dict):
+                    df_news = finviz_news.get("news") or finviz_news.get("headlines") or None
+                    try:
+                        import pandas as pd  # local import safeguard
+                        if df_news is not None and hasattr(df_news, "empty") and not df_news.empty:
+                            # Common FinViz columns: 'Title' or 'Headline' or similar
+                            title_col = None
+                            for cand in ["Title", "title", "Headline", "headline"]:
+                                if cand in df_news.columns:
+                                    title_col = cand
+                                    break
+                            if title_col:
+                                # Convert to list of strings
+                                for val in df_news[title_col].tolist()[:MAX_PER_SOURCE]:
+                                    if isinstance(val, str) and val.strip():
+                                        news_texts.append(val.strip())
+                    except Exception as e:
+                        logger.debug(f"Failed to parse FinViz news DataFrame: {e}")
+        except Exception as e:
+            logger.debug(f"FinViz news aggregation failed: {e}")
+
+        # 3c) Google Trends integration removed per requirement (avoid placeholder/mock features)
+
+        # Normalize news texts: truncate and cap
+        if news_texts:
+            norm_news = []
+            for n in news_texts:
+                if not isinstance(n, str) or not n.strip():
+                    continue
+                n2 = n.strip()
+                if len(n2) > TRUNCATE_LEN:
+                    n2 = n2[:TRUNCATE_LEN] + "…"
+                norm_news.append(n2)
+            aggregated_texts.extend(norm_news[:MAX_PER_SOURCE])
+
+        # Deduplicate texts while preserving order
+        if aggregated_texts:
+            seen = set()
+            deduped = []
+            for t in aggregated_texts:
+                if not isinstance(t, str):
+                    continue
+                key = t.strip()
+                if not key or key in seen:
+                    continue
+                seen.add(key)
+                deduped.append(key)
+            aggregated_texts = deduped
+
+        # Final cap to avoid runaway inputs (sum across sources)
+        aggregated_texts = aggregated_texts[: (MAX_PER_SOURCE * 3)]
+
+        if not aggregated_texts:
             return None
+
+        return self.advanced_sentiment_adapter.get_sentiment(symbol, aggregated_texts, None)
     
     def _init_standard_adapters(self) -> None:
         """
@@ -1265,9 +1396,152 @@ class DataFeedOrchestrator:
             logger.error(f"FinViz sector performance error: {e}")
             return []
 
-# ============================================================================
-# Unified Interface Functions (Backward Compatibility)
-# ============================================================================
+    def get_finviz_news(self) -> Optional[Dict[str, pd.DataFrame]]:
+        """Get news and blog data from FinViz."""
+        cache_key = "finviz_news"
+        cached = self.cache.get(cache_key, "news")
+        if cached:
+            return cached
+        adapter = self.adapters.get(DataSource.FINVIZ)
+        if not adapter:
+            return None
+        start_time = time.time()
+        try:
+            news_data = adapter.get_news()
+            if not news_data:
+                return None
+            quality_score = 90.0  # News data is generally reliable
+            self.performance_tracker.record_success(DataSource.FINVIZ.value, (time.time()-start_time)*1000, quality_score)
+            if quality_score >= self.min_quality_score:
+                self.cache.set(cache_key, news_data, "news", quality_score)
+            return news_data
+        except Exception as e:
+            self.performance_tracker.record_error(DataSource.FINVIZ.value, str(e))
+            logger.error(f"FinViz news error: {e}")
+            return None
+
+    def get_finviz_insider_trading(self) -> Optional[pd.DataFrame]:
+        """Get insider trading data from FinViz."""
+        cache_key = "finviz_insider_trading"
+        cached = self.cache.get(cache_key, "insider_trading")
+        if cached is not None:
+            return cached
+        adapter = self.adapters.get(DataSource.FINVIZ)
+        if not adapter:
+            return None
+        start_time = time.time()
+        try:
+            insider_data = adapter.get_insider_trading()
+            if insider_data is None or insider_data.empty:
+                return None
+            # Validate data quality
+            quality_score = 85.0  # Insider data is generally reliable
+            self.performance_tracker.record_success(DataSource.FINVIZ.value, (time.time()-start_time)*1000, quality_score)
+            if quality_score >= self.min_quality_score:
+                self.cache.set(cache_key, insider_data, "insider_trading", quality_score)
+            return insider_data
+        except Exception as e:
+            self.performance_tracker.record_error(DataSource.FINVIZ.value, str(e))
+            logger.error(f"FinViz insider trading error: {e}")
+            return None
+
+    def get_finviz_earnings(self) -> Optional[Dict[str, pd.DataFrame]]:
+        """Get earnings data from FinViz."""
+        cache_key = "finviz_earnings"
+        cached = self.cache.get(cache_key, "earnings")
+        if cached:
+            return cached
+        adapter = self.adapters.get(DataSource.FINVIZ)
+        if not adapter:
+            return None
+        start_time = time.time()
+        try:
+            earnings_data = adapter.get_earnings()
+            if not earnings_data:
+                return None
+            # Validate data quality
+            quality_score = 90.0  # Earnings data is generally reliable
+            self.performance_tracker.record_success(DataSource.FINVIZ.value, (time.time()-start_time)*1000, quality_score)
+            if quality_score >= self.min_quality_score:
+                self.cache.set(cache_key, earnings_data, "earnings", quality_score)
+            return earnings_data
+        except Exception as e:
+            self.performance_tracker.record_error(DataSource.FINVIZ.value, str(e))
+            logger.error(f"FinViz earnings error: {e}")
+            return None
+
+    def get_finviz_forex(self) -> Optional[pd.DataFrame]:
+        """Get forex performance data from FinViz."""
+        cache_key = "finviz_forex"
+        cached = self.cache.get(cache_key, "forex")
+        if cached is not None:
+            return cached
+        adapter = self.adapters.get(DataSource.FINVIZ)
+        if not adapter:
+            return None
+        start_time = time.time()
+        try:
+            forex_data = adapter.get_forex()
+            if forex_data is None or forex_data.empty:
+                return None
+            # Validate data quality
+            quality_score = 85.0  # Forex data is generally reliable
+            self.performance_tracker.record_success(DataSource.FINVIZ.value, (time.time()-start_time)*1000, quality_score)
+            if quality_score >= self.min_quality_score:
+                self.cache.set(cache_key, forex_data, "forex", quality_score)
+            return forex_data
+        except Exception as e:
+            self.performance_tracker.record_error(DataSource.FINVIZ.value, str(e))
+            logger.error(f"FinViz forex error: {e}")
+            return None
+
+    def get_finviz_crypto(self) -> Optional[pd.DataFrame]:
+        """Get crypto performance data from FinViz."""
+        cache_key = "finviz_crypto"
+        cached = self.cache.get(cache_key, "crypto")
+        if cached is not None:
+            return cached
+        adapter = self.adapters.get(DataSource.FINVIZ)
+        if not adapter:
+            return None
+        start_time = time.time()
+        try:
+            crypto_data = adapter.get_crypto()
+            if crypto_data is None or crypto_data.empty:
+                return None
+            # Validate data quality
+            quality_score = 85.0  # Crypto data is generally reliable
+            self.performance_tracker.record_success(DataSource.FINVIZ.value, (time.time()-start_time)*1000, quality_score)
+            if quality_score >= self.min_quality_score:
+                self.cache.set(cache_key, crypto_data, "crypto", quality_score)
+            return crypto_data
+        except Exception as e:
+            self.performance_tracker.record_error(DataSource.FINVIZ.value, str(e))
+            logger.error(f"FinViz crypto error: {e}")
+            return None
+
+# ----------------------------------------------------------------------------
+# New delegation methods to ConsolidatedDataFeed for compatibility during consolidation
+# ----------------------------------------------------------------------------
+def get_company_info(symbol: str) -> Optional[CompanyInfo]:
+    """Get company info via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_company_info(symbol)
+
+def get_news(symbol: str, limit: int = 10) -> List[NewsItem]:
+    """Get news via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_news(symbol, limit)
+
+def get_multiple_quotes(symbols: List[str]) -> Dict[str, Quote]:
+    """Get multiple quotes via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_multiple_quotes(symbols)
+
+def get_financial_statements(symbol: str) -> Dict[str, Optional[pd.DataFrame]]:
+    """Get financial statements via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_financial_statements(symbol)
+
+# ----------------------------------------------------------------------------
+# Enhanced unified interface functions (Backward Compatibility)
+# ----------------------------------------------------------------------------
 
 # Global orchestrator instance
 _global_orchestrator = None
@@ -1307,22 +1581,22 @@ def get_sector_performance() -> List[GroupPerformance]:
     """Get sector performance (unified interface)"""
     return get_orchestrator().get_sector_performance()
 
-# ----------------------------------------------------------------------------
-# New delegation methods to ConsolidatedDataFeed for compatibility during consolidation
-# ----------------------------------------------------------------------------
+def get_finviz_news() -> Optional[Dict[str, pd.DataFrame]]:
+    """Get FinViz news data (unified interface)"""
+    return get_orchestrator().get_finviz_news()
 
-def get_company_info(symbol: str) -> Optional[CompanyInfo]:
-    """Get company info via orchestrator delegating to ConsolidatedDataFeed."""
-    return get_orchestrator().get_company_info(symbol)
+def get_finviz_insider_trading() -> Optional[pd.DataFrame]:
+    """Get FinViz insider trading data (unified interface)"""
+    return get_orchestrator().get_finviz_insider_trading()
 
-def get_news(symbol: str, limit: int = 10) -> List[NewsItem]:
-    """Get news via orchestrator delegating to ConsolidatedDataFeed."""
-    return get_orchestrator().get_news(symbol, limit)
+def get_finviz_earnings() -> Optional[Dict[str, pd.DataFrame]]:
+    """Get FinViz earnings data (unified interface)"""
+    return get_orchestrator().get_finviz_earnings()
 
-def get_multiple_quotes(symbols: List[str]) -> Dict[str, Quote]:
-    """Get multiple quotes via orchestrator delegating to ConsolidatedDataFeed."""
-    return get_orchestrator().get_multiple_quotes(symbols)
+def get_finviz_forex() -> Optional[pd.DataFrame]:
+    """Get FinViz forex data (unified interface)"""
+    return get_orchestrator().get_finviz_forex()
 
-def get_financial_statements(symbol: str) -> Dict[str, Optional[pd.DataFrame]]:
-    """Get financial statements via orchestrator delegating to ConsolidatedDataFeed."""
-    return get_orchestrator().get_financial_statements(symbol)
+def get_finviz_crypto() -> Optional[pd.DataFrame]:
+    """Get FinViz crypto data (unified interface)"""
+    return get_orchestrator().get_finviz_crypto()
