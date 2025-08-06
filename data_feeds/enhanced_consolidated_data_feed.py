@@ -1,26 +1,23 @@
 """
 Enhanced Consolidated Data Feed Integration
 Integrates FinanceToolkit, FinanceDatabase, and Enhanced FMP capabilities into the existing consolidated_data_feed
+
+Change note: Removed sys.path manipulation and switched to absolute imports from data_feeds.consolidated_data_feed to avoid ambiguity.
 """
 
-import sys
-import os
 import pandas as pd
 from datetime import datetime
 
-# Add current directory to path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from consolidated_data_feed import ConsolidatedDataFeed, DataSource
-from finance_integration import (
-    FinanceToolkitAdapter, 
+from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, DataSource
+from data_feeds.finance_integration import (
+    FinanceToolkitAdapter,
     EnhancedFinanceDatabaseAdapter,
     FinancialRatios,
     SecurityInfo,
     FINANCE_TOOLKIT_AVAILABLE,
     FINANCE_DATABASE_AVAILABLE
 )
-from enhanced_fmp_integration import EnhancedFMPAdapter
+from data_feeds.enhanced_fmp_integration import EnhancedFMPAdapter
 import logging
 
 logger = logging.getLogger(__name__)

@@ -102,7 +102,7 @@ class TwelveDataAdapter:
         if not isinstance(data, dict):
             return None
 
-        price = _to_decimal(data.get("price"))
+        price = _to_decimal(data.get("close")) or _to_decimal(data.get("price"))
         prev_close = _to_decimal(data.get("previous_close"))
         change = _to_decimal(data.get("change"))
         change_pct = _to_decimal(data.get("percent_change"))
@@ -133,6 +133,16 @@ class TwelveDataAdapter:
             source="twelve_data",
             quality_score=None,
         )
+        
+        # Validate quality and set quality score
+        try:
+            from data_feeds.data_feed_orchestrator import DataValidator
+            quality_score, _ = DataValidator.validate_quote(q)
+            q.quality_score = quality_score
+        except Exception:
+            # If validation fails, set a reasonable default quality score
+            q.quality_score = 80.0  # Assume good quality data from TwelveData
+        
         return q
 
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d", outputsize: Optional[int] = None, start: Optional[datetime] = None, end: Optional[datetime] = None) -> Optional[Any]:

@@ -1,4 +1,4 @@
-
+ 
 # ORACLE-X
 
 ## Project Overview
@@ -50,6 +50,7 @@ source venv/bin/activate  # Mac/Linux
 venv\Scripts\activate  # Windows
 
 pip install -r requirements.txt
+```
 
 2️⃣ Set Your OpenAI API Key
 bash
@@ -123,3 +124,37 @@ Refine, plug in more tools, and test until it feels uncanny.
 🪙 Disclaimer
 This is not financial advice. This is a technical demo and research tool only.
 Trade smart. Test everything. The market eats careless traders for breakfast.
+
+## CLI Validation
+
+Use the CLI utility to query each cataloged data point and paste results into `docs/DATA_VALIDATION_CHECKLIST.md`.
+
+Examples:
+- Quote
+  - `python cli_validate.py quote --symbol AAPL`
+- Market Data
+  - `python cli_validate.py market_data --symbol AAPL --period 1y --interval 1d --preferred_sources twelve_data`
+- Company Info
+  - `python cli_validate.py company_info --symbol MSFT`
+- News
+  - `python cli_validate.py news --symbol AAPL --limit 5`
+- Multiple Quotes
+  - `python cli_validate.py multiple_quotes --symbols AAPL,MSFT,SPY`
+- Financial Statements
+  - `python cli_validate.py financial_statements --symbol AAPL`
+- Sentiment (basic)
+  - `python cli_validate.py sentiment --symbol TSLA`
+- Advanced Sentiment
+  - `python cli_validate.py advanced_sentiment --symbol TSLA`
+- Market Breadth
+  - `python cli_validate.py market_breadth`
+- Sector Performance
+  - `python cli_validate.py sector_performance`
+- Comparison helper
+  - `python cli_validate.py compare --value 195.23 --ref_value 196.5 --tolerance_pct 2.0`
+
+Paste the raw JSON outputs into the “Execution Log” section of `docs/DATA_VALIDATION_CHECKLIST.md`, then update each scenario row with:
+- Retrieved: source, timestamp, value summary
+- Web Reference: a URL and value snapshot
+- Pct Diff + Pass/Fail: use the compare helper to compute tolerance-based result
+- Notes: anomalies, cache usage, or “skipped (missing key)” where applicable

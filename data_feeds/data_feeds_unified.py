@@ -3,21 +3,25 @@ Simplified Oracle-X Data Feeds Module
 Uses the Consolidated Data Feed as the backend for all financial data.
 This module provides backward compatibility with existing Oracle-X code
 while leveraging the new unified data infrastructure.
+
+Change note: Removed sys.path manipulation and switched to absolute imports from data_feeds.consolidated_data_feed to avoid ambiguity.
 """
 
-import sys
-import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from consolidated_data_feed import (
-    ConsolidatedDataFeed, 
-    get_quote, 
-    get_historical, 
-    get_company_info, 
-    get_news,
+# Route legacy facade through DataFeedOrchestrator while preserving shapes
+from data_feeds.data_feed_orchestrator import (
+    get_quote as orch_get_quote,
+    get_market_data as orch_get_market_data,
+    get_company_info as orch_get_company_info,
+    get_news as orch_get_news,
+    get_multiple_quotes as orch_get_multiple_quotes,
+)
+# Keep types from consolidated for legacy type hints
+from data_feeds.consolidated_data_feed import (
+    ConsolidatedDataFeed,
     Quote,
     CompanyInfo,
-    NewsItem
+    NewsItem,
+    get_historical as _legacy_get_historical,  # only for internal provider delegation
 )
 import pandas as pd
 from typing import Dict, List, Optional
@@ -48,33 +52,39 @@ class UnifiedDataProvider:
     # Market Data Methods
     def get_stock_price(self, symbol: str) -> Optional[float]:
         """Get current stock price (legacy interface)"""
-        quote = self.feed.get_quote(symbol)
-        return float(quote.price) if quote else None
+        # Delegate via orchestrator module-level forward to keep caching/selection centralized
+        quote_obj = orch_get_quote(symbol)
+        return float(quote_obj.price) if quote_obj else None
     
     def get_stock_data(self, symbol: str, period: str = "1y") -> Optional[pd.DataFrame]:
         """Get historical stock data (legacy interface)"""
-        return self.feed.get_historical(symbol, period)
+        # Use orchestrator market data and return the normalized DataFrame
+        md = orch_get_market_data(symbol, period, "1d")
+        if md is None:
+            return None
+        # Orchestrator returns MarketData with df in .data; preserve legacy return as DataFrame
+        return md.data
     
     def get_real_time_quote(self, symbol: str) -> Optional[Dict]:
         """Get real-time quote as dictionary (legacy interface)"""
-        quote = self.feed.get_quote(symbol)
-        if quote:
-            return {
-                'symbol': quote.symbol,
-                'price': float(quote.price),
-                'change': float(quote.change),
-                'change_percent': float(quote.change_percent),
-                'volume': quote.volume,
-                'market_cap': quote.market_cap,
-                'source': quote.source
-            }
-        return None
+        quote = orch_get_quote(symbol)
+        if not quote:
+            return None
+        return {
+            'symbol': quote.symbol,
+            'price': float(quote.price),
+            'change': float(quote.change),
+            'change_percent': float(quote.change_percent),
+            'volume': quote.volume,
+            'market_cap': quote.market_cap,
+            'source': quote.source
+        }
     
     def get_multiple_quotes(self, symbols: List[str]) -> Dict[str, Dict]:
         """Get multiple quotes efficiently"""
-        quotes = self.feed.get_multiple_quotes(symbols)
+        quotes_map = orch_get_multiple_quotes(symbols)
         result = {}
-        for symbol, quote in quotes.items():
+        for symbol, quote in quotes_map.items():
             result[symbol] = {
                 'symbol': quote.symbol,
                 'price': float(quote.price),
@@ -89,7 +99,7 @@ class UnifiedDataProvider:
     # Company Information
     def get_company_profile(self, symbol: str) -> Optional[Dict]:
         """Get company profile (legacy interface)"""
-        info = self.feed.get_company_info(symbol)
+        info = orch_get_company_info(symbol)
         if info:
             return {
                 'symbol': info.symbol,
@@ -109,7 +119,7 @@ class UnifiedDataProvider:
     # News and Sentiment
     def get_company_news(self, symbol: str, limit: int = 10) -> List[Dict]:
         """Get company news (legacy interface)"""
-        news = self.feed.get_news(symbol, limit)
+        news = orch_get_news(symbol, limit)
         result = []
         for item in news:
             result.append({
@@ -124,7 +134,8 @@ class UnifiedDataProvider:
     # Technical Analysis Support
     def get_ohlcv_data(self, symbol: str, period: str = "1y") -> Optional[pd.DataFrame]:
         """Get OHLCV data for technical analysis"""
-        return self.feed.get_historical(symbol, period)
+        md = orch_get_market_data(symbol, period, "1d")
+        return md.data if md is not None else None
     
     def calculate_technical_indicators(self, symbol: str, period: str = "6mo") -> Optional[Dict]:
         """Calculate common technical indicators"""

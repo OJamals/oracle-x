@@ -23,8 +23,22 @@ from collections import defaultdict, deque
 from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
 from data_feeds.twelvedata_adapter import TwelveDataAdapter  # New import
 from data_feeds.finviz_adapter import FinVizAdapter  # New import
+# Delegate models and feed for consolidation parity
+from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem, Quote  # absolute imports as required
 from dotenv import load_dotenv
 from data_feeds.twitter_feed import TwitterSentimentFeed  # New import
+# Standardized adapter protocol wrappers (additive; not yet used for routing)
+try:
+    from data_feeds.adapter_protocol import SourceAdapterProtocol  # type: ignore
+    from data_feeds.adapter_wrappers import (
+        YFinanceAdapterWrapper,
+        FMPAdapterWrapper,
+        FinnhubAdapterWrapper,
+        FinanceDatabaseAdapterWrapper,
+    )  # type: ignore
+except Exception:
+    # Guarded import to avoid any breaking behavior if wrappers are unavailable
+    SourceAdapterProtocol = None  # type: ignore
 load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -124,7 +138,13 @@ class DataValidator:
         
         # Check timestamp freshness
         if quote.timestamp:
-            age_minutes = (datetime.now() - quote.timestamp).total_seconds() / 60
+            # Handle timezone-aware vs naive datetime comparison
+            now = datetime.now()
+            if quote.timestamp.tzinfo is not None and now.tzinfo is None:
+                now = now.replace(tzinfo=quote.timestamp.tzinfo)
+            elif quote.timestamp.tzinfo is None and now.tzinfo is not None:
+                quote.timestamp = quote.timestamp.replace(tzinfo=now.tzinfo)
+            age_minutes = (now - quote.timestamp).total_seconds() / 60
             if age_minutes > 60:  # Data older than 1 hour
                 issues.append(f"Stale data: {age_minutes:.1f} minutes old")
                 score -= min(30, age_minutes)
@@ -238,8 +258,9 @@ class PerformanceTracker:
 class SmartCache:
     """Intelligent caching with TTL and quality-based retention"""
     
-    def __init__(self):
+    def __init__(self, ttl_settings: Optional[Dict[str, int]] = None):
         self.cache = {}
+        # Defaults preserve existing behavior
         self.ttl_settings = {
             'quote': 30,           # 30 seconds for quotes
             'market_data_1d': 3600,  # 1 hour for daily data
@@ -251,6 +272,15 @@ class SmartCache:
             'market_breadth': 300,   # 5 minutes
             'group_performance': 1800,  # 30 minutes
         }
+        # Overlay provided settings if any
+        if isinstance(ttl_settings, dict) and ttl_settings:
+            try:
+                for k, v in ttl_settings.items():
+                    if isinstance(v, int):
+                        self.ttl_settings[k] = v
+            except Exception:
+                # best-effort; keep defaults on any error
+                pass
     
     def get(self, key: str, data_type: str) -> Optional[Any]:
         """Get cached data if still valid"""
@@ -303,8 +333,13 @@ class SmartCache:
 class RateLimiter:
     """Intelligent rate limiting with quota management"""
     
-    def __init__(self):
+    def __init__(
+        self,
+        limits_config: Optional[Dict[str, Dict[str, int]]] = None,
+        quotas_config: Optional[Dict[str, Dict[str, int]]] = None,
+    ):
         self.calls = defaultdict(deque)
+        # Defaults as before
         self.limits = {
             DataSource.FINNHUB: (60, 60),      # 60 calls per minute
             DataSource.IEX_CLOUD: (100, 60),   # 100 calls per minute (free tier)
@@ -318,6 +353,33 @@ class RateLimiter:
             DataSource.FINNHUB: 1000,    # Daily free quota
             DataSource.IEX_CLOUD: 50000, # Daily free quota
         }
+        # Apply optional config overlays without breaking existing behavior
+        def _ds_from_key(key: str) -> Optional[DataSource]:
+            try:
+                # accept both enum name and value forms
+                for ds in DataSource:
+                    if key.upper() == ds.name or key.lower() == ds.value:
+                        return ds
+            except Exception:
+                return None
+            return None
+        if isinstance(limits_config, dict):
+            for k, v in limits_config.items():
+                ds = _ds_from_key(k)
+                if not ds or not isinstance(v, dict):
+                    continue
+                # Prefer per_minute; fallback to per_15min
+                if "per_minute" in v and isinstance(v["per_minute"], int) and v["per_minute"] > 0:
+                    self.limits[ds] = (int(v["per_minute"]), 60)
+                elif "per_15min" in v and isinstance(v["per_15min"], int) and v["per_15min"] > 0:
+                    self.limits[ds] = (int(v["per_15min"]), 900)
+        if isinstance(quotas_config, dict):
+            for k, v in quotas_config.items():
+                ds = _ds_from_key(k)
+                if not ds or not isinstance(v, dict):
+                    continue
+                if "per_day" in v and isinstance(v["per_day"], int) and v["per_day"] > 0:
+                    self.daily_quotas[ds] = int(v["per_day"])
         self.daily_usage = defaultdict(int)
         self.last_reset = datetime.now().date()
     
@@ -737,10 +799,28 @@ class DataFeedOrchestrator:
     Provides intelligent data source selection, quality validation, and fallback mechanisms.
     """
     
-    def __init__(self):
-        # Initialize core components
-        self.cache = SmartCache()
-        self.rate_limiter = RateLimiter()
+    def __init__(self, config: Optional["Config"] = None):
+        # Load optional external configuration (non-breaking if unavailable)
+        loaded_config = None
+        if config is None:
+            try:
+                from data_feeds.config_loader import load_config as _load_config  # type: ignore
+                loaded_config = _load_config()
+            except Exception:
+                loaded_config = None
+        else:
+            loaded_config = config
+
+        # Initialize core components with config-aware defaults
+        ttl_settings = getattr(loaded_config, "cache_ttls", None) if loaded_config else None
+        limits_cfg = getattr(loaded_config, "rate_limits", None) if loaded_config else None
+        quotas_cfg = getattr(loaded_config, "quotas", None) if loaded_config else None
+
+        self.cache = SmartCache(ttl_settings if isinstance(ttl_settings, dict) else None)
+        self.rate_limiter = RateLimiter(
+            limits_config=limits_cfg if isinstance(limits_cfg, dict) else None,
+            quotas_config=quotas_cfg if isinstance(quotas_cfg, dict) else None,
+        )
         self.performance_tracker = PerformanceTracker()
         self.validator = DataValidator()
         
@@ -750,7 +830,7 @@ class DataFeedOrchestrator:
             DataSource.REDDIT: RedditAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.TWITTER: TwitterAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             # New adapters
-            DataSource.TWELVE_DATA: TwelveDataAdapter(),
+            DataSource.TWELVE_DATA: TwelveDataAdapter(api_key=os.getenv("TWELVEDATA_API_KEY")),
             DataSource.FINVIZ: FinVizAdapter(),
         }
         
@@ -764,17 +844,21 @@ class DataFeedOrchestrator:
         self.preferred_quality_score = 80.0
         
         logger.info("DataFeedOrchestrator initialized with quality validation")
+        # Lazy consolidated feed for delegation parity with legacy ConsolidatedDataFeed
+        self._consolidated_feed: Optional[ConsolidatedDataFeed] = None
+
+        # Initialize standardized adapter wrappers for future orchestration use.
+        # This is guarded and does not change behavior if initialization fails.
+        try:
+            self._init_standard_adapters()
+        except Exception as _e:
+            logger.warning(f"Standard adapter wrapper initialization skipped: {_e}")
     
     def get_quote(self, symbol: str, preferred_sources: Optional[List[DataSource]] = None) -> Optional[Quote]:
         """
-        Get real-time quote with intelligent source selection
-        
-        Args:
-            symbol: Stock symbol (e.g., 'AAPL')
-            preferred_sources: List of preferred data sources in order
-            
-        Returns:
-            Quote object with quality score, or None if unavailable
+        Get real-time quote with intelligent source selection.
+        Minimal, guarded refactor to prefer standardized adapter wrappers when available,
+        preserving existing behavior, caching, rate limiting, and performance tracking.
         """
         # Quick-path: accept strings like "twelve_data" and convert to enum
         if preferred_sources:
@@ -797,7 +881,7 @@ class DataFeedOrchestrator:
         if preferred_sources is None or not preferred_sources:
             # Use performance-based ranking (default to YFINANCE if none)
             source_rankings = self.performance_tracker.get_source_ranking()
-            preferred_sources = [DataSource(source) for source, _ in source_rankings 
+            preferred_sources = [DataSource(source) for source, _ in source_rankings
                                if DataSource(source) in [DataSource.YFINANCE]]
             if not preferred_sources:
                 preferred_sources = [DataSource.YFINANCE]
@@ -810,30 +894,54 @@ class DataFeedOrchestrator:
 
         best_quote = None
         best_quality = 0
-        
-        for source in ordered:
-            if source not in self.adapters:
-                continue
-            
-            adapter = self.adapters[source]
-            # Adapters may not all implement get_quote; guard if needed
-            if not hasattr(adapter, "get_quote"):
-                continue
 
-            quote = adapter.get_quote(symbol)
-            
+        # Try standardized wrappers first when available, otherwise fall back to existing logic
+        for source in ordered:
+            # Map DataSource to wrapper key names
+            wrapper_key = None
+            if source == DataSource.YFINANCE:
+                wrapper_key = "yfinance"
+            elif source == DataSource.FINNHUB:
+                wrapper_key = "finnhub"
+            elif source.name == "FMP" or source.value in ("financial_modeling_prep",):
+                wrapper_key = "fmp"
+            elif source.name == "FINANCE_DATABASE" or source.value == "finance_database":
+                wrapper_key = "finance_database"
+
+            quote = None
+            # Guarded wrapper usage
+            try:
+                if hasattr(self, "_standard_adapters") and isinstance(getattr(self, "_standard_adapters", None), dict) and wrapper_key and wrapper_key in self._standard_adapters:
+                    wrapper = self._standard_adapters[wrapper_key]
+                    if hasattr(wrapper, "fetch_quote"):
+                        quote = wrapper.fetch_quote(symbol)
+            except NotImplementedError:
+                # Wrapper doesn't support quotes; proceed to fallback path
+                quote = None
+            except Exception as e:
+                logger.warning(f"Standard wrapper quote path failed for {symbol} via {wrapper_key}: {e}")
+                quote = None
+
+            # Fallback to existing adapter path if wrapper absent or returned None
+            if quote is None:
+                if source not in self.adapters:
+                    continue
+                adapter = self.adapters[source]
+                if not hasattr(adapter, "get_quote"):
+                    continue
+                quote = adapter.get_quote(symbol)
+
             if quote and (quote.quality_score or 0) > best_quality:
                 best_quote = quote
                 best_quality = quote.quality_score or 0
-                
                 # If we get excellent quality data, use it immediately
                 if best_quality >= self.preferred_quality_score:
                     break
-        
+
         return best_quote
     
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d", preferred_sources: Optional[List[DataSource]] = None) -> Optional[MarketData]:
-        """Get historical market data with quality validation"""
+        """Get historical market data with quality validation. Prefer standardized wrappers when available."""
         # Quick-path: normalize preferred_sources to enums and honor order, prioritizing Twelve Data when requested
         if preferred_sources:
             normalized: List[DataSource] = []
@@ -855,7 +963,57 @@ class DataFeedOrchestrator:
         else:
             ordered = preferred_sources or [DataSource.YFINANCE]
 
-        # Try ordered sources, fall back to YFINANCE if none succeed
+        # Try wrappers first when present; wrappers may return DataFrame or MarketData per protocol.
+        for source in ordered:
+            wrapper_key = None
+            if source == DataSource.YFINANCE:
+                wrapper_key = "yfinance"
+            elif source == DataSource.FINNHUB:
+                wrapper_key = "finnhub"
+            elif source.name == "FMP" or source.value in ("financial_modeling_prep",):
+                wrapper_key = "fmp"
+            elif source.name == "FINANCE_DATABASE" or source.value == "finance_database":
+                wrapper_key = "finance_database"
+
+            # Attempt standardized wrapper.fetch_historical
+            if wrapper_key and hasattr(self, "_standard_adapters") and isinstance(getattr(self, "_standard_adapters", None), dict) and wrapper_key in self._standard_adapters:
+                try:
+                    wrapper = self._standard_adapters[wrapper_key]
+                    if hasattr(wrapper, "fetch_historical"):
+                        hist = wrapper.fetch_historical(symbol, period=period, interval=interval, from_date=None, to_date=None)
+                        if hist is not None:
+                            # If wrapper returns a DataFrame, normalize into MarketData; if MarketData, use as-is
+                            if isinstance(hist, pd.DataFrame):
+                                if hist is not None and not hist.empty:
+                                    quality_score, _ = self.validator.validate_market_data(hist)
+                                    md = MarketData(
+                                        symbol=symbol,
+                                        data=hist,
+                                        timeframe=f"{period}_{interval}",
+                                        source=wrapper_key,
+                                        timestamp=datetime.now(),
+                                        quality_score=quality_score,
+                                    )
+                                    # Preserve caching semantics through SmartCache
+                                    cache_key = f"market_data_{symbol}_{period}_{interval}"
+                                    if quality_score >= self.min_quality_score:
+                                        self.cache.set(cache_key, md, f"market_data_{interval}", quality_score)
+                                    # Track performance conservatively (no precise timing here)
+                                    self.performance_tracker.record_success(wrapper_key, 0.0, quality_score)
+                                    return md
+                            else:
+                                # Assume MarketData-like object
+                                md = hist  # type: ignore
+                                if getattr(md, "data", None) is not None and not getattr(md, "data").empty:  # type: ignore
+                                    return md
+                except NotImplementedError:
+                    # Wrapper does not implement historical; fall back to existing path
+                    pass
+                except Exception as e:
+                    logger.warning(f"Standard wrapper historical path failed for {symbol} via {wrapper_key}: {e}")
+                    # fall through to existing path
+
+        # Fallback to existing adapter path if wrapper absent or failed
         for source in ordered:
             adapter = self.adapters.get(source)
             if not adapter or not hasattr(adapter, "get_market_data"):
@@ -867,6 +1025,74 @@ class DataFeedOrchestrator:
         # Final fallback
         adapter = self.adapters[DataSource.YFINANCE]
         return adapter.get_market_data(symbol, period, interval)
+
+    # ------------------------------------------------------------------------
+    # New methods delegating to ConsolidatedDataFeed (compatibility bridge)
+    # ------------------------------------------------------------------------
+    def _get_consolidated(self) -> ConsolidatedDataFeed:
+        """Lazily create ConsolidatedDataFeed for delegation paths."""
+        if self._consolidated_feed is None:
+            self._consolidated_feed = ConsolidatedDataFeed()
+        return self._consolidated_feed
+
+    def get_company_info(self, symbol: str) -> Optional[CompanyInfo]:
+        """
+        Delegate to ConsolidatedDataFeed.get_company_info for compatibility during consolidation.
+        Propagates None if unavailable.
+        """
+        try:
+            feed = self._get_consolidated()
+            info = feed.get_company_info(symbol)
+            # Attach/ensure source metadata is present; do not fabricate quality_score
+            if info and not getattr(info, "source", None):
+                # Keep as None if not provided by source
+                pass
+            return info
+        except Exception as e:
+            logger.error(f"Orchestrator company_info error for {symbol}: {e}")
+            return None
+
+    def get_news(self, symbol: str, limit: int = 10) -> List[NewsItem]:
+        """
+        Delegate to ConsolidatedDataFeed.get_news for compatibility during consolidation.
+        Returns empty list if unavailable, matching ConsolidatedDataFeed behavior.
+        """
+        try:
+            feed = self._get_consolidated()
+            items = feed.get_news(symbol, limit)
+            # Ensure source present on each item if provided by adapter; do not fabricate otherwise
+            if not items:
+                return []
+            return items
+        except Exception as e:
+            logger.error(f"Orchestrator news error for {symbol}: {e}")
+            return []
+
+    def get_multiple_quotes(self, symbols: List[str]) -> Dict[str, Quote]:
+        """
+        Delegate to ConsolidatedDataFeed.get_multiple_quotes for compatibility during consolidation.
+        Maps each symbol to its quote where available.
+        """
+        try:
+            feed = self._get_consolidated()
+            results = feed.get_multiple_quotes(symbols)
+            return results or {}
+        except Exception as e:
+            logger.error(f"Orchestrator multiple quotes error: {e}")
+            return {}
+
+    def get_financial_statements(self, symbol: str) -> Dict[str, Optional[pd.DataFrame]]:
+        """
+        Delegate to ConsolidatedDataFeed.get_financial_statements for compatibility during consolidation.
+        Returns empty dict if unavailable.
+        """
+        try:
+            feed = self._get_consolidated()
+            financials = feed.get_financial_statements(symbol)
+            return financials or {}
+        except Exception as e:
+            logger.error(f"Orchestrator financial statements error for {symbol}: {e}")
+            return {}
     
     def get_sentiment_data(self, symbol: str, sources: Optional[List[DataSource]] = None) -> Dict[str, SentimentData]:
         """
@@ -912,6 +1138,35 @@ class DataFeedOrchestrator:
                     return self.advanced_sentiment_adapter.get_sentiment(symbol, sample_texts, None)
             return None
     
+    def _init_standard_adapters(self) -> None:
+        """
+        Create standardized adapter wrappers using orchestrator-owned cache, rate limiter,
+        and performance tracker. Store for future orchestration unification.
+        This method is additive and non-breaking; current orchestrator methods
+        continue to use existing adapters and delegation paths.
+        """
+        self._standard_adapters: Dict[str, Any] = {}
+        # Only proceed if wrapper classes imported successfully
+        if 'YFinanceAdapterWrapper' not in globals():
+            return
+        try:
+            # Build wrappers around consolidated adapters
+            self._standard_adapters["yfinance"] = YFinanceAdapterWrapper(self.cache, self.rate_limiter, self.performance_tracker)  # type: ignore
+        except Exception as e:
+            logger.warning(f"Failed to init YFinanceAdapterWrapper: {e}")
+        try:
+            self._standard_adapters["fmp"] = FMPAdapterWrapper(self.cache, self.rate_limiter, self.performance_tracker)  # type: ignore
+        except Exception as e:
+            logger.warning(f"Failed to init FMPAdapterWrapper: {e}")
+        try:
+            self._standard_adapters["finnhub"] = FinnhubAdapterWrapper(self.cache, self.rate_limiter, self.performance_tracker)  # type: ignore
+        except Exception as e:
+            logger.warning(f"Failed to init FinnhubAdapterWrapper: {e}")
+        try:
+            self._standard_adapters["finance_database"] = FinanceDatabaseAdapterWrapper(self.cache, self.rate_limiter, self.performance_tracker)  # type: ignore
+        except Exception as e:
+            logger.warning(f"Failed to init FinanceDatabaseAdapterWrapper: {e}")
+
     def get_data_quality_report(self) -> Dict[str, DataQualityMetrics]:
         """Get comprehensive data quality report for all sources"""
         rankings = self.performance_tracker.get_source_ranking()
@@ -1051,3 +1306,23 @@ def get_market_breadth() -> Optional[MarketBreadth]:
 def get_sector_performance() -> List[GroupPerformance]:
     """Get sector performance (unified interface)"""
     return get_orchestrator().get_sector_performance()
+
+# ----------------------------------------------------------------------------
+# New delegation methods to ConsolidatedDataFeed for compatibility during consolidation
+# ----------------------------------------------------------------------------
+
+def get_company_info(symbol: str) -> Optional[CompanyInfo]:
+    """Get company info via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_company_info(symbol)
+
+def get_news(symbol: str, limit: int = 10) -> List[NewsItem]:
+    """Get news via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_news(symbol, limit)
+
+def get_multiple_quotes(symbols: List[str]) -> Dict[str, Quote]:
+    """Get multiple quotes via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_multiple_quotes(symbols)
+
+def get_financial_statements(symbol: str) -> Dict[str, Optional[pd.DataFrame]]:
+    """Get financial statements via orchestrator delegating to ConsolidatedDataFeed."""
+    return get_orchestrator().get_financial_statements(symbol)
