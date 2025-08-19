@@ -7,13 +7,18 @@ from oracle_engine.prompt_chain import (
     generate_final_playbook
 )
 import os
+import env_config
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_API_BASE = os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+API_KEY = os.environ.get("OPENAI_API_KEY")
+API_BASE = env_config.get_openai_api_base() or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+_PREFERRED_MODEL = env_config.get_openai_model()
 
-client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE)
-
-MODEL_NAME = "gpt-4.1-2025-04-14"
+client = OpenAI(api_key=API_KEY, base_url=API_BASE)
+try:
+    MODEL_NAME = env_config.resolve_model(client, _PREFERRED_MODEL, test=True)
+except Exception as e:
+    print(f"[WARN] Model resolution failed, using preferred '{_PREFERRED_MODEL}': {e}")
+    MODEL_NAME = _PREFERRED_MODEL
 
 from typing import Optional
 
@@ -27,7 +32,7 @@ def oracle_agent_pipeline(prompt_text: str, chart_image_b64: Optional[str]) -> s
         str: Final playbook JSON string.
     """
     # 1️⃣ Grab real-time signals from ALL scrapers
-    signals = get_signals_from_scrapers(prompt_text, chart_image_b64)
+    signals = get_signals_from_scrapers(prompt_text, chart_image_b64 or "")
     print("[DEBUG] Signals sent to LLM:", signals)
 
     # 2️⃣ Pull similar historical scenarios from Qdrant

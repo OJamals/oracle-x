@@ -1,4 +1,3 @@
- 
 # ORACLE-X
 
 ## Project Overview
@@ -158,3 +157,36 @@ Paste the raw JSON outputs into the “Execution Log” section of `docs/DATA_VA
 - Web Reference: a URL and value snapshot
 - Pct Diff + Pass/Fail: use the compare helper to compute tolerance-based result
 - Notes: anomalies, cache usage, or “skipped (missing key)” where applicable
+
+## 🧠 Advanced Sentiment Enhancements (New)
+
+The advanced sentiment pipeline aggregates multi-source textual signals before the ensemble (VADER + FinBERT + financial lexicon heuristics). Potential sources (when available): Reddit, Twitter/X, Yahoo Finance headlines, FinViz headlines, Yahoo News sentiment adapter sample texts, and Generic RSS feeds.
+
+Key capabilities:
+- Per‑source cap (env: `ADVANCED_SENTIMENT_MAX_PER_SOURCE`, default 300)
+- Text truncation (256 chars) to control token cost
+- Deduplication across sources
+- Global truncation (3 × per‑source cap)
+- Metadata: `raw_data['aggregated_counts']` with per-source counts + `total_unique`
+
+Environment variables:
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `ADVANCED_SENTIMENT_MAX_PER_SOURCE` | Max texts per source | `300` |
+| `RSS_FEEDS` | Comma-separated RSS feed URLs | (empty) |
+| `RSS_INCLUDE_ALL` | Include RSS headlines even without symbol match | `0` |
+
+Example:
+```bash
+export ADVANCED_SENTIMENT_MAX_PER_SOURCE=120
+export RSS_FEEDS="https://news.google.com/rss?hl=en-US&gl=US&ceid=US:en"
+export RSS_INCLUDE_ALL=1
+python cli_validate.py advanced_sentiment --symbol TSLA
+```
+
+Inspect counts:
+```bash
+python -c "from data_feeds.data_feed_orchestrator import DataFeedOrchestrator; o=DataFeedOrchestrator(); adv=o.get_advanced_sentiment_data('AAPL'); import json; print(json.dumps(adv.raw_data.get('aggregated_counts',{}), indent=2))"
+```
+
+The FinViz ambiguous DataFrame truth-value path has been refactored to explicit sequential checks, eliminating prior warnings.

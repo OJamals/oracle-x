@@ -15,7 +15,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import statistics
 
 import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+# Do not create a HF pipeline here; we call the model/tokenizer directly to avoid tokenizer parallelism issues
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 import numpy as np
 try:
@@ -41,6 +42,7 @@ class SentimentResult:
     model_weights: Dict[str, float]
     text_length: int
     source: str
+    processing_time: float = 0.0
 
 @dataclass
 class SentimentSummary:
@@ -168,6 +170,7 @@ class FinBERTAnalyzer:
     def _load_model(self):
         """Load FinBERT model with error handling"""
         try:
+            load_start = time.time()
             with self._load_lock:
                 if self.is_loaded:
                     return
@@ -179,18 +182,17 @@ class FinBERTAnalyzer:
                 self.model = AutoModelForSequenceClassification.from_pretrained(self.model_name)
                 self.model.eval()
                 
-                # Create pipeline for easier inference (disable parallelism to avoid HF tokenizers borrow issues)
+                # Disable parallel tokenizers to reduce borrow issues; we will call model/tokenizer directly
                 import os
                 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-                self.pipeline = pipeline(
-                    "sentiment-analysis",
-                    model=self.model,
-                    tokenizer=self.tokenizer,
-                    device=0 if torch.cuda.is_available() else -1
-                )
+                self.pipeline = None
                 
                 self.is_loaded = True
                 logger.info("FinBERT model loaded successfully")
+                load_elapsed = time.time() - load_start
+                logger.info(f"[TIMING][advanced_sentiment][finbert_load] {load_elapsed:.2f} seconds to load FinBERT")
+                # Also print to stdout for CLI visibility
+                print(f"[TIMING][advanced_sentiment][finbert_load] {load_elapsed:.2f} seconds to load FinBERT")
                 
         except Exception as e:
             logger.error(f"Failed to load FinBERT model: {e}")
@@ -204,13 +206,14 @@ class FinBERTAnalyzer:
         if not self.is_loaded:
             # Try to load model again
             self._load_model()
-        if not self.is_loaded or self.tokenizer is None or self.pipeline is None:
+        if not self.is_loaded or self.tokenizer is None or self.model is None:
             return 0.0, 0.0
 
         try:
             # To fully avoid shared Encoding borrows, bypass pipeline and call model directly with fresh tensors
             max_length = 512
             with self._inference_lock:
+                enc_start = time.time()
                 enc = self.tokenizer(
                     text,
                     add_special_tokens=True,
@@ -219,6 +222,9 @@ class FinBERTAnalyzer:
                     return_tensors="pt",
                     padding=False
                 )
+                enc_elapsed = time.time() - enc_start
+                logger.info(f"[TIMING][advanced_sentiment][finbert_tokenize] {enc_elapsed:.2f} seconds")
+                print(f"[TIMING][advanced_sentiment][finbert_tokenize] {enc_elapsed:.2f} seconds")
                 input_ids = enc.get("input_ids")
                 attention_mask = enc.get("attention_mask")
                 if input_ids is None or input_ids.numel() == 0:
@@ -226,7 +232,13 @@ class FinBERTAnalyzer:
 
             # Inference: call model directly (no pipeline) to avoid any internal parallel tokenizers usage
             with self._instance_lock, torch.no_grad():
+                model_start = time.time()
+                # self.model should be loaded and not None; assert for static check
+                assert self.model is not None, "FinBERT model is not loaded"
                 outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                model_elapsed = time.time() - model_start
+                logger.info(f"[TIMING][advanced_sentiment][finbert_infer] {model_elapsed:.2f} seconds")
+                print(f"[TIMING][advanced_sentiment][finbert_infer] {model_elapsed:.2f} seconds")
                 logits = outputs.logits if hasattr(outputs, "logits") else outputs[0]
                 # Softmax to get probabilities
                 probs = torch.softmax(logits, dim=-1).cpu().numpy()[0]
@@ -369,7 +381,7 @@ class AdvancedSentimentEngine:
         # Calculate overall confidence with simple dispersion penalty for inter-model disagreement
         try:
             model_vals = [vader_sentiment, lexicon_sentiment, finbert_sentiment]
-            dispersion = np.std(model_vals) if len(model_vals) >= 2 else 0.0
+            dispersion = float(np.std(model_vals)) if len(model_vals) >= 2 else 0.0
             dispersion_penalty = float(min(0.15, dispersion * 0.2))  # cap penalty
         except Exception:
             dispersion_penalty = 0.0
@@ -388,11 +400,13 @@ class AdvancedSentimentEngine:
             timestamp=datetime.now(),
             model_weights=weights,
             text_length=len(text),
-            source=source
+            source=source,
         )
 
         processing_time = time.time() - start_time
-        logger.debug(f"Sentiment analysis completed in {processing_time:.2f}s for {symbol}")
+        result.processing_time = processing_time
+        logger.info(f"[TIMING][advanced_sentiment][analyze_text] {processing_time:.2f}s for {symbol} source={source}")
+        print(f"[TIMING][advanced_sentiment][analyze_text] {processing_time:.2f}s for {symbol} source={source}")
 
         return result
     
@@ -420,6 +434,7 @@ class AdvancedSentimentEngine:
 
         results = []
 
+        batch_start = time.time()
         # Use ThreadPoolExecutor for parallel processing
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all tasks
@@ -436,6 +451,10 @@ class AdvancedSentimentEngine:
                 except Exception as e:
                     text, symbol, source = future_to_args[future]
                     logger.error(f"Failed to analyze sentiment for {symbol}: {e}")
+
+        batch_elapsed = time.time() - batch_start
+        logger.info(f"[TIMING][advanced_sentiment][analyze_batch] {batch_elapsed:.2f}s for {len(texts)} texts")
+        print(f"[TIMING][advanced_sentiment][analyze_batch] {batch_elapsed:.2f}s for {len(texts)} texts")
 
         return results
     

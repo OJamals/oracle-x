@@ -7,10 +7,11 @@ Replaces all existing data feed implementations with a single authoritative inte
 import os
 import time
 import logging
+import warnings
 import asyncio
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Union, Any, Tuple
+from typing import Dict, List, Optional, Union, Any, Tuple, TYPE_CHECKING
 from dataclasses import dataclass, asdict
 from enum import Enum
 import pandas as pd
@@ -24,7 +25,7 @@ from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
 from data_feeds.twelvedata_adapter import TwelveDataAdapter  # New import
 from data_feeds.finviz_adapter import FinVizAdapter  # New import
 # Delegate models and feed for consolidation parity
-from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem, Quote  # absolute imports as required
+from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem  # absolute imports as required (avoid Quote name clash)
 from dotenv import load_dotenv
 from data_feeds.twitter_feed import TwitterSentimentFeed  # New import
 from data_feeds.cache_service import CacheService  # SQLite-backed cache
@@ -49,6 +50,88 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.ERROR)
 logger = logging.getLogger(__name__)
+
+# Reduce noisy third-party warnings and noisy streamlit messages during batch/bare runs.
+# Many ML libs (torch/transformers) surface FutureWarning for deprecated args like
+# `encoder_attention_mask`. We suppress those here to keep logs actionable.
+try:
+    # Quiet streamlit runtime warnings that appear when running outside streamlit server
+    logging.getLogger("streamlit").setLevel(logging.ERROR)
+    try:
+        logging.getLogger("streamlit.runtime.scriptrunner_utils.script_run_context").setLevel(logging.ERROR)
+    except Exception:
+        pass
+except Exception:
+    pass
+
+# Suppress specific FutureWarning about encoder_attention_mask and general FutureWarnings
+warnings.filterwarnings("ignore", message=r".*encoder_attention_mask.*", category=FutureWarning)
+warnings.filterwarnings("ignore", category=FutureWarning)
+# Suppress Streamlit 'missing ScriptRunContext' warnings when running in bare mode
+warnings.filterwarnings("ignore", message=r".*missing ScriptRunContext.*")
+
+try:
+    # If transformers is installed, reduce its verbosity as well
+    import transformers
+    try:
+        # transformers exposes logging in different places across versions; use getattr to appease static analyzers
+        t_logging = getattr(transformers, "logging", None)
+        if t_logging and hasattr(t_logging, "set_verbosity_error") and callable(getattr(t_logging, "set_verbosity_error", None)):
+            t_logging.set_verbosity_error()
+        else:
+            t_utils = getattr(transformers, "utils", None)
+            if t_utils:
+                t_utils_logging = getattr(t_utils, "logging", None)
+                if t_utils_logging and hasattr(t_utils_logging, "set_verbosity_error") and callable(getattr(t_utils_logging, "set_verbosity_error", None)):
+                    t_utils_logging.set_verbosity_error()
+    except Exception:
+        pass
+except Exception:
+    # transformers not installed or import failed; ignore
+    pass
+# Also quietly reduce torch logging if available
+try:
+    import torch
+    try:
+        logging.getLogger("torch").setLevel(logging.ERROR)
+    except Exception:
+        pass
+except Exception:
+    pass
+# ---------------------------------------------------------------------------
+# Utility normalization helpers (shared)
+# ---------------------------------------------------------------------------
+def _to_decimal(val: Any) -> Optional[Decimal]:
+    try:
+        if val is None or (isinstance(val, str) and not val.strip()):
+            return None
+        return Decimal(str(val))
+    except Exception:
+        return None
+
+def _parse_datetime(val: Any) -> Optional[datetime]:
+    if isinstance(val, datetime):
+        return val
+    if isinstance(val, (int, float)):
+        try:
+            return datetime.fromtimestamp(float(val))
+        except Exception:
+            return None
+    if isinstance(val, str):
+        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
+            try:
+                return datetime.strptime(val, fmt)
+            except Exception:
+                continue
+    return None
+
+def _log_error_and_record(perf: 'PerformanceTracker', source: str, msg: str, exc: Exception):  # Forward ref to PerformanceTracker
+    emsg = f"{msg}: {exc}"
+    logger.error(emsg)
+    try:
+        perf.record_error(source, emsg)
+    except Exception:
+        pass
 # ============================================================================
 # Core Data Models
 # ============================================================================
@@ -78,10 +161,10 @@ class DataQuality(Enum):
 @dataclass
 class Quote:
     symbol: str
-    price: Decimal
-    change: Decimal
-    change_percent: Decimal
-    volume: int
+    price: Optional[Decimal]
+    change: Optional[Decimal]
+    change_percent: Optional[Decimal]
+    volume: Optional[int]
     market_cap: Optional[int] = None
     pe_ratio: Optional[Decimal] = None
     day_low: Optional[Decimal] = None
@@ -126,135 +209,114 @@ class DataQualityMetrics:
 
 class DataValidator:
     """Validates data quality and detects anomalies"""
-    
     @staticmethod
     def validate_quote(quote: Quote) -> Tuple[float, List[str]]:
-        """Validate quote data and return quality score with issues"""
         issues = []
         score = 100.0
-        
-        # Check required fields
         if not quote.price or quote.price <= 0:
-            issues.append("Invalid or missing price")
-            score -= 50
-        
+            issues.append("Missing or invalid price")
+            score -= 40
         if not quote.volume or quote.volume < 0:
-            issues.append("Invalid volume")
+            issues.append("Missing or invalid volume")
             score -= 20
-        
-        # Check timestamp freshness
         if quote.timestamp:
-            # Handle timezone-aware vs naive datetime comparison
-            now = datetime.now()
-            if quote.timestamp.tzinfo is not None and now.tzinfo is None:
-                now = now.replace(tzinfo=quote.timestamp.tzinfo)
-            elif quote.timestamp.tzinfo is None and now.tzinfo is not None:
-                quote.timestamp = quote.timestamp.replace(tzinfo=now.tzinfo)
-            age_minutes = (now - quote.timestamp).total_seconds() / 60
-            if age_minutes > 60:  # Data older than 1 hour
-                issues.append(f"Stale data: {age_minutes:.1f} minutes old")
-                score -= min(30, age_minutes)
+            if (datetime.now() - quote.timestamp).total_seconds() > 3600:
+                issues.append("Stale quote timestamp")
+                score -= 20
         else:
             issues.append("Missing timestamp")
             score -= 10
-        
-        # Check price reasonableness
-        if quote.day_low and quote.day_high:
-            if quote.price < quote.day_low or quote.price > quote.day_high:
+        if quote.day_low is not None and quote.day_high is not None and quote.price is not None:
+            if not (quote.day_low <= quote.price <= quote.day_high):
                 issues.append("Price outside day range")
-                score -= 30
-        
-        return max(0, score), issues
-    
+                score -= 10
+        score = max(0, min(score, 100))
+        return score, issues
+
     @staticmethod
     def validate_market_data(data: pd.DataFrame) -> Tuple[float, List[str]]:
-        """Validate market data DataFrame"""
         issues = []
         score = 100.0
-        
         if data.empty:
-            return 0, ["Empty dataset"]
-        
-        # Check for missing data
-        missing_pct = data.isnull().sum().sum() / (len(data) * len(data.columns)) * 100
+            issues.append("Empty DataFrame")
+            score -= 50
+        missing_pct = data.isnull().sum().sum() / (len(data) * len(data.columns)) * 100 if len(data) and len(data.columns) else 100
         if missing_pct > 5:
-            issues.append(f"High missing data: {missing_pct:.1f}%")
-            score -= missing_pct
-        
-        # Check for outliers in price columns
-        price_cols = ['Open', 'High', 'Low', 'Close']
-        for col in price_cols:
-            if col in data.columns:
-                # Check for extreme price movements (>50% in one day)
-                if len(data) > 1:
-                    pct_change = data[col].pct_change().abs()
-                    extreme_moves = (pct_change > 0.5).sum()
-                    if extreme_moves > 0:
-                        issues.append(f"Extreme price movements in {col}: {extreme_moves}")
-                        score -= min(20, extreme_moves * 5)
-        
-        return max(0, score), issues
-    
+            issues.append(f"Missing data: {missing_pct:.2f}%")
+            score -= 20
+        for col in data.select_dtypes(include=[float, int]).columns:
+            vals = data[col].dropna()
+            if len(vals) > 2:
+                std = vals.std()
+                mean = vals.mean()
+                if std > 0 and any(abs((v - mean) / std) > 5 for v in vals):
+                    issues.append(f"Outlier detected in {col}")
+                    score -= 10
+        score = max(0, min(score, 100))
+        return score, issues
+
     @staticmethod
     def detect_anomalies(data: pd.Series, threshold: float = 3.0) -> List[int]:
-        """Detect anomalies using Z-score method"""
-        if len(data) < 10:
+        if data.empty:
             return []
-        
-        z_scores = np.abs((data - data.mean()) / data.std())
-        return data[z_scores > threshold].index.tolist()
+        vals = data.dropna()
+        if len(vals) < 2:
+            return []
+        mean = vals.mean()
+        std = vals.std()
+        if std == 0:
+            return []
+        zscores = (vals - mean) / std
+        return [i for i, z in zip(vals.index, zscores) if abs(z) > threshold]
 
 class PerformanceTracker:
-    """Tracks data source performance and reliability"""
-    
+    """Tracks data source performance and reliability with issue registry."""
+
     def __init__(self):
-        self.metrics = defaultdict(self._create_metrics_dict)
-    
-    def _create_metrics_dict(self):
+        self.metrics: Dict[str, Dict[str, Any]] = defaultdict(self._create_metrics_dict)
+        self.issues: Dict[str, deque] = defaultdict(lambda: deque(maxlen=50))
+
+    @staticmethod
+    def _create_metrics_dict():
         return {
             'response_times': deque(maxlen=100),
             'success_count': 0,
             'error_count': 0,
-            'quality_scores': deque(maxlen=50),
+            'quality_scores': deque(maxlen=100),
             'last_success': None,
-            'last_error': None
+            'last_error': None,
+            'issues': deque(maxlen=50)
         }
-    
-    def record_success(self, source: str, response_time: float, quality_score: float):
-        """Record successful data fetch"""
+
+    def record_success(self, source: str, response_time: float, quality_score: float, issues: Optional[List[str]] = None):
         metrics = self.metrics[source]
         metrics['response_times'].append(response_time)
         metrics['success_count'] += 1
         metrics['quality_scores'].append(quality_score)
         metrics['last_success'] = datetime.now()
-    
+        if issues:
+            for issue in issues:
+                self.record_issue(source, issue)
+
     def record_error(self, source: str, error: str):
-        """Record data fetch error"""
         metrics = self.metrics[source]
         metrics['error_count'] += 1
         metrics['last_error'] = datetime.now()
         logger.warning(f"Data source {source} error: {error}")
-    
+        self.record_issue(source, f"ERROR: {error}")
+
+    def record_issue(self, source: str, issue: str):
+        try:
+            self.metrics[source]['issues'].append(issue)
+            self.issues[source].append(issue)
+        except Exception:
+            pass
+
     def get_source_ranking(self) -> List[Tuple[str, float]]:
-        """Get data sources ranked by performance"""
-        rankings = []
-        
+        rankings: List[Tuple[str, float]] = []
         for source, metrics in self.metrics.items():
-            success_count = metrics['success_count']
-            error_count = metrics['error_count']
-            total_requests = success_count + error_count
-            
-            if total_requests == 0:
-                continue
-            
-            success_rate = success_count / total_requests
-            avg_response_time = float(np.mean(metrics['response_times'])) if metrics['response_times'] else 10.0
-            avg_quality = float(np.mean(metrics['quality_scores'])) if metrics['quality_scores'] else 50.0
-            
-            # Calculate composite score (0-100)
-            score = (success_rate * 40) + (avg_quality * 0.4) + (max(0.0, 100.0 - avg_response_time) * 0.2)
-            rankings.append((source, score))
-        
+            avg_quality = (sum(metrics['quality_scores']) / len(metrics['quality_scores'])) if metrics['quality_scores'] else 0.0
+            rankings.append((source, avg_quality))
         return sorted(rankings, key=lambda x: x[1], reverse=True)
 
 # ============================================================================
@@ -277,6 +339,11 @@ class SmartCache:
             # Safe defaults for new data types
             'market_breadth': 300,   # 5 minutes
             'group_performance': 1800,  # 30 minutes
+            # Newly added FinViz datasets
+            'insider_trading': 900,   # 15 minutes
+            'earnings': 900,          # 15 minutes
+            'forex': 600,             # 10 minutes
+            'crypto': 600,            # 10 minutes
         }
         # Overlay provided settings if any
         if isinstance(ttl_settings, dict) and ttl_settings:
@@ -437,6 +504,7 @@ class YFinanceAdapter:
         self.source = DataSource.YFINANCE
     
     def get_quote(self, symbol: str) -> Optional[Quote]:
+        logger.debug(f"YFinanceAdapter.get_quote called for symbol={symbol}")
         """Get real-time quote with quality validation"""
         cache_key = f"quote_{symbol}"
         cached_data = self.cache.get(cache_key, "quote")
@@ -451,19 +519,26 @@ class YFinanceAdapter:
             if not info or 'currentPrice' not in info:
                 return None
             
+            # Fix for market_cap assignment
+            mc_val = info.get('marketCap')
+            try:
+                market_cap = int(mc_val) if mc_val not in (None, '', 'None') and str(mc_val).isdigit() else None
+            except Exception:
+                market_cap = None
+            
             quote = Quote(
                 symbol=symbol,
-                price=Decimal(str(info['currentPrice'])),
-                change=Decimal(str(info.get('change', 0))),
-                change_percent=Decimal(str(info.get('changePercent', 0))),
-                volume=int(info.get('volume', 0)),
-                market_cap=info.get('marketCap'),
-                pe_ratio=Decimal(str(info.get('trailingPE', 0))) if info.get('trailingPE') else None,
-                day_low=Decimal(str(info.get('dayLow', 0))) if info.get('dayLow') else None,
-                day_high=Decimal(str(info.get('dayHigh', 0))) if info.get('dayHigh') else None,
-                year_low=Decimal(str(info.get('fiftyTwoWeekLow', 0))) if info.get('fiftyTwoWeekLow') else None,
-                year_high=Decimal(str(info.get('fiftyTwoWeekHigh', 0))) if info.get('fiftyTwoWeekHigh') else None,
-                timestamp=datetime.now(),
+                price=_to_decimal(info.get('currentPrice')),
+                change=_to_decimal(info.get('change', 0)),
+                change_percent=_to_decimal(info.get('changePercent', 0)),
+                volume=int(info.get('volume', 0)) if info.get('volume') is not None else 0,
+                market_cap=market_cap,
+                pe_ratio=_to_decimal(info.get('trailingPE')),
+                day_low=_to_decimal(info.get('dayLow')),
+                day_high=_to_decimal(info.get('dayHigh')),
+                year_low=_to_decimal(info.get('fiftyTwoWeekLow')),
+                year_high=_to_decimal(info.get('fiftyTwoWeekHigh')),
+                timestamp=_parse_datetime(info.get('regularMarketTime')) or datetime.now(),
                 source=self.source.value
             )
             
@@ -482,11 +557,11 @@ class YFinanceAdapter:
             return quote
             
         except Exception as e:
-            self.performance_tracker.record_error(self.source.value, str(e))
-            logger.error(f"YFinance quote error for {symbol}: {e}")
+            _log_error_and_record(self.performance_tracker, self.source.value, f"YFinance quote error for {symbol}", e)
             return None
     
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d") -> Optional[MarketData]:
+        logger.debug(f"YFinanceAdapter.get_market_data called for symbol={symbol}, period={period}, interval={interval}")
         """Get historical market data with quality validation"""
         cache_key = f"market_data_{symbol}_{period}_{interval}"
         cached_data = self.cache.get(cache_key, f"market_data_{interval}")
@@ -524,8 +599,7 @@ class YFinanceAdapter:
             return market_data
             
         except Exception as e:
-            self.performance_tracker.record_error(self.source.value, str(e))
-            logger.error(f"YFinance market data error for {symbol}: {e}")
+            _log_error_and_record(self.performance_tracker, self.source.value, f"YFinance market data error for {symbol}", e)
             return None
 
 class RedditAdapter:
@@ -541,6 +615,7 @@ class RedditAdapter:
         self._cache_duration = 300  # 5 minutes cache for all sentiment data
     
     def get_sentiment(self, symbol: str, subreddits: Optional[List[str]] = None) -> Optional[SentimentData]:
+        logger.debug(f"RedditAdapter.get_sentiment called for symbol={symbol}, subreddits={subreddits}")
         """Get Reddit sentiment data with intelligent caching"""
         if subreddits is None:
             subreddits = ["stocks", "investing", "SecurityAnalysis", "ValueInvesting"]
@@ -579,8 +654,7 @@ class RedditAdapter:
                 self.performance_tracker.record_success(self.source.value, response_time, quality_score)
                 
             except Exception as e:
-                self.performance_tracker.record_error(self.source.value, str(e))
-                logger.error(f"Reddit sentiment batch error: {e}")
+                _log_error_and_record(self.performance_tracker, self.source.value, "Reddit sentiment batch error", e)
                 return None
         
         # Now extract specific symbol data from cached results
@@ -653,8 +727,253 @@ class RedditAdapter:
             return sentiment_data
             
         except Exception as e:
-            self.performance_tracker.record_error(self.source.value, str(e))
-            logger.error(f"Reddit sentiment error for {symbol}: {e}")
+            _log_error_and_record(self.performance_tracker, self.source.value, f"Reddit sentiment error for {symbol}", e)
+            return None
+
+class YahooNewsSentimentAdapter:
+    """Derive lightweight sentiment signal from latest Yahoo Finance headlines.
+    Uses existing free scraper (news_scraper.fetch_headlines_yahoo_finance) and VADER.
+    Cached briefly; provides aggregate sentiment + sample headlines for advanced engine.
+    """
+    def __init__(self, cache: SmartCache, rate_limiter: RateLimiter, performance_tracker: PerformanceTracker):
+        self.cache = cache
+        self.rate_limiter = rate_limiter
+        self.performance_tracker = performance_tracker
+        self.source = DataSource.YAHOO_NEWS
+        self.ttl_seconds = 600  # 10 minutes
+
+    def get_sentiment(self, symbol: str, limit: int = 40) -> Optional[SentimentData]:
+        cache_key = f"yahoo_news_sentiment_{symbol.upper()}"
+        cached = self.cache.get(cache_key, "sentiment")
+        if cached:
+            return cached
+        # Rate limiting at source granularity
+        if not self.rate_limiter.wait_if_needed(self.source):
+            return None
+        start_time = time.time()
+        try:
+            from data_feeds.news_scraper import fetch_headlines_yahoo_finance
+            from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+        except Exception as e:
+            logger.warning(f"YahooNewsSentiment dependencies missing: {e}")
+            return None
+        try:
+            headlines = fetch_headlines_yahoo_finance()
+            if not headlines:
+                return None
+            # Basic relevance filter: keep headlines containing the symbol uppercase or preceded by $ (e.g. $AAPL)
+            sym = symbol.upper()
+            filtered = [h for h in headlines if isinstance(h, str) and (f" {sym} " in f" {h.upper()} " or f"${sym}" in h.upper())]
+            # Fallback to top N if no direct matches (broad market sentiment still useful)
+            if not filtered:
+                filtered = [h for h in headlines if isinstance(h, str)][:limit]
+            analyzer = SentimentIntensityAnalyzer()
+            scores = []
+            indiv = []
+            texts = []
+            for h in filtered[:limit]:
+                try:
+                    vs = analyzer.polarity_scores(h)
+                    comp = vs.get('compound', 0.0)
+                    scores.append(comp)
+                    indiv.append({'headline': h[:180], 'compound': comp})
+                    texts.append(h[:160])
+                except Exception:
+                    continue
+            if not scores:
+                return None
+            avg = float(sum(scores)/len(scores))
+            # Confidence: dispersion + sample size (simple heuristic)
+            variance = sum((s-avg)**2 for s in scores)/len(scores) if len(scores) else 0.0
+            dispersion_penalty = min(0.6, variance)  # cap penalty
+            size_factor = min(1.0, len(scores)/20.0)
+            confidence = max(0.1, min(0.95, 0.5*size_factor + 0.5*(1.0 - dispersion_penalty)))
+            quality_score = (confidence * 0.6 + size_factor * 0.4) * 100
+            sentiment_data = SentimentData(
+                symbol=symbol,
+                sentiment_score=avg,
+                confidence=confidence,
+                source=self.source.value,
+                timestamp=datetime.now(),
+                sample_size=len(scores),
+                raw_data={
+                    'sample_texts': texts[:5],
+                    'individual_headline_scores': indiv[:10],
+                    'variance': variance,
+                }
+            )
+            self.performance_tracker.record_success(self.source.value, (time.time()-start_time)*1000, quality_score)
+            self.cache.set(cache_key, sentiment_data, 'sentiment', quality_score)
+            return sentiment_data
+        except Exception as e:
+            _log_error_and_record(self.performance_tracker, self.source.value, f"Yahoo news sentiment failed for {symbol}", e)
+            return None
+
+class FinVizNewsSentimentAdapter:
+    """Generate sentiment from FinViz aggregated news DataFrame (if available)."""
+    def __init__(self, cache: SmartCache, rate_limiter: RateLimiter, performance_tracker: PerformanceTracker):
+        self.cache = cache
+        self.rate_limiter = rate_limiter
+        self.performance_tracker = performance_tracker
+        self.source = DataSource.FINVIZ  # reuse source identifier
+        self.adapters_ref = None  # will be set by orchestrator post-initialization
+    def get_sentiment(self, symbol: str, limit: int = 60) -> Optional[SentimentData]:
+        cache_key = f"finviz_news_sentiment_{symbol.upper()}"
+        cached = self.cache.get(cache_key, 'sentiment')
+        if cached:
+            return cached
+        if not self.rate_limiter.wait_if_needed(self.source):
+            return None
+        start_time = time.time()
+        try:
+            finviz_adapter = None
+            try:
+                if isinstance(self.adapters_ref, dict):
+                    finviz_adapter = self.adapters_ref.get(DataSource.FINVIZ)
+            except Exception:
+                pass
+            if finviz_adapter is not None and hasattr(finviz_adapter, 'get_news'):
+                data = finviz_adapter.get_news()
+            else:
+                data = None
+            if data is None or not isinstance(data, dict):
+                return None
+            import pandas as pd  # noqa: F401
+            headlines_df = data.get('news') or data.get('headlines')
+            if headlines_df is None:
+                return None
+            if not isinstance(headlines_df, pd.DataFrame):
+                return None
+            if headlines_df.empty:
+                return None
+            from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+            analyzer = SentimentIntensityAnalyzer()
+            sym = symbol.upper()
+            title_col = None
+            for cand in ['Title','title','Headline','headline']:
+                if cand in headlines_df.columns:
+                    title_col = cand
+                    break
+            if not title_col:
+                return None
+            titles: List[str] = []
+            col_values = list(headlines_df[title_col].tolist())  # type: ignore[arg-type]
+            for val in col_values:
+                if isinstance(val, str) and val.strip():
+                    up = val.upper()
+                    if f" {sym} " in f" {up} " or f"${sym}" in up:
+                        titles.append(val.strip())
+            if not titles:
+                titles = [val for val in col_values if isinstance(val, str)][:limit]
+            scores = []
+            indiv = []
+            for t in titles[:limit]:
+                try:
+                    sc = analyzer.polarity_scores(t).get('compound',0.0)
+                    scores.append(sc)
+                    indiv.append({'headline': t[:180], 'compound': sc})
+                except Exception:
+                    continue
+            if not scores:
+                return None
+            avg = float(sum(scores)/len(scores))
+            var = sum((s-avg)**2 for s in scores)/len(scores) if scores else 0.0
+            size_factor = min(1.0, len(scores)/25.0)
+            confidence = max(0.1, min(0.9, size_factor * (1.0 - min(0.6,var))))
+            quality = (confidence * 0.7 + size_factor * 0.3) * 100
+            sd = SentimentData(symbol=symbol, sentiment_score=avg, confidence=confidence, source='finviz_news', timestamp=datetime.now(), sample_size=len(scores), raw_data={'sample_texts':[t[:160] for t in titles[:5]], 'individual_headline_scores': indiv[:10], 'variance': var})
+            self.performance_tracker.record_success(self.source.value, (time.time()-start_time)*1000, quality)
+            self.cache.set(cache_key, sd, 'sentiment', quality)
+            return sd
+        except Exception as e:
+            _log_error_and_record(self.performance_tracker, self.source.value, f"FinVizNewsSentimentAdapter failed for {symbol}", e)
+            return None
+
+class GenericRSSSentimentAdapter:
+    """Configurable RSS feed sentiment adapter.
+
+    Environment variables:
+      RSS_FEEDS       comma-separated list of feed URLs
+      RSS_INCLUDE_ALL if set (1/true/on) include all headlines, not only those mentioning the symbol
+    """
+    feed_urls: List[str]
+    include_all: bool
+    feedparser_available: bool
+
+    def __init__(self, cache: SmartCache, rate_limiter: RateLimiter, performance_tracker: PerformanceTracker):
+        self.cache = cache
+        self.rate_limiter = rate_limiter
+        self.performance_tracker = performance_tracker
+        self.source = DataSource.GOOGLE_TRENDS  # placeholder enum for registry
+        self.feed_urls = [u.strip() for u in os.getenv("RSS_FEEDS", "").split(',') if u.strip()]
+        self.include_all = os.getenv("RSS_INCLUDE_ALL", "0").lower() in {"1", "true", "yes", "on"}
+        try:
+            import feedparser  # type: ignore  # noqa: F401
+            self.feedparser_available = True
+        except Exception:
+            self.feedparser_available = False
+
+    def get_sentiment(self, symbol: str, limit: int = 80) -> Optional[SentimentData]:
+        if not self.feed_urls or not self.feedparser_available:
+            return None
+        cache_key = f"rss_sentiment_{symbol.upper()}"
+        cached = self.cache.get(cache_key, "sentiment")
+        if cached:
+            return cached
+        if not self.rate_limiter.wait_if_needed(self.source):
+            return None
+        start = time.time()
+        try:
+            import feedparser  # type: ignore
+            from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+            analyzer = SentimentIntensityAnalyzer()
+            sym = symbol.upper()
+            headlines: List[str] = []
+            for url in self.feed_urls:
+                try:
+                    d = feedparser.parse(url)
+                    entries = d.get("entries") or []  # type: ignore[index]
+                    for entry in entries[:50]:  # type: ignore[index]
+                        try:
+                            title = entry.get("title") if isinstance(entry, dict) else getattr(entry, "title", None)
+                        except Exception:
+                            title = None
+                        if isinstance(title, str) and title.strip():
+                            up = title.upper()
+                            if self.include_all or sym in up or f"${sym}" in up:
+                                headlines.append(title.strip())
+                except Exception:
+                    continue
+            if not headlines:
+                return None
+            scores: List[float] = []
+            for h in headlines[:limit]:
+                try:
+                    scores.append(analyzer.polarity_scores(h).get("compound", 0.0))
+                except Exception:
+                    continue
+            if not scores:
+                return None
+            avg = float(sum(scores) / len(scores))
+            size_factor = min(1.0, len(scores) / 30.0)
+            variance = sum((s - avg) ** 2 for s in scores) / len(scores) if scores else 0.0
+            confidence = max(0.1, min(0.9, size_factor * (1.0 - min(0.6, variance))))
+            quality = (confidence * 0.65 + size_factor * 0.35) * 100
+            sd = SentimentData(
+                symbol=symbol,
+                sentiment_score=avg,
+                confidence=confidence,
+                source="rss_news",
+                timestamp=datetime.now(),
+                sample_size=len(scores),
+                raw_data={"variance": variance, "sample_texts": headlines[:5]},
+            )
+            self.performance_tracker.record_success("rss_news", (time.time() - start) * 1000, quality)
+            self.cache.set(cache_key, sd, "sentiment", quality)
+            return sd
+        except Exception as e:
+            self.performance_tracker.record_error("rss_news", str(e))
+            logger.debug(f"RSS sentiment failed for {symbol}: {e}")
             return None
 
 class TwitterAdapter:
@@ -668,6 +987,7 @@ class TwitterAdapter:
         self.feed = TwitterSentimentFeed()
         
     def get_sentiment(self, symbol: str, limit: int = 50) -> Optional[SentimentData]:
+        logger.debug(f"TwitterAdapter.get_sentiment called for symbol={symbol}, limit={limit}")
         """Get Twitter sentiment data for a symbol"""
         cache_key = f"twitter_sentiment_{symbol}_{limit}"
         
@@ -746,8 +1066,7 @@ class TwitterAdapter:
             return sentiment_data
             
         except Exception as e:
-            self.performance_tracker.record_error(self.source.value, str(e))
-            logger.error(f"Failed to fetch Twitter sentiment for {symbol}: {e}")
+            _log_error_and_record(self.performance_tracker, self.source.value, f"Failed to fetch Twitter sentiment for {symbol}", e)
             return None
 
 class AdvancedSentimentAdapter:
@@ -763,6 +1082,7 @@ class AdvancedSentimentAdapter:
         self._engine = None
     
     def get_sentiment(self, symbol: str, texts: Optional[List[str]] = None, sources: Optional[List[str]] = None) -> Optional[SentimentData]:
+        logger.debug(f"get_advanced_sentiment_data called for symbol={symbol}, texts={texts}, sources={sources}")
         """Get advanced sentiment analysis using multi-model ensemble"""
         cache_key = f"advanced_sentiment_{symbol}"
         cached_data = self.cache.get(cache_key, "sentiment")
@@ -852,23 +1172,47 @@ class DataFeedOrchestrator:
             quotas_config=quotas_cfg if isinstance(quotas_cfg, dict) else None,
         )
         self.performance_tracker = PerformanceTracker()
+        self.validator = DataValidator()  # Add validator instance
         # Initialize persistent cache (SQLite) for long-lived artifacts
         try:
             self.persistent_cache = CacheService(db_path=os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
-        except Exception as _e:
-            logger.warning(f"CacheService initialization failed, falling back to in-memory only: {_e}")
-            self.persistent_cache = None
-        self.validator = DataValidator()
+        except Exception as e:
+            _log_error_and_record(self.performance_tracker, "advanced_sentiment", "AdvancedSentimentAdapter error", e)
+            return None
         
         # Initialize data source adapters
         self.adapters = {
             DataSource.YFINANCE: YFinanceAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.REDDIT: RedditAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.TWITTER: TwitterAdapter(self.cache, self.rate_limiter, self.performance_tracker),
+            DataSource.YAHOO_NEWS: YahooNewsSentimentAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             # New adapters
             DataSource.TWELVE_DATA: TwelveDataAdapter(api_key=os.getenv("TWELVEDATA_API_KEY")),
             DataSource.FINVIZ: FinVizAdapter(),
         }
+        # Attempt to add FinVizNewsSentimentAdapter using existing FINVIZ headlines if available
+        try:
+            finviz_news_adapter = FinVizNewsSentimentAdapter(self.cache, self.rate_limiter, self.performance_tracker)
+            # Reuse FINVIZ enum (distinct FINVIZ_NEWS may not exist). Stored under FINVIZ to avoid enum changes.
+            self.adapters[DataSource.FINVIZ] = self.adapters.get(DataSource.FINVIZ) or finviz_news_adapter  # keep base adapter if already required
+            # Keep news sentiment adapter separately for direct sentiment extraction
+            self.adapters[(DataSource.FINVIZ, 'news')] = finviz_news_adapter  # type: ignore
+        except Exception as _e:
+            logger.debug(f"FinVizNewsSentimentAdapter init skipped: {_e}")
+        # Attempt to register generic RSS sentiment adapter if feedparser & RSS_FEEDS provided
+        try:
+            rss_adapter = GenericRSSSentimentAdapter(self.cache, self.rate_limiter, self.performance_tracker)
+            if getattr(rss_adapter, 'feed_urls', []) and getattr(rss_adapter, 'feedparser_available', False):
+                self.adapters[('RSS','rss_news')] = rss_adapter  # type: ignore
+        except Exception as _e:
+            logger.debug(f"GenericRSSSentimentAdapter init skipped: {_e}")
+        # Provide back-reference where needed
+        for _a in self.adapters.values():
+            try:
+                if hasattr(_a, 'adapters_ref'):
+                    _a.adapters_ref = self.adapters
+            except Exception:
+                pass
         
         # Initialize advanced sentiment adapter
         self.advanced_sentiment_adapter = AdvancedSentimentAdapter(
@@ -930,176 +1274,108 @@ class DataFeedOrchestrator:
             pass
     
     def get_quote(self, symbol: str, preferred_sources: Optional[List[DataSource]] = None) -> Optional[Quote]:
-        """
-        Get real-time quote with intelligent source selection.
-        Minimal, guarded refactor to prefer standardized adapter wrappers when available,
-        preserving existing behavior, caching, rate limiting, and performance tracking.
-        """
-        # Quick-path: accept strings like "twelve_data" and convert to enum
+        logger.debug(f"get_quote called for symbol={symbol}, preferred_sources={preferred_sources}")
+        step_start = time.time()
+        timings = {}
+        step1 = time.time()
+        timings['init'] = step1 - step_start
         if preferred_sources:
-            normalized: List[DataSource] = []
-            for s in preferred_sources:
-                if isinstance(s, DataSource):
-                    normalized.append(s)
-                elif isinstance(s, str):
-                    try:
-                        # allow both enum value and name casing
-                        normalized.append(DataSource(s))
-                    except Exception:
-                        try:
-                            normalized.append(DataSource[s.upper()])
-                        except Exception:
-                            continue
-            if normalized:
-                preferred_sources = normalized
-
+            logger.debug(f"Preferred sources provided: {preferred_sources}")
+        step2 = time.time()
+        timings['preferred_sources_check'] = step2 - step1
         if preferred_sources is None or not preferred_sources:
-            # Use performance-based ranking (default to YFINANCE if none)
-            source_rankings = self.performance_tracker.get_source_ranking()
-            preferred_sources = [DataSource(source) for source, _ in source_rankings
-                               if DataSource(source) in [DataSource.YFINANCE]]
-            if not preferred_sources:
-                preferred_sources = [DataSource.YFINANCE]
-
-        # Minimal honoring: if Twelve Data is requested, try it first
-        if any(s == DataSource.TWELVE_DATA for s in preferred_sources):
-            ordered = [DataSource.TWELVE_DATA] + [s for s in preferred_sources if s != DataSource.TWELVE_DATA]
+            logger.debug("No preferred sources, using default order.")
+        step3 = time.time()
+        timings['default_order_check'] = step3 - step2
+        if preferred_sources and any(s == DataSource.TWELVE_DATA for s in preferred_sources):
+            logger.debug("TWELVE_DATA present in preferred_sources.")
         else:
-            ordered = preferred_sources
-
+            logger.debug("TWELVE_DATA not present in preferred_sources.")
+        step4 = time.time()
+        timings['twelve_data_check'] = step4 - step3
         best_quote = None
         best_quality = 0
-
-        # Try standardized wrappers first when available, otherwise fall back to existing logic
+        # Define ordered list of sources
+        ordered = preferred_sources if preferred_sources else [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
+        timings['ordered_list'] = time.time() - step4
         for source in ordered:
-            # Map DataSource to wrapper key names
-            wrapper_key = None
-            if source == DataSource.YFINANCE:
-                wrapper_key = "yfinance"
-            elif source == DataSource.FINNHUB:
-                wrapper_key = "finnhub"
-            elif source.name == "FMP" or source.value in ("financial_modeling_prep",):
-                wrapper_key = "fmp"
-            elif source.name == "FINANCE_DATABASE" or source.value == "finance_database":
-                wrapper_key = "finance_database"
-
-            quote = None
-            # Guarded wrapper usage
+            sub_start = time.time()
+            logger.debug(f"Fetching quote from source: {source}")
             try:
-                if hasattr(self, "_standard_adapters") and isinstance(getattr(self, "_standard_adapters", None), dict) and wrapper_key and wrapper_key in self._standard_adapters:
-                    wrapper = self._standard_adapters[wrapper_key]
-                    if hasattr(wrapper, "fetch_quote"):
-                        quote = wrapper.fetch_quote(symbol)
-            except NotImplementedError:
-                # Wrapper doesn't support quotes; proceed to fallback path
-                quote = None
+                adapter = self.adapters.get(source)
+                if adapter:
+                    quote = adapter.get_quote(symbol)
+                    timings[f'fetch_{source.value}'] = time.time() - sub_start
+                    logger.debug(f"Quote from {source}: {quote}")
+                    if quote and quote.quality_score and quote.quality_score > best_quality:
+                        best_quote = quote
+                        best_quality = quote.quality_score
+                else:
+                    logger.warning(f"No adapter found for source: {source}")
             except Exception as e:
-                logger.warning(f"Standard wrapper quote path failed for {symbol} via {wrapper_key}: {e}")
-                quote = None
-
-            # Fallback to existing adapter path if wrapper absent or returned None
-            if quote is None:
-                if source not in self.adapters:
-                    continue
-                adapter = self.adapters[source]
-                if not hasattr(adapter, "get_quote"):
-                    continue
-                quote = adapter.get_quote(symbol)
-
-            if quote and (quote.quality_score or 0) > best_quality:
-                best_quote = quote
-                best_quality = quote.quality_score or 0
-                # If we get excellent quality data, use it immediately
-                if best_quality >= self.preferred_quality_score:
-                    break
-
+                logger.error(f"Error fetching quote from {source}: {e}")
+                timings[f'error_{source.value}'] = time.time() - sub_start
+        timings['total'] = time.time() - step_start
+        logger.info(f"Profiling timings for get_quote({symbol}): {timings}")
         return best_quote
     
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d", preferred_sources: Optional[List[DataSource]] = None) -> Optional[MarketData]:
-        """Get historical market data with quality validation. Prefer standardized wrappers when available."""
-        # Quick-path: normalize preferred_sources to enums and honor order, prioritizing Twelve Data when requested
+        logger.debug(f"get_market_data called for symbol={symbol}, period={period}, interval={interval}, preferred_sources={preferred_sources}")
+        step_start = time.time()
+        timings = {}
+        step1 = time.time()
+        timings['init'] = step1 - step_start
         if preferred_sources:
-            normalized: List[DataSource] = []
-            for s in preferred_sources:
-                if isinstance(s, DataSource):
-                    normalized.append(s)
-                elif isinstance(s, str):
-                    try:
-                        normalized.append(DataSource(s))
-                    except Exception:
-                        try:
-                            normalized.append(DataSource[s.upper()])
-                        except Exception:
-                            continue
-            preferred_sources = normalized
-
+            logger.debug(f"Preferred sources provided: {preferred_sources}")
+        step2 = time.time()
+        timings['preferred_sources_check'] = step2 - step1
         if preferred_sources and any(s == DataSource.TWELVE_DATA for s in preferred_sources):
-            ordered = [DataSource.TWELVE_DATA] + [s for s in preferred_sources if s != DataSource.TWELVE_DATA]
+            logger.debug("TWELVE_DATA present in preferred_sources.")
         else:
-            ordered = preferred_sources or [DataSource.YFINANCE]
-
-        # Try wrappers first when present; wrappers may return DataFrame or MarketData per protocol.
+            logger.debug("TWELVE_DATA not present in preferred_sources.")
+        step3 = time.time()
+        timings['twelve_data_check'] = step3 - step2
+        # Define ordered list of sources
+        ordered = preferred_sources if preferred_sources else [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
+        timings['ordered_list'] = time.time() - step3
+        best_data = None
+        best_quality = 0
         for source in ordered:
-            wrapper_key = None
-            if source == DataSource.YFINANCE:
-                wrapper_key = "yfinance"
-            elif source == DataSource.FINNHUB:
-                wrapper_key = "finnhub"
-            elif source.name == "FMP" or source.value in ("financial_modeling_prep",):
-                wrapper_key = "fmp"
-            elif source.name == "FINANCE_DATABASE" or source.value == "finance_database":
-                wrapper_key = "finance_database"
-
-            # Attempt standardized wrapper.fetch_historical
-            if wrapper_key and hasattr(self, "_standard_adapters") and isinstance(getattr(self, "_standard_adapters", None), dict) and wrapper_key in self._standard_adapters:
-                try:
-                    wrapper = self._standard_adapters[wrapper_key]
-                    if hasattr(wrapper, "fetch_historical"):
-                        hist = wrapper.fetch_historical(symbol, period=period, interval=interval, from_date=None, to_date=None)
-                        if hist is not None:
-                            # If wrapper returns a DataFrame, normalize into MarketData; if MarketData, use as-is
-                            if isinstance(hist, pd.DataFrame):
-                                if hist is not None and not hist.empty:
-                                    quality_score, _ = self.validator.validate_market_data(hist)
-                                    md = MarketData(
-                                        symbol=symbol,
-                                        data=hist,
-                                        timeframe=f"{period}_{interval}",
-                                        source=wrapper_key,
-                                        timestamp=datetime.now(),
-                                        quality_score=quality_score,
-                                    )
-                                    # Preserve caching semantics through SmartCache
-                                    cache_key = f"market_data_{symbol}_{period}_{interval}"
-                                    if quality_score >= self.min_quality_score:
-                                        self.cache.set(cache_key, md, f"market_data_{interval}", quality_score)
-                                    # Track performance conservatively (no precise timing here)
-                                    self.performance_tracker.record_success(wrapper_key, 0.0, quality_score)
-                                    return md
-                            else:
-                                # Assume MarketData-like object
-                                md = hist  # type: ignore
-                                if getattr(md, "data", None) is not None and not getattr(md, "data").empty:  # type: ignore
-                                    return md
-                except NotImplementedError:
-                    # Wrapper does not implement historical; fall back to existing path
-                    pass
-                except Exception as e:
-                    logger.warning(f"Standard wrapper historical path failed for {symbol} via {wrapper_key}: {e}")
-                    # fall through to existing path
-
+            sub_start = time.time()
+            logger.debug(f"Fetching market data from source: {source}")
+            try:
+                adapter = self.adapters.get(source)
+                if adapter:
+                    data = adapter.get_market_data(symbol, period, interval)
+                    timings[f'fetch_{source.value}'] = time.time() - sub_start
+                    logger.debug(f"Market data from {source}: {data}")
+                    if data and hasattr(data, 'quality_score') and data.quality_score > best_quality:
+                        best_data = data
+                        best_quality = data.quality_score
+                else:
+                    logger.warning(f"No adapter found for source: {source}")
+            except Exception as e:
+                logger.error(f"Error fetching market data from {source}: {e}")
+                timings[f'error_{source.value}'] = time.time() - sub_start
+        timings['total'] = time.time() - step_start
+        logger.info(f"Profiling timings for get_market_data({symbol}): {timings}")
         # Fallback to existing adapter path if wrapper absent or failed
+        if best_data:
+            return best_data
         for source in ordered:
-            adapter = self.adapters.get(source)
-            if not adapter or not hasattr(adapter, "get_market_data"):
+            try:
+                adapter = self.adapters.get(source)
+                if adapter:
+                    data = adapter.get_market_data(symbol, period, interval)
+                    if data:
+                        return data
+            except Exception:
                 continue
-            md = adapter.get_market_data(symbol, period, interval)
-            if md and md.data is not None and not md.data.empty:
-                return md
-
         # Final fallback
-        adapter = self.adapters[DataSource.YFINANCE]
-        return adapter.get_market_data(symbol, period, interval)
+        adapter = self.adapters.get(DataSource.YFINANCE)
+        if adapter:
+            return adapter.get_market_data(symbol, period, interval)
+        return None
 
     # ------------------------------------------------------------------------
     # New methods delegating to ConsolidatedDataFeed (compatibility bridge)
@@ -1141,7 +1417,11 @@ class DataFeedOrchestrator:
             if div is not None and hasattr(div, "items"):
                 for idx, val in div.items():
                     try:
-                        date_s = str(idx.date())
+                        # idx may be a Timestamp / date-like; fall back gracefully
+                        try:
+                            date_s = str(getattr(idx, 'date')() if hasattr(idx, 'date') else idx)
+                        except Exception:
+                            date_s = str(idx)
                     except Exception:
                         date_s = str(idx)
                     try:
@@ -1153,7 +1433,10 @@ class DataFeedOrchestrator:
             if spl is not None and hasattr(spl, "items"):
                 for idx, val in spl.items():
                     try:
-                        date_s = str(idx.date())
+                        try:
+                            date_s = str(getattr(idx, 'date')() if hasattr(idx, 'date') else idx)
+                        except Exception:
+                            date_s = str(idx)
                     except Exception:
                         date_s = str(idx)
                     try:
@@ -1330,19 +1613,30 @@ class DataFeedOrchestrator:
             try:
                 if key_hash is None:
                     key_hash = self.persistent_cache.make_key("earnings_calendar", base_params)  # type: ignore
+                # Wrap list payload in a dict for consistent JSON typing
                 self.persistent_cache.set(  # type: ignore
                     key=key_hash,
                     endpoint="earnings_calendar",
                     symbol=None,
                     ttl_seconds=int(self.EARNINGS_TTL_H) * 3600,
-                    payload_json=out_list,
+                    payload_json={"items": out_list},
                     source=source_used,
                     metadata_json={"params": base_params},
                 )
             except Exception as e:
                 logger.warning(f"[cache] earnings_calendar write failed: {e}")
-
-        return out_list if success and out_list else (entry.payload_json if entry and entry.payload_json else None)
+        # Normalize return type to list[dict] | None
+        if success and out_list:
+            return out_list
+        if entry and entry.payload_json:
+            try:
+                if isinstance(entry.payload_json, dict) and 'items' in entry.payload_json:
+                    items = entry.payload_json.get('items')
+                    if isinstance(items, list):
+                        return items  # type: ignore
+            except Exception:
+                pass
+        return None
 
     def get_options_analytics(self, symbol: str, include: list[str] | None = None) -> Optional[dict]:
         """
@@ -1380,7 +1674,13 @@ class DataFeedOrchestrator:
             for k in ("regularMarketPrice", "currentPrice", "previousClose", "close"):
                 if info.get(k) is not None:
                     try:
-                        S = float(info.get(k))
+                        raw_v = info.get(k)
+                        if raw_v is None:
+                            continue
+                        try:
+                            S = float(raw_v)
+                        except Exception:
+                            continue
                         if S and S > 0:
                             break
                     except Exception:
@@ -1419,12 +1719,15 @@ class DataFeedOrchestrator:
             return None
 
         T_days = max(1, (expiry_date - today).days)
+       
+       
         T = T_days / 365.0
 
         # Chains
         try:
             oc = t.option_chain(nearest_exp)
             calls = oc.calls
+           
             puts = oc.puts
         except Exception as e:
             logger.error(f"Failed to get option chain for {symbol} {nearest_exp}: {e}")
@@ -1615,7 +1918,7 @@ class DataFeedOrchestrator:
             logger.error(f"Orchestrator news error for {symbol}: {e}")
             return []
 
-    def get_multiple_quotes(self, symbols: List[str]) -> Dict[str, Quote]:
+    def get_multiple_quotes(self, symbols: List[str]):  # return type simplified to avoid cross-module Quote mismatch
         """
         Delegate to ConsolidatedDataFeed.get_multiple_quotes for compatibility during consolidation.
         Maps each symbol to its quote where available.
@@ -1642,155 +1945,244 @@ class DataFeedOrchestrator:
             return {}
     
     def get_sentiment_data(self, symbol: str, sources: Optional[List[DataSource]] = None) -> Dict[str, SentimentData]:
-        """
-        Get sentiment data from multiple sources
-        
-        Args:
-            symbol: Stock symbol
-            sources: List of sentiment sources to query
-            
-        Returns:
-            Dictionary mapping source names to sentiment data
-        """
+        logger.debug(f"get_sentiment_data called for symbol={symbol}, sources={sources}")
+        sentiment_data: Dict[str, SentimentData] = {}
+        step_start = time.time()
+        timings: Dict[str, float] = {}
+
+        # Validate sources list
         if sources is None:
-            sources = [DataSource.REDDIT, DataSource.TWITTER]
-        
-        sentiment_data = {}
-        
-        for source in sources:
-            if source not in self.adapters:
-                continue
-            
-            adapter = self.adapters[source]
-            if hasattr(adapter, 'get_sentiment'):
-                data = adapter.get_sentiment(symbol)
-                if data:
-                    sentiment_data[source.value] = data
-        
+            logger.debug("No sources provided, using default sentiment sources.")
+        ordered = sources if sources else [DataSource.REDDIT, DataSource.TWITTER, DataSource.YAHOO_NEWS, DataSource.FINVIZ]
+        timings['ordered_list'] = time.time() - step_start
+
+        for source in ordered:
+            sub_start = time.time()
+            logger.debug(f"Fetching sentiment data from source: {source}")
+            try:
+                adapter = self.adapters.get(source)
+                if not adapter:
+                    logger.warning(f"No adapter found for source: {source}")
+                    timings[f"missing_{getattr(source, 'value', str(source))}"] = time.time() - sub_start
+                    continue
+
+                adapter_name = getattr(source, 'value', str(source))
+                call_start = time.time()
+                sentiment = adapter.get_sentiment(symbol)
+                call_end = time.time()
+                elapsed = call_end - call_start
+                timings[f'fetch_{adapter_name}'] = elapsed
+                logger.info(f"[TIMING][oracle_agent_pipeline][{adapter_name}] {elapsed:.2f} seconds for get_sentiment({symbol})")
+                # Also print timing to stdout so CI/CLI runs capture adapter-level timings even when logging level is high
+                print(f"[TIMING][oracle_agent_pipeline][{adapter_name}] {elapsed:.2f} seconds for get_sentiment({symbol})")
+                try:
+                    import sys as _sys
+                    _sys.stdout.flush()
+                except Exception:
+                    pass
+                logger.debug(f"Sentiment from {source}: {sentiment}")
+                if sentiment:
+                    sentiment_data[adapter_name] = sentiment
+            except Exception as e:
+                logger.error(f"Error fetching sentiment from {source}: {e}")
+                timings[f"error_{getattr(source, 'value', str(source))}"] = time.time() - sub_start
+
+        timings['total'] = time.time() - step_start
+        logger.info(f"[TIMING][oracle_agent_pipeline][total] {timings['total']:.2f} seconds for get_sentiment_data({symbol})")
+        print(f"[TIMING][oracle_agent_pipeline][total] {timings['total']:.2f} seconds for get_sentiment_data({symbol})")
+        try:
+            import sys as _sys
+            _sys.stdout.flush()
+        except Exception:
+            pass
+        logger.info(f"Profiling timings for get_sentiment_data({symbol}): {timings}")
         return sentiment_data
+
+    def list_available_sentiment_sources(self) -> List[str]:
+        out: List[str] = []
+        for key, adapter in self.adapters.items():
+            if not hasattr(adapter, 'get_sentiment'):
+                continue
+            if isinstance(key, tuple):
+                out.append(":".join([str(k) for k in key]))
+            else:
+                out.append(str(getattr(key, 'value', key)))
+        return sorted(set(out))
     
     def get_advanced_sentiment_data(self, symbol: str, texts: Optional[List[str]] = None, sources: Optional[List[str]] = None) -> Optional[SentimentData]:
+        logger.debug(f"get_advanced_sentiment_data called for symbol={symbol}, texts={texts}, sources={sources}")
+        """Aggregate multi-source textual signals then run advanced sentiment ensemble.
+
+        Sources considered: Reddit, Twitter, Yahoo headlines scraper, FinViz news, YahooNewsSentimentAdapter sample texts, RSS (if enabled).
+        Caps & truncation are applied to control token counts and cost.
         """
-        Get advanced multi-model sentiment analysis.
-        Enhanced: aggregates Reddit, Twitter, and News texts with batching, caps, truncation, and deduplication.
-        """
-        # If explicit texts are provided, honor them directly
-        if texts:
-            return self.advanced_sentiment_adapter.get_sentiment(symbol, texts, sources if sources is not None else None)
+        step_start = time.time()
+        timings: Dict[str, float] = {}
 
-        # Parameters for safe batching/caps
-        MAX_PER_SOURCE = 200
-        TRUNCATE_LEN = 256
+        # If user provided texts, time the advanced sentiment call and return
+        if texts:  # User supplied explicit corpus
+            adv_start = time.time()
+            adv = self.advanced_sentiment_adapter.get_sentiment(symbol, texts, sources if sources else None)
+            timings['advanced_sentiment_compute'] = time.time() - adv_start
+            timings['total'] = time.time() - step_start
+            logger.info(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
+            print(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
+            return adv
 
-        aggregated_texts: List[str] = []
-
-        # 1) Reddit: pull aggregated sentiment and use sample_texts (may be many if upstream increased limits)
-        reddit_data_map = self.get_sentiment_data(symbol)
-        if reddit_data_map and reddit_data_map.get(DataSource.REDDIT.value):
-            reddit_data = reddit_data_map[DataSource.REDDIT.value]
-            raw = reddit_data.raw_data or {}
-            if isinstance(raw, dict):
-                sample_texts = raw.get('sample_texts') or []
-                # Ensure strings, truncate, take up to cap
-                red_texts = [
-                    (t[:TRUNCATE_LEN] + "…") if isinstance(t, str) and len(t) > TRUNCATE_LEN else t
-                    for t in sample_texts if isinstance(t, str)
-                ][:MAX_PER_SOURCE]
-                aggregated_texts.extend(red_texts)
-
-        # 2) Twitter: fetch tweets and include their text field
-        tw_adapter = self.adapters.get(DataSource.TWITTER)
         try:
-            if tw_adapter and hasattr(tw_adapter, "get_sentiment"):
-                tw_sent = tw_adapter.get_sentiment(symbol, limit=MAX_PER_SOURCE)
+            max_per = int(os.getenv("ADVANCED_SENTIMENT_MAX_PER_SOURCE", "300"))
+        except Exception:
+            max_per = 300
+        truncate_len = 256
+
+        aggregated: List[str] = []
+        counts: Dict[str, int] = {}
+
+        # Reddit (use existing sentiment map)
+        try:
+            sub_start = time.time()
+            s_map = self.get_sentiment_data(symbol)
+            timings['fetch_sentiment_map'] = time.time() - sub_start
+            rd = s_map.get(DataSource.REDDIT.value) if s_map else None
+            if rd and isinstance(rd.raw_data, dict):
+                rtexts = rd.raw_data.get("sample_texts") or []
+                red = [ (t[:truncate_len] + "…") if isinstance(t,str) and len(t) > truncate_len else t for t in rtexts if isinstance(t,str)][:max_per]
+                aggregated.extend(red)
+                counts['reddit'] = len(red)
+        except Exception as e:
+            logger.debug(f"Reddit aggregation failed: {e}")
+            timings['error_reddit'] = 0.0
+
+        # Twitter
+        try:
+            sub_start = time.time()
+            tw_adapter = self.adapters.get(DataSource.TWITTER)
+            if tw_adapter and hasattr(tw_adapter, 'get_sentiment'):
+                tw_sent = tw_adapter.get_sentiment(symbol, limit=max_per)
+                timings['fetch_twitter'] = time.time() - sub_start
                 if tw_sent and isinstance(tw_sent.raw_data, dict):
-                    tweets = tw_sent.raw_data.get("tweets") or []
-                    # Each tweet is a dict with 'text'
-                    tw_texts = []
-                    for tw in tweets[:MAX_PER_SOURCE]:
-                        txt = tw.get("text") if isinstance(tw, dict) else None
+                    tweets = tw_sent.raw_data.get('tweets') or []
+                    tw_texts: List[str] = []
+                    for tw in tweets[:max_per]:
+                        txt = tw.get('text') if isinstance(tw, dict) else None
                         if isinstance(txt, str) and txt:
-                            if len(txt) > TRUNCATE_LEN:
-                                txt = txt[:TRUNCATE_LEN] + "…"
+                            if len(txt) > truncate_len:
+                                txt = txt[:truncate_len] + "…"
                             tw_texts.append(txt)
-                    aggregated_texts.extend(tw_texts)
+                    aggregated.extend(tw_texts)
+                    counts['twitter'] = len(tw_texts)
+            else:
+                timings['fetch_twitter'] = time.time() - sub_start
         except Exception as e:
-            logger.warning(f"Twitter aggregation for advanced sentiment failed for {symbol}: {e}")
+            logger.debug(f"Twitter aggregation failed: {e}")
+            timings['error_twitter'] = 0.0
 
-        # 3) News: consolidate Yahoo Finance headlines scraper + optional additional news API + Google Trends
-        news_texts: List[str] = []
-        # 3a) Yahoo Finance headlines (existing scraper)
+        # News (Yahoo scraper + FinViz + YahooNewsSentimentAdapter sample texts)
+        news: List[str] = []
         try:
+            sub_start = time.time()
             from data_feeds.news_scraper import fetch_headlines_yahoo_finance
-            yh = fetch_headlines_yahoo_finance()
-            if isinstance(yh, list) and yh:
-                news_texts.extend([h for h in yh if isinstance(h, str)])
-        except Exception as e:
-            logger.warning(f"Yahoo Finance headlines fetch failed: {e}")
-
-        # 3b) Additional news via FinViz adapter endpoint already implemented
+            yh_list = fetch_headlines_yahoo_finance()
+            timings['fetch_yahoo_headlines'] = time.time() - sub_start
+            if isinstance(yh_list, list):
+                news.extend([h for h in yh_list if isinstance(h,str)])
+        except Exception:
+            pass
         try:
             finviz_adapter = self.adapters.get(DataSource.FINVIZ)
-            if finviz_adapter and hasattr(finviz_adapter, "get_news"):
+            if finviz_adapter and hasattr(finviz_adapter, 'get_news'):
                 finviz_news = finviz_adapter.get_news()
-                # finviz.get_news() returns Optional[Dict[str, pd.DataFrame]] per implementation
-                # Extract recent headlines from the 'news' DataFrame if present
                 if isinstance(finviz_news, dict):
-                    df_news = finviz_news.get("news") or finviz_news.get("headlines") or None
+                    df_news = finviz_news.get('news')
+                    if df_news is None:
+                        df_news = finviz_news.get('headlines')
                     try:
-                        import pandas as pd  # local import safeguard
-                        if df_news is not None and hasattr(df_news, "empty") and not df_news.empty:
-                            # Common FinViz columns: 'Title' or 'Headline' or similar
-                            title_col = None
-                            for cand in ["Title", "title", "Headline", "headline"]:
+                        import pandas as pd  # type: ignore
+                        if isinstance(df_news, pd.DataFrame) and not df_news.empty:
+                            col = None
+                            for cand in ['Title','title','Headline','headline']:
                                 if cand in df_news.columns:
-                                    title_col = cand
+                                    col = cand
                                     break
-                            if title_col:
-                                # Convert to list of strings
-                                for val in df_news[title_col].tolist()[:MAX_PER_SOURCE]:
-                                    if isinstance(val, str) and val.strip():
-                                        news_texts.append(val.strip())
-                    except Exception as e:
-                        logger.debug(f"Failed to parse FinViz news DataFrame: {e}")
-        except Exception as e:
-            logger.debug(f"FinViz news aggregation failed: {e}")
+                            if col:
+                                for v in list(df_news[col].tolist())[:max_per]:
+                                    if isinstance(v,str) and v.strip():
+                                        news.append(v.strip())
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+        try:
+            yn_adapter = self.adapters.get(DataSource.YAHOO_NEWS)
+            if yn_adapter and hasattr(yn_adapter,'get_sentiment'):
+                yn_sent = yn_adapter.get_sentiment(symbol)
+                if yn_sent and isinstance(yn_sent.raw_data, dict):
+                    for h in yn_sent.raw_data.get('sample_texts', [])[:max_per]:
+                        if isinstance(h,str):
+                            news.append(h)
+        except Exception:
+            pass
+        # RSS adapter sample texts (if exists)
+        try:
+            rss_adapter = self.adapters.get(('RSS','rss_news'))  # type: ignore
+            if rss_adapter and hasattr(rss_adapter,'get_sentiment'):
+                rss_sent = rss_adapter.get_sentiment(symbol)
+                if rss_sent and isinstance(rss_sent.raw_data, dict):
+                    for h in rss_sent.raw_data.get('sample_texts', [])[:max_per]:
+                        if isinstance(h,str):
+                            news.append(h)
+        except Exception:
+            pass
 
-        # 3c) Google Trends integration removed per requirement (avoid placeholder/mock features)
-
-        # Normalize news texts: truncate and cap
-        if news_texts:
-            norm_news = []
-            for n in news_texts:
-                if not isinstance(n, str) or not n.strip():
+        if news:
+            norm_news: List[str] = []
+            for n in news:
+                if not isinstance(n,str):
                     continue
-                n2 = n.strip()
-                if len(n2) > TRUNCATE_LEN:
-                    n2 = n2[:TRUNCATE_LEN] + "…"
-                norm_news.append(n2)
-            aggregated_texts.extend(norm_news[:MAX_PER_SOURCE])
+                s = n.strip()
+                if not s:
+                    continue
+                if len(s) > truncate_len:
+                    s = s[:truncate_len] + "…"
+                norm_news.append(s)
+            slice_news = norm_news[:max_per]
+            aggregated.extend(slice_news)
+            counts['news'] = len(slice_news)
 
-        # Deduplicate texts while preserving order
-        if aggregated_texts:
+        # Deduplicate
+        if aggregated:
             seen = set()
-            deduped = []
-            for t in aggregated_texts:
-                if not isinstance(t, str):
+            deduped: List[str] = []
+            for txt in aggregated:
+                if not isinstance(txt,str):
                     continue
-                key = t.strip()
-                if not key or key in seen:
+                k = txt.strip()
+                if not k or k in seen:
                     continue
-                seen.add(key)
-                deduped.append(key)
-            aggregated_texts = deduped
+                seen.add(k)
+                deduped.append(k)
+            aggregated = deduped
+            counts['total_unique'] = len(aggregated)
 
-        # Final cap to avoid runaway inputs (sum across sources)
-        aggregated_texts = aggregated_texts[: (MAX_PER_SOURCE * 3)]
-
-        if not aggregated_texts:
+        aggregated = aggregated[: max_per * 3]
+        if not aggregated:
+            timings['total'] = time.time() - step_start
+            logger.info(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
             return None
 
-        return self.advanced_sentiment_adapter.get_sentiment(symbol, aggregated_texts, None)
+        # Run the advanced sentiment ensemble and time it
+        adv_start = time.time()
+        adv = self.advanced_sentiment_adapter.get_sentiment(symbol, aggregated, None)
+        timings['advanced_sentiment_compute'] = time.time() - adv_start
+        timings['total'] = time.time() - step_start
+        logger.info(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
+        print(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
+
+        if adv:
+            if adv.raw_data is None:
+                adv.raw_data = {}
+            adv.raw_data['aggregated_counts'] = counts
+        return adv
     
     def _init_standard_adapters(self) -> None:
         """
@@ -1828,6 +2220,14 @@ class DataFeedOrchestrator:
         quality_report = {}
         for source_name, score in rankings:
             metrics = self.performance_tracker.metrics[source_name]
+            # Aggregate latest issues (errors + quality) for this source
+            recent_issues: List[str] = []
+            try:
+                if source_name in self.performance_tracker.issues:
+                    # Keep only last 5 issue messages
+                    recent_issues = [i.get('message','') for i in list(self.performance_tracker.issues[source_name])[-5:]]
+            except Exception:
+                recent_issues = []
             
             quality_report[source_name] = DataQualityMetrics(
                 source=source_name,
@@ -1835,7 +2235,7 @@ class DataFeedOrchestrator:
                 latency_ms=float(np.mean(metrics['response_times'])) if metrics['response_times'] else 0,
                 success_rate=metrics['success_count'] / max(1, metrics['success_count'] + metrics['error_count']),
                 last_updated=metrics['last_success'] or datetime.now(),
-                issues=[]  # TODO: Implement issue tracking
+                issues=recent_issues
             )
         
         return quality_report
@@ -1847,7 +2247,9 @@ class DataFeedOrchestrator:
             'timestamp': datetime.now(),
             'sources_available': len(self.adapters),
             'cache_size': len(self.cache.cache),
-            'quality_issues': []
+            'quality_issues': [],
+            'low_success_rate': [],
+            'recent_errors': {}
         }
         
         # Check data source health
@@ -1858,6 +2260,27 @@ class DataFeedOrchestrator:
         if unhealthy_sources:
             health_report['status'] = 'degraded'
             health_report['quality_issues'].extend(unhealthy_sources)
+        # Identify sources with low success rate (<70%) or recent errors
+        for source, metrics in self.performance_tracker.metrics.items():
+            total = metrics['success_count'] + metrics['error_count']
+            if total >= 5:  # only consider if some history
+                sr = metrics['success_count']/total if total else 0.0
+                if sr < 0.7:
+                    health_report['low_success_rate'].append({'source': source, 'success_rate': round(sr,3)})
+            # Add last error message if within last 10 minutes
+            try:
+                last_err_time = metrics.get('last_error')
+                if last_err_time and (datetime.now() - last_err_time).total_seconds() < 600:
+                    # Find most recent error issue message
+                    if source in self.performance_tracker.issues:
+                        for issue in reversed(self.performance_tracker.issues[source]):
+                            if issue.get('type') == 'error':
+                                health_report['recent_errors'][source] = issue.get('message','')
+                                break
+            except Exception:
+                pass
+        if health_report['low_success_rate'] or health_report['recent_errors']:
+            health_report['status'] = 'degraded'
         
         return health_report
     
@@ -2053,6 +2476,9 @@ class DataFeedOrchestrator:
 
         Returns dict: keyword -> {timestamp_str: value}
         """
+    # DEPRECATED: Google Trends feed is disabled upstream and this method will return None or empty
+    # data depending on stub implementation. Retained only for backward compatibility. New
+    # development should avoid calling this and instead rely on other sentiment/interest signals.
         try:
             from data_feeds.google_trends import fetch_google_trends as _fetch_trends
         except Exception as e:
@@ -2127,7 +2553,6 @@ class DataFeedOrchestrator:
             except Exception as e:
                 # Emit first 120 chars of error for visibility
                 logger.warning(f"[cache] google_trends write failed: {str(e)[:120]}")
-
         return result
 
 # ----------------------------------------------------------------------------
@@ -2141,8 +2566,8 @@ def get_news(symbol: str, limit: int = 10) -> List[NewsItem]:
     """Get news via orchestrator delegating to ConsolidatedDataFeed."""
     return get_orchestrator().get_news(symbol, limit)
 
-def get_multiple_quotes(symbols: List[str]) -> Dict[str, Quote]:
-    """Get multiple quotes via orchestrator delegating to ConsolidatedDataFeed."""
+def get_multiple_quotes(symbols: List[str]):
+    """Get multiple quotes via orchestrator delegating to ConsolidatedDataFeed (loosely typed)."""
     return get_orchestrator().get_multiple_quotes(symbols)
 
 def get_financial_statements(symbol: str) -> Dict[str, Optional[pd.DataFrame]]:

@@ -1,0 +1,597 @@
+[DEBUG] Preferred model 'gpt-4o' validated.
+[DEBUG] Preferred model 'gpt-4o' validated.
+[DEBUG] Preferred model 'gpt-4o' validated.
+[DEBUG] Entered auto_generate_market_summary
+[DEBUG] Found playbooks: ['playbook_2025_08_02.json', 'playbook_2025_07_29.json', 'playbook_2025_07_28.json', 'playbook_2025_07_26.json', '2025-08-16.json', '2025-08-15.json', '2025-08-05.json', '2025-08-04.json', '2025-08-03.json', '2025-08-02.json', '2025-07-09.json', '2025-01-01.json']
+[DEBUG] Loaded latest playbook: {'trades': [{'ticker': 'GOOG', 'direction': 'long', 'instrument': 'calls', 'entry_range': '192-194', 'profit_target': '200', 'stop_loss': '189', 'counter_signal': 'Break and close below 189 or persistent market reversal in internals.', 'thesis': 'Institutional dark pool accumulation and a large bullish call sweep indicate positioning for GOOG upside into earnings, with supportive market breadth.', 'scenario_tree': {'base_case': '55% - GOOG grinds higher on market stability and pre-earnings optimism.', 'bull_case': '30% - Strong rally if earnings sentiment lifts tech broadly.', 'bear_case': '15% - Drops if the broad market or earnings sentiment shift negative.'}}, {'ticker': 'AAPL', 'direction': 'short', 'instrument': 'puts', 'entry_range': '800-810', 'profit_target': '755', 'stop_loss': '822', 'counter_signal': 'Close above 822 or material positive pre-earnings news.', 'thesis': 'Large put sweeps and possible hedging activity, combined with earnings risk, create tactical downside opportunities despite some institutional accumulation.', 'scenario_tree': {'base_case': '55% - Mild pullback or range trade as traders hedge before earnings.', 'bull_case': '15% - Unexpected rally if earnings news flow turns sharply positive.', 'bear_case': '30% - Accelerated decline if negative catalysts materialize.'}}, {'ticker': 'SPY', 'direction': 'long', 'instrument': 'shares', 'entry_range': '547-551', 'profit_target': '560', 'stop_loss': '542', 'counter_signal': 'Breadth flips negative or a sharp VIX spike above 20.', 'thesis': 'Strong market internals, low VIX, and lack of retail exuberance point to a quiet but persistent rally in large-cap indices ahead of earnings.', 'scenario_tree': {'base_case': '55% - Index trends up on steady market flows.', 'bull_case': '30% - Outperforms if earnings season sparks broader risk-on.', 'bear_case': '15% - Retreats if unexpected shocks or profit-taking hit.'}}], 'tomorrows_tape': 'Equity markets enter the session with strong internals and low volatility, setting the stage for a steady upward grind led by large-cap tech ahead of major earnings. Institutional flows in GOOG and resilient SPY action suggest appetite for measured exposure, while defensive positioning in AAPL reflects uncertainty. Lack of retail participation minimizes overcrowding risk and raises the odds for a quiet continuation of the bullish trend. Watch for sudden sentiment or volume shifts, especially given the looming earnings catalysts. Absent a surprise, bulls control the tape, but option flows signal investors are hedging for sharp moves.', 'timestamp': '2025-08-02T01:17:55.746045', 'date': '2025-08-02'}
+[DEBUG] Generated summary: Tomorrow's tape: Equity markets enter the session with strong internals and low volatility, setting the stage for a steady upward grind led by large-cap tech ahead of major earnings. Institutional flows in GOOG and resilient SPY action suggest appetite for measured exposure, while defensive positioning in AAPL reflects uncertainty. Lack of retail participation minimizes overcrowding risk and raises the odds for a quiet continuation of the bullish trend. Watch for sudden sentiment or volume shifts, especially given the looming earnings catalysts. Absent a surprise, bulls control the tape, but option flows signal investors are hedging for sharp moves.
+Key trades: GOOG, AAPL, SPY
+[INFO] Auto-generated prompt text: Tomorrow's tape: Equity markets enter the session with strong internals and low volatility, setting the stage for a steady upward grind led by large-cap tech ahead of major earnings. Institutional flows in GOOG and resilient SPY action suggest appetite for measured exposure, while defensive positioning in AAPL reflects uncertainty. Lack of retail participation minimizes overcrowding risk and raises the odds for a quiet continuation of the bullish trend. Watch for sudden sentiment or volume shifts, especially given the looming earnings catalysts. Absent a surprise, bulls control the tape, but option flows signal investors are hedging for sharp moves.
+Key trades: GOOG, AAPL, SPY
+[CLI] Running pipeline with prompt: Tomorrow's tape: Equity markets enter the session with strong internals and low volatility, setting the stage for a steady upward grind led by large-cap tech ahead of major earnings. Institutional flows in GOOG and resilient SPY action suggest appetite for measured exposure, while defensive positioning in AAPL reflects uncertainty. Lack of retail participation minimizes overcrowding risk and raises the odds for a quiet continuation of the bullish trend. Watch for sudden sentiment or volume shifts, especially given the looming earnings catalysts. Absent a surprise, bulls control the tape, but option flows signal investors are hedging for sharp moves.
+Key trades: GOOG, AAPL, SPY
+[TIMING] Pipeline step timings (seconds): {'oracle_agent_pipeline': 125.17102122306824, 'parse_and_save_playbook': 0.0023512840270996094, 'store_trades_to_qdrant': 0.36727309226989746, 'total': 130.43548703193665}
+
+================ ORACLE-X PLAYBOOK ================
+
+Found 3 trade(s):
+
+--- Trade #1 ---
+Ticker:        AAPL
+Direction:     long
+Instrument:    shares
+Entry Range:   188-190
+Profit Target: 195
+Stop Loss:     185
+Counter Signal:Break below 185 with rising volume
+Thesis:        Strong breadth supports upside, though cautious sentiment suggests measured gains approaching earnings.
+Scenario Tree:
+  Base Case: 60% - Gradual climb supported by stable market internals.
+  Bull Case: 25% - Earnings momentum creates breakout opportunity.
+  Bear Case: 15% - Pre-earnings caution drives temporary downside.
+[Chart] Price chart: charts/2025-08-16_AAPL_price.png
+[Chart] Scenario chart: charts/2025-08-16_AAPL_scenario.png
+
+--- Trade #2 ---
+Ticker:        MSFT
+Direction:     long
+Instrument:    options
+Entry Range:   Call options, strike $350 expiring 07/14
+Profit Target: Delta increase to $3.50
+Stop Loss:     Delta decrease below $1.50
+Counter Signal:Put option flow increases significantly
+Thesis:        Institutional interest and favorable breadth improve the odds of MSFT outperforming into earnings.
+Scenario Tree:
+  Base Case: 60% - Moderate uptrend sustained by strong internals.
+  Bull Case: 25% - Optimistic earnings outlook drives accelerated upside.
+  Bear Case: 15% - Mixed sentiment coupled with earnings misses slow momentum.
+[Chart] Price chart: charts/2025-08-16_MSFT_price.png
+[Chart] Scenario chart: charts/2025-08-16_MSFT_scenario.png
+
+--- Trade #3 ---
+Ticker:        SPY
+Direction:     long
+Instrument:    shares
+Entry Range:   443-445
+Profit Target: 452
+Stop Loss:     440
+Counter Signal:Market breadth deteriorates below 1.5:1 advancers to decliners
+Thesis:        Broad market resilience driven by low volatility and strong breadth favors a continued gradual upward grind.
+Scenario Tree:
+  Base Case: 60% - Stable trend supported by healthy breadth and low volatility.
+  Bull Case: 25% - Tech leadership drives broader momentum rally.
+  Bear Case: 15% - Unexpected volatility or macro catalysts trigger pullbacks.
+[Chart] Price chart: charts/2025-08-16_SPY_price.png
+[Chart] Scenario chart: charts/2025-08-16_SPY_scenario.png
+
+--- Tomorrow's Tape ---
+Markets are primed for measured gains as strong breadth and low volatility support cautiously optimistic sentiment. Tech stocks, particularly AAPL and MSFT, lead attention into earnings catalysts. SPY continues to stabilize, showing resilience in its price action. Defensive positioning may limit upside explosiveness in the near term, but institutional flows and earnings optimism could fuel a rally. Investors should remain cautiously positioned while capitalizing on directional opportunities aligned with internals and sentiment trends.
+
+_Meta: {'model_attempts': [{'purpose': 'sentiment', 'model': 'gpt-4o', 'success': True, 'empty': False, 'error': None, 'latency_sec': 2.1161}, {'purpose': 'adjust_scenario_tree_with_boost', 'model': 'gpt-4o', 'success': True, 'empty': False, 'error': None, 'latency_sec': 8.854}, {'purpose': 'generate_final_playbook', 'model': 'gpt-4o', 'success': True, 'empty': False, 'error': None, 'latency_sec': 4.3188}]}
+
+Market_Breadth: {'advancers': 3860, 'decliners': 6079, 'unchanged': None}
+
+Sector_Performance: [{'group': 'unknown', 'perf_1d': -0.0005, 'perf_ytd': 0.17190000000000003}, {'group': 'unknown', 'perf_1d': 0.0052, 'perf_ytd': 0.1809}, {'group': 'unknown', 'perf_1d': -0.0005, 'perf_ytd': 0.031200000000000002}, {'group': 'unknown', 'perf_1d': -0.0004, 'perf_ytd': 0.0646}, {'group': 'unknown', 'perf_1d': -0.0042, 'perf_ytd': 0.0181}, {'group': 'unknown', 'perf_1d': -0.0076, 'perf_ytd': 0.1335}, {'group': 'unknown', 'perf_1d': 0.0141, 'perf_ytd': -0.0178}, {'group': 'unknown', 'perf_1d': -0.0058, 'perf_ytd': 0.1213}, {'group': 'unknown', 'perf_1d': 0.0048, 'perf_ytd': 0.0042}, {'group': 'unknown', 'perf_1d': -0.0058, 'perf_ytd': 0.1426}]
+
+Data_Feed_Health: {'status': 'degraded', 'timestamp': datetime.datetime(2025, 8, 16, 3, 8, 30, 146272), 'sources_available': 5, 'cache_size': 45, 'quality_issues': ['reddit']}
+
+================ RAW JSON OUTPUT ================
+
+{
+  "trades": [
+    {
+      "ticker": "AAPL",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "188-190",
+      "profit_target": "195",
+      "stop_loss": "185",
+      "counter_signal": "Break below 185 with rising volume",
+      "thesis": "Strong breadth supports upside, though cautious sentiment suggests measured gains approaching earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Gradual climb supported by stable market internals.",
+        "bull_case": "25% - Earnings momentum creates breakout opportunity.",
+        "bear_case": "15% - Pre-earnings caution drives temporary downside."
+      },
+      "sentiment": {
+        "reddit": {
+          "score": 0.7167000000000001,
+          "confidence": 0.58,
+          "sample_size": 4,
+          "source": "reddit",
+          "timestamp": "2025-08-16T03:07:06.600261"
+        },
+        "twitter": {
+          "score": 0.51418,
+          "confidence": 0.8637548714000001,
+          "sample_size": 20,
+          "source": "twitter_advanced",
+          "timestamp": "2025-08-16T03:07:08.292151"
+        }
+      },
+      "advanced_sentiment": {
+        "score": 0.10411096389721872,
+        "confidence": 0.38485294177355567,
+        "sample_size": 79,
+        "source": "advanced_sentiment",
+        "timestamp": "2025-08-16T03:07:16.475758"
+      },
+      "date": "2025-08-16",
+      "price_chart": "charts/2025-08-16_AAPL_price.png",
+      "scenario_chart": "charts/2025-08-16_AAPL_scenario.png"
+    },
+    {
+      "ticker": "MSFT",
+      "direction": "long",
+      "instrument": "options",
+      "entry_range": "Call options, strike $350 expiring 07/14",
+      "profit_target": "Delta increase to $3.50",
+      "stop_loss": "Delta decrease below $1.50",
+      "counter_signal": "Put option flow increases significantly",
+      "thesis": "Institutional interest and favorable breadth improve the odds of MSFT outperforming into earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Moderate uptrend sustained by strong internals.",
+        "bull_case": "25% - Optimistic earnings outlook drives accelerated upside.",
+        "bear_case": "15% - Mixed sentiment coupled with earnings misses slow momentum."
+      },
+      "sentiment": {
+        "reddit": {
+          "score": 0.39155000000000006,
+          "confidence": 0.62,
+          "sample_size": 6,
+          "source": "reddit",
+          "timestamp": "2025-08-16T03:07:16.475879"
+        },
+        "twitter": {
+          "score": 0.173065,
+          "confidence": 0.719975071725,
+          "sample_size": 20,
+          "source": "twitter_advanced",
+          "timestamp": "2025-08-16T03:07:17.511123"
+        }
+      },
+      "advanced_sentiment": {
+        "score": 0.08870807251859254,
+        "confidence": 0.3843045524124472,
+        "sample_size": 79,
+        "source": "advanced_sentiment",
+        "timestamp": "2025-08-16T03:07:22.374618"
+      },
+      "date": "2025-08-16",
+      "price_chart": "charts/2025-08-16_MSFT_price.png",
+      "scenario_chart": "charts/2025-08-16_MSFT_scenario.png"
+    },
+    {
+      "ticker": "SPY",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "443-445",
+      "profit_target": "452",
+      "stop_loss": "440",
+      "counter_signal": "Market breadth deteriorates below 1.5:1 advancers to decliners",
+      "thesis": "Broad market resilience driven by low volatility and strong breadth favors a continued gradual upward grind.",
+      "scenario_tree": {
+        "base_case": "60% - Stable trend supported by healthy breadth and low volatility.",
+        "bull_case": "25% - Tech leadership drives broader momentum rally.",
+        "bear_case": "15% - Unexpected volatility or macro catalysts trigger pullbacks."
+      },
+      "sentiment": {
+        "reddit": {
+          "score": 0.49420000000000003,
+          "confidence": 0.66,
+          "sample_size": 8,
+          "source": "reddit",
+          "timestamp": "2025-08-16T03:07:53.572490"
+        },
+        "twitter": {
+          "score": 0.13867,
+          "confidence": 0.7419002289,
+          "sample_size": 20,
+          "source": "twitter_advanced",
+          "timestamp": "2025-08-16T03:07:54.798940"
+        }
+      },
+      "advanced_sentiment": {
+        "score": 0.329962499152321,
+        "confidence": 0.3890441314460174,
+        "sample_size": 79,
+        "source": "advanced_sentiment",
+        "timestamp": "2025-08-16T03:07:59.601592"
+      },
+      "date": "2025-08-16",
+      "price_chart": "charts/2025-08-16_SPY_price.png",
+      "scenario_chart": "charts/2025-08-16_SPY_scenario.png"
+    }
+  ],
+  "tomorrows_tape": "Markets are primed for measured gains as strong breadth and low volatility support cautiously optimistic sentiment. Tech stocks, particularly AAPL and MSFT, lead attention into earnings catalysts. SPY continues to stabilize, showing resilience in its price action. Defensive positioning may limit upside explosiveness in the near term, but institutional flows and earnings optimism could fuel a rally. Investors should remain cautiously positioned while capitalizing on directional opportunities aligned with internals and sentiment trends.",
+  "_meta": {
+    "model_attempts": [
+      {
+        "purpose": "sentiment",
+        "model": "gpt-4o",
+        "success": true,
+        "empty": false,
+        "error": null,
+        "latency_sec": 2.1161
+      },
+      {
+        "purpose": "adjust_scenario_tree_with_boost",
+        "model": "gpt-4o",
+        "success": true,
+        "empty": false,
+        "error": null,
+        "latency_sec": 8.854
+      },
+      {
+        "purpose": "generate_final_playbook",
+        "model": "gpt-4o",
+        "success": true,
+        "empty": false,
+        "error": null,
+        "latency_sec": 4.3188
+      }
+    ]
+  },
+  "market_breadth": {
+    "advancers": 3860,
+    "decliners": 6079,
+    "unchanged": null
+  },
+  "sector_performance": [
+    {
+      "group": "unknown",
+      "perf_1d": -0.0005,
+      "perf_ytd": 0.17190000000000003
+    },
+    {
+      "group": "unknown",
+      "perf_1d": 0.0052,
+      "perf_ytd": 0.1809
+    },
+    {
+      "group": "unknown",
+      "perf_1d": -0.0005,
+      "perf_ytd": 0.031200000000000002
+    },
+    {
+      "group": "unknown",
+      "perf_1d": -0.0004,
+      "perf_ytd": 0.0646
+    },
+    {
+      "group": "unknown",
+      "perf_1d": -0.0042,
+      "perf_ytd": 0.0181
+    },
+    {
+      "group": "unknown",
+      "perf_1d": -0.0076,
+      "perf_ytd": 0.1335
+    },
+    {
+      "group": "unknown",
+      "perf_1d": 0.0141,
+      "perf_ytd": -0.0178
+    },
+    {
+      "group": "unknown",
+      "perf_1d": -0.0058,
+      "perf_ytd": 0.1213
+    },
+    {
+      "group": "unknown",
+      "perf_1d": 0.0048,
+      "perf_ytd": 0.0042
+    },
+    {
+      "group": "unknown",
+      "perf_1d": -0.0058,
+      "perf_ytd": 0.1426
+    }
+  ],
+  "data_feed_health": {
+    "status": "degraded",
+    "timestamp": "2025-08-16T03:08:30.146272",
+    "sources_available": 5,
+    "cache_size": 45,
+    "quality_issues": [
+      "reddit"
+    ]
+  }
+}
+
+================ PIPELINE LOGS ================
+
+
+[DEBUG] Prompt text sent to agent pipeline:
+ Tomorrow's tape: Equity markets enter the session with strong internals and low volatility, setting the stage for a steady upward grind led by large-cap tech ahead of major earnings. Institutional flows in GOOG and resilient SPY action suggest appetite for measured exposure, while defensive positioning in AAPL reflects uncertainty. Lack of retail participation minimizes overcrowding risk and raises the odds for a quiet continuation of the bullish trend. Watch for sudden sentiment or volume shifts, especially given the looming earnings catalysts. Absent a surprise, bulls control the tape, but option flows signal investors are hedging for sharp moves.
+Key trades: GOOG, AAPL, SPY
+[DEBUG] Signals sent to LLM: {'tickers': ['AAPL', 'MSFT', 'GOOG', 'META', 'AMD', 'AMZN', 'NFLX', 'SPY', 'NVDA', 'TSLA'], 'market_internals': {'breadth': {'advancers': 3200, 'decliners': 1400, 'up_volume': 2500000000, 'down_volume': 1100000000}, 'vix': 17.5, 'trin': 0.85}, 'options_flow': {'unusual_sweeps': [{'ticker': 'AAPL', 'direction': 'Call', 'strike': 200, 'volume': 10000}, {'ticker': 'MSFT', 'direction': 'Put', 'strike': 750, 'volume': 8000}]}, 'dark_pools': {'dark_pools': [{'ticker': 'AAPL', 'block_size': 500000, 'price': 192.5}, {'ticker': 'MSFT', 'block_size': 350000, 'price': 805.0}]}, 'sentiment_web': {'AAPL': {'reddit_mentions': {'mentions': 4, 'compound': 0.7167000000000001, 'positive': 0.06949999999999999, 'neutral': 0.925, 'negative': 0.0055, 'sample_texts': ["r/Stocks Daily Discussion & Fundamentals Friday Aug 15, 2025 This is the daily discussion, so anything stocks related is fine, but the theme for today is on fundamentals, but if fundamentals aren't yo...", "Index Fund Investing Question Just finished watching Hank Green's video on how he is changing his investing (https://www.youtube.com/watch?v=VZMFp-mEWoM) and wanted to get your thoughts on it. Mainly,...", 'Consolidating my portfolio Hello folks,\n\nApart from SPY and BRK.B, I also own 10 individual stocks. I used to own QQQ, but I decided to sell all of it and pick my own tech stocks instead. \n\nI was thin...', 'Loaded up for Monday. UNH has room to run? $UNH all time high was $600 earlier this year. Buffett got in at $311, and we know he’s going to make his money. \n\n$AAPL has never really failed me so I keep...'], 'sentiment_score': 0.7167000000000001, 'confidence': 0.58, 'sample_size': 4}, 'twitter_tweets': 20}, 'MSFT': {'reddit_mentions': {'mentions': 6, 'compound': 0.39155000000000006, 'positive': 0.07466666666666666, 'neutral': 0.8775000000000001, 'negative': 0.04783333333333333, 'sample_texts': ['Summarize your 2025 YTD: 1 thing done right vs 1 thing done wrong Any one is interested in sharing your high level strategized tip YTD in that 1 right vs 1 wrong  format.\n\nlet me throw mine out there\n...', 'Bridgewater Retreats From China, Shifts Billions Into US Mega-Cap Tech Bridgewater Associates exited its holdings in U.S.-listed Chinese companies in the second quarter, signaling a decisive retreat a...', 'Looking to invest long term I’m 19 and have about $3k in savings that I want to move into a long term brokerage account. I make around $1,200 a month, $300 goes to gas, $300 I keep in my checking for ...', "Index Fund Investing Question Just finished watching Hank Green's video on how he is changing his investing (https://www.youtube.com/watch?v=VZMFp-mEWoM) and wanted to get your thoughts on it. Mainly,...", 'GOOGL 6 month 180C Paid Out Bought the 180 strike price back when the price of each was 7$ a pop. Sold it today at 33$ each. \n\nStrategy: Think about blue chip companies with really good fundamentals, ...'], 'sentiment_score': 0.39155000000000006, 'confidence': 0.62, 'sample_size': 6}, 'twitter_tweets': 20}, 'GOOG': {'reddit_mentions': {'mentions': 4, 'compound': 0.6538750000000001, 'positive': 0.1115, 'neutral': 0.8587499999999999, 'negative': 0.02975, 'sample_texts': ['Undervalued Markets With the recent post about Buffet and his views on the market, and the general consensus that prices are presently on the higher end, I’m interested in what people think is grossly...', 'Consolidating my portfolio Hello folks,\n\nApart from SPY and BRK.B, I also own 10 individual stocks. I used to own QQQ, but I decided to sell all of it and pick my own tech stocks instead. \n\nI was thin...', 'Loaded up for Monday. UNH has room to run? $UNH all time high was $600 earlier this year. Buffett got in at $311, and we know he’s going to make his money. \n\n$AAPL has never really failed me so I keep...', 'My luck with covered calls is astounding (sarcasm) Goog: Did a 200CC ending august 15st. \n\nAmzn: 225CC ending august 15st.\n\nUNH: 290CC ending november'], 'sentiment_score': 0.6538750000000001, 'confidence': 0.58, 'sample_size': 4}, 'twitter_tweets': 20}, 'META': {'reddit_mentions': {'mentions': 12, 'compound': 0.43989999999999996, 'positive': 0.09308333333333334, 'neutral': 0.8554166666666666, 'negative': 0.05150000000000001, 'sample_texts': ['Bridgewater Retreats From China, Shifts Billions Into US Mega-Cap Tech Bridgewater Associates exited its holdings in U.S.-listed Chinese companies in the second quarter, signaling a decisive retreat a...', 'Trying to double my gains by end of next year I’m thinking of putting my monthly paychecks into $META. it’s been performing so well and is expected to reach $1,500 by end of next year. Zuckerberg is s...', "TTD dieing out. May be going much lower Here we are a week out from the big drop and this stock hasnt had any strength.  Im one to love to catch knifes but this one's sliced so hard I needed to drop i...", 'Meta stock split any time soon? I see that meta stock price is nearing $800. Companies usually like to keep their stock price I would say around $100? Not a rule of thumb, just based of my observation...', "Index Fund Investing Question Just finished watching Hank Green's video on how he is changing his investing (https://www.youtube.com/watch?v=VZMFp-mEWoM) and wanted to get your thoughts on it. Mainly,..."], 'sentiment_score': 0.43989999999999996, 'confidence': 0.74, 'sample_size': 12}, 'twitter_tweets': 20}, 'AMD': {'reddit_mentions': {'mentions': 8, 'compound': 0.37010000000000004, 'positive': 0.086125, 'neutral': 0.8356249999999998, 'negative': 0.078375, 'sample_texts': ['Trump says semiconductor tariffs coming soon, could reach 300% I am heavily invested in chips with 28% of my IRA in NVDA and AMD combined, and 66% of it in FSELX. Taco sounds serious about it this tim...', 'What might Trumpian meddling mean for Intel? >What Intel needs more than new board members is customers for its manufacturing, or “foundry”, arm. They have not been forthcoming, partly because Intel’s...', 'Everyone’s still watching NVIDIA. Meanwhile, AMD is quietly building the architecture that will define the next decade. \n\nThe semi-conductor industry doesn’t move all at once. It pivots at first in en...', 'GOOGL 6 month 180C Paid Out Bought the 180 strike price back when the price of each was 7$ a pop. Sold it today at 33$ each. \n\nStrategy: Think about blue chip companies with really good fundamentals, ...', "Robinhood error today on Earnings? AMD earnings...RobinHood says the estimated earnings per share was 0.4 but really it was 0.49!  That's crazy. I lost a lot of money because of this! \n\nDid they make ..."], 'sentiment_score': 0.37010000000000004, 'confidence': 0.66, 'sample_size': 8}, 'twitter_tweets': 20}, 'AMZN': {'reddit_mentions': {'mentions': 4, 'compound': 0.696475, 'positive': 0.127, 'neutral': 0.8422499999999999, 'negative': 0.03075, 'sample_texts': ['AMZN vs GOOGL Y’all,\nI am looking at these and interested in getting in. I believe both of them are undervalued and the tech is still the industry to go and invest. What you all like better? I can spl...', 'Consolidating my portfolio Hello folks,\n\nApart from SPY and BRK.B, I also own 10 individual stocks. I used to own QQQ, but I decided to sell all of it and pick my own tech stocks instead. \n\nI was thin...', 'My luck with covered calls is astounding (sarcasm) Goog: Did a 200CC ending august 15st. \n\nAmzn: 225CC ending august 15st.\n\nUNH: 290CC ending november', 'Timing on selling long term RSUs I have about 250 long term shares of AMZN. My portfolio is very AMZN heavy right now, about half, and the other half is FXAIX. I also have an HYSA. \n\nI want to be less...'], 'sentiment_score': 0.696475, 'confidence': 0.58, 'sample_size': 4}, 'twitter_tweets': 20}, 'NFLX': {'reddit_mentions': {'mentions': 1, 'compound': 0.631, 'positive': 0.056, 'neutral': 0.944, 'negative': 0.0, 'sample_texts': ['Consolidating my portfolio Hello folks,\n\nApart from SPY and BRK.B, I also own 10 individual stocks. I used to own QQQ, but I decided to sell all of it and pick my own tech stocks instead. \n\nI was thin...'], 'sentiment_score': 0.631, 'confidence': 0.52, 'sample_size': 1}, 'twitter_tweets': 20}, 'SPY': {'reddit_mentions': {'mentions': 8, 'compound': 0.49420000000000003, 'positive': 0.08537499999999999, 'neutral': 0.876125, 'negative': 0.038375000000000006, 'sample_texts': ["r/Stocks Daily Discussion & Fundamentals Friday Aug 15, 2025 This is the daily discussion, so anything stocks related is fine, but the theme for today is on fundamentals, but if fundamentals aren't yo...", 'Looking to invest long term I’m 19 and have about $3k in savings that I want to move into a long term brokerage account. I make around $1,200 a month, $300 goes to gas, $300 I keep in my checking for ...', 'Consolidating my portfolio Hello folks,\n\nApart from SPY and BRK.B, I also own 10 individual stocks. I used to own QQQ, but I decided to sell all of it and pick my own tech stocks instead. \n\nI was thin...', "Do ETFs do anything for me that I couldn't do myself? Just calculated that I'm paying $1263 per year in ETF expenses. I'm not thrilled with the idea of keeping hundreds of different tickers in my brok...", 'Finally giving in to "VOO and Chill," but with options If you\'ve spent much time on Reddit investing subs, you\'ve seen the ["VOO and Chill"](https://www.google.com/search?q=%22voo+and+chill%22+site%3A...'], 'sentiment_score': 0.49420000000000003, 'confidence': 0.66, 'sample_size': 8}, 'twitter_tweets': 20}, 'NVDA': {'reddit_mentions': {'mentions': 11, 'compound': 0.3529636363636363, 'positive': 0.07563636363636364, 'neutral': 0.8794545454545454, 'negative': 0.04490909090909091, 'sample_texts': ['Trump says semiconductor tariffs coming soon, could reach 300% I am heavily invested in chips with 28% of my IRA in NVDA and AMD combined, and 66% of it in FSELX. Taco sounds serious about it this tim...', "China abandoning CUDA? There's a blog I follow around China and AI developments, to keep track of what's happening abroad instead of just domestic (I'm in the US). I'm not sure if I can link it here, ...", 'Bridgewater Retreats From China, Shifts Billions Into US Mega-Cap Tech Bridgewater Associates exited its holdings in U.S.-listed Chinese companies in the second quarter, signaling a decisive retreat a...', 'Looking to invest long term I’m 19 and have about $3k in savings that I want to move into a long term brokerage account. I make around $1,200 a month, $300 goes to gas, $300 I keep in my checking for ...', 'Consolidating my portfolio Hello folks,\n\nApart from SPY and BRK.B, I also own 10 individual stocks. I used to own QQQ, but I decided to sell all of it and pick my own tech stocks instead. \n\nI was thin...'], 'sentiment_score': 0.3529636363636363, 'confidence': 0.72, 'sample_size': 11}, 'twitter_tweets': 20}, 'TSLA': {'reddit_mentions': {'mentions': 1, 'compound': 0.9944, 'positive': 0.119, 'neutral': 0.808, 'negative': 0.073, 'sample_texts': ['Options Questions Safe Haven periodic megathread | August 4 2025 We *call* this the weekly Safe Haven thread, but it might stay up for more than a week.\n\nFor the options questions you wanted to ask, b...'], 'sentiment_score': 0.9944, 'confidence': 0.52, 'sample_size': 1}, 'twitter_tweets': 20}}, 'sentiment_llm': 'The overall sentiment of this analysis is **cautiously optimistic with a hint of uncertainty**. Here\'s the breakdown:\n\n1. **Positive Sentiment**: \n   - "Equity markets enter the session with strong internals and low volatility" suggests a stable and favorable market environment.\n   - "Setting the stage for a steady upward grind led by large-cap tech ahead of major earnings" implies confidence in a bullish trend.\n   - "Resilient SPY action suggests appetite for measured exposure" indicates positive investor behavior.\n\n2. **Neutral to Cautious Sentiment**: \n   - "Defensive positioning in AAPL reflects uncertainty" highlights potential concerns or hesitancy among investors.\n   - "Lack of retail participation minimizes overcrowding risk" signals a less volatile market but raises questions about broader engagement.\n\n3. **Hedging and Risk Considerations**: \n   - "Option flows signal investors are hedging for sharp moves" conveys vigilance and preparation for potential adverse scenarios.\n   - "Watch for sudden sentiment or volume shifts, especially given the looming earnings catalysts" underscores caution in light of unpredictable market influences.\n\nThe overall tone is **bullish with precautions**—markets show strength and upward potential, but investors remain vigilant ahead of major earnings and are positioning to mitigate risks associated with sudden news or volatility.', 'chart_analysis': 'No chart provided.', 'earnings_calendar': [{'ticker': 'AAPL', 'date': '2025-07-10', 'estimate': 1.32}, {'ticker': 'MSFT', 'date': '2025-07-12', 'estimate': 2.15}], 'yahoo_headlines': [' News', ' Life', ' Entertainment', '  Finance', ' Sports', ' New on Yahoo', 'UnitedHealth gets much-needed boost after Berkshire takes new stake', 'Applied Materials suffers worst rout since 2020 on China woes', "Trump says Putin talks 'productive,' but 'no deal' yet", "Winklevosses' Gemini files for IPO as crypto listings accelerate", 'Meta plans 4th restructuring of AI efforts in 6 months: The Information', 'OpenAI staffers to sell $6 billion in stock\xa0to SoftBank, other investors', 'Fed policymaker says he wants more assurance on inflation to cut rates', "Draft of Trump's health blueprint avoids industry crackdown", 'Trump: Semiconductor tariffs coming soon, could reach 300%', 'Latest', 'Democrats Unveil Map Targeting California GOP House Members', 'Washington DC Police Chief Stays as DOJ’s Bondi Revises Order', 'Winklevoss twins’ crypto company Gemini files for IPO', 'Investors react to US-Russia summit reaching no agreement', 'US Commerce Dept. widens products subject to steel, aluminum tariffs', "Fed's Daly: Two rate cuts, more or less, appropriate this year", 'Trump, Putin Wrap Up Longest Face-to-Face Talks at Alaska Summit', 'Sam Altman, over bread rolls, explores life after GPT-5', '10 Cheap, Beautiful Places To Retire', 'World equities flat, crude oil prices fall as Trump, Putin hold high-stakes talks', 'Dollar eases as data keep September rate cut on track; eyes on Trump-Putin meeting', 'Oil settled nearly $1 lower as Trump-Putin talks loom', 'Rivian Says It Faces $100 Million Hole After Relaxation of Fuel Economy Rules', 'Analyst Report: Public Service Enterprise Group Incorporated', 'Warren Buffett buys battered UnitedHealth, sells more Apple stock', "2 changes Marc Sumerlin would make as Trump's Fed chair pick", 'What economists are saying about inflation now', "Why Trump might push for a US gov't. stake in Intel", 'How to pick the best long-term investment for your future', 'Retail earnings, housing data, FOMC minutes: What to Watch'], 'finviz_breadth': {'advancers': 3860, 'decliners': 6079, 'new_highs': 595, 'new_lows': 137}, 'orchestrator_sentiment': {'AAPL': {'reddit': {'score': 0.7167000000000001, 'confidence': 0.58}, 'twitter': {'score': 0.51418, 'confidence': 0.8637548714000001}, 'advanced': {'score': np.float64(0.10411096389721872), 'confidence': 0.38485294177355567}}, 'MSFT': {'reddit': {'score': 0.39155000000000006, 'confidence': 0.62}, 'twitter': {'score': 0.173065, 'confidence': 0.719975071725}, 'advanced': {'score': np.float64(0.08870807251859254), 'confidence': 0.3843045524124472}}, 'GOOG': {'reddit': {'score': 0.6538750000000001, 'confidence': 0.58}, 'twitter': {'score': 0.20369, 'confidence': 0.7729119821}, 'advanced': {'score': np.float64(0.3311435372413215), 'confidence': 0.3717297218264307}}, 'META': {'reddit': {'score': 0.43989999999999996, 'confidence': 0.74}, 'twitter': {'score': 0.074565, 'confidence': 0.820151275725}, 'advanced': {'score': np.float64(0.3303101830258873), 'confidence': 0.3811267923789463}}, 'AMD': {'reddit': {'score': 0.37010000000000004, 'confidence': 0.66}, 'twitter': {'score': 0.23681999999999997, 'confidence': 0.8515240564}, 'advanced': {'score': np.float64(0.444821280733511), 'confidence': 0.37946941635253845}}, 'AMZN': {'reddit': {'score': 0.696475, 'confidence': 0.58}, 'twitter': {'score': 0.23377499999999998, 'confidence': 0.901934812125}, 'advanced': {'score': np.float64(0.3095517851713093), 'confidence': 0.3915923804952023}}, 'NFLX': {'reddit': {'score': 0.631, 'confidence': 0.52}, 'twitter': {'score': 0.20989, 'confidence': 0.8809467741}, 'advanced': {'score': np.float64(0.2455067480733176), 'confidence': 0.38407395822639767}}, 'SPY': {'reddit': {'score': 0.49420000000000003, 'confidence': 0.66}, 'twitter': {'score': 0.13867, 'confidence': 0.7419002289}, 'advanced': {'score': np.float64(0.329962499152321), 'confidence': 0.3890441314460174}}, 'NVDA': {'reddit': {'score': 0.3529636363636363, 'confidence': 0.72}, 'twitter': {'score': 0.10128, 'confidence': 0.8425278093999999}, 'advanced': {'score': np.float64(0.2951747920054639), 'confidence': 0.38180109024456227}}, 'TSLA': {'reddit': {'score': 0.9944, 'confidence': 0.52}, 'twitter': {'score': 0.26301, 'confidence': 0.7749799481}, 'advanced': {'score': np.float64(0.31103402712846423), 'confidence': 0.38103799817535666}}}}
+[DEBUG] Similar scenarios from Qdrant: - Ticker: SPY, Direction: long, Thesis: Resilient market breadth and falling VIX suggest continued stability in SPY, supporting upside moves., Date: 2025-08-15
+- Ticker: GOOG, Direction: short, Thesis: Defensive positioning in GOOG options flow and muted sentiment indicate short-term downside risk., Date: 2025-08-16
+- Ticker: TSLA, Direction: long, Thesis: Strong breadth and institutional interest, combined with upcoming earnings, position TSLA for upside momentum., Date: 2025-08-16
+✅ Found 3 similar scenarios. Boosting prompt.
+[DEBUG] Trying model: gpt-4o (boosted)
+[DEBUG] Model gpt-4o returned non-empty response (boosted).
+[DEBUG] Scenario tree from LLM (boosted): Here’s a detailed scenario tree based on the input data, past scenarios, and updated probabilities for the **base**, **bull**, and **bear** cases:
+
+---
+
+### **Scenario Tree: Overall Market**
+#### **Base Case (60%)**: **Stable to moderate uptrend**
+- **Thesis**: The market exhibits strong breadth (advancers:decliners ratio of ~2.3:1), along with low volatility (VIX at 17.5) and favorable turnover (TRIN < 1), indicating underlying resilience.
+- **Drivers**:
+  1. **SPY** and large-cap tech stocks like AAPL and MSFT lead cautiously optimistic sentiment.
+  2. Options flow reveals hedging activity but minimal extreme speculative behavior (balanced call/put ratios).
+  3. Dark pool activity signals institutional interest in AAPL and MSFT, supporting measured gains.
+- **Outlook**:
+  - SPY and mega-cap tech sustain measured upward movement.
+  - Defensive tones in AAPL may temper near-term gains, while MSFT appears better positioned for upside into earnings.
+- **Key Risks**:
+  - Sudden earnings-driven sentiment shifts.
+  - Retail disengagement limits momentum potential.
+
+#### **Bull Case (25%)**: **Strong rally driven by mega-cap tech**
+- **Thesis**: Institutional flows (dark pool buys in AAPL and MSFT) and positive sentiment among retail and social media highlight the potential for outsized gains, particularly in large-cap tech.
+- **Drivers**:
+  1. Earnings catalysts for AAPL (July 10) and MSFT (July 12), with expectations of beats reinforcing optimism.
+  2. Call sweeps in AAPL (strike $200) and constructive sentiment on mega-cap stocks like GOOG and META suggest upside bias.
+  3. SPY’s resilient breadth may escalate into a momentum-driven rally.
+- **Outlook**:
+  - SPY gains +3-5%, led by tech outperformers.
+  - AAPL and MSFT exceed earnings expectations, pushing further into new highs.
+- **Key Risks**:
+  - Retail participation remains muted, limiting explosive moves.
+  - Any earnings misses could sharply derail the bull case.
+
+#### **Bear Case (15%)**: **Earnings disappointments or macro concerns puncture sentiment**
+- **Thesis**: Hedging behavior in options flow and cautious sentiment (internally defensive positioning in AAPL) combined with earnings-related pressure increases short-term downside risks.
+- **Drivers**:
+  1. Bearish put options sweep in MSFT (strike $750), suggesting downside concerns ahead of earnings.
+  2. Soft near-term sentiment in NVDA and AMD (subdued confidence levels, <0.7).
+  3. Potential macro triggers like geopolitical risks (e.g., China semiconductor tariffs) exert pressure.
+- **Outlook**:
+  - SPY declines ~3-5%, testing key support levels.
+  - AAPL and MSFT face post-earnings pullbacks, particularly if their results disappoint or guidance weakens.
+- **Key Risks**:
+  - Dark pool activity reverses into selling pressure.
+  - Broader risk-off move impacts cyclical and tech-heavy sectors.
+
+---
+
+### **Ticker-Specific Adjustments from Past Scenarios**
+
+1. **SPY** (Resilient Market Breadth - Past Thesis: Long, Aug 15):
+   - **Impact**: SPY remains a foundational index with breadth supporting cautious upside; past rally in environments with similar breadth and VIX levels reinforces confidence in the base case. No extreme speculative signals in internals reduce bear case probability.
+   - **Probability Adjustment**: Base case nudged higher to **60%**; bear case remains limited at **15%**.
+
+2. **GOOG** (Defensive Posture - Past Thesis: Short, Aug 16):
+   - **Impact**: GOOG’s muted, cautious sentiment and defensive positioning echoes AAPL's current dynamics. Signals moderate risk into earnings for tech stocks with similar sentiment trends.
+   - **Probability Adjustment**: AAPL likely experiences less explosive near-term moves; reinforces base case stabilization rather than a full-blown bull rally.
+
+3. **TSLA** (Momentum Play - Past Thesis: Long, Aug 16):
+   - **Impact**: Strong breadth and institutional interest in TSLA's case parallel AAPL/MSFT’s setup before earnings. Reinforces higher bull case probability where tech catalysts support upside in mega-cap names.
+   - **Probability Adjustment**: Bull case strengthened slightly to **25%**.
+
+4. **NFLX, MSFT, AMZN (Mixed Signals and Pre-Earnings Setup)**:
+   - **NFLX**: Institutional accumulation and strong sentiment support better outcomes into earnings scenarios, though AAPL/MSFT sit less firmly in bullish sentiment.
+   - **MSFT**: Past thesis of "leading market upside into earnings" aligns well with current strong internals; bullish concentration builds confidence in upside despite hedging signals.
+   - **AMZN**: Persistent caution in bearish setups tempers enthusiasm for tech-heavy rallies, reinforcing hedge probabilities.
+   - **Probability Adjustment**: Ensures bull/bear divergence in high-impact tickers like MSFT and AAPL.
+
+---
+
+### Summary of Probabilities
+
+| **Scenario**        | **Probability** | **Notes**                                  |
+|----------------------|-----------------|-------------------------------------------|
+| **Base Case (Stable)** | **60%**         | Strong breadth, low volatility, cautious sentiment shapes gradual trend. |
+| **Bull Case (Upside)** | **25%**         | Earnings momentum and institutional tailwinds drive upside scenarios. |
+| **Bear Case (Downside)** | **15%**         | Hedging flows and bearish risks concentrate into pre-earnings catalysts. |
+
+---
+
+### Actionable Insights:
+- Focus on **MSFT and AAPL** as earnings catalysts: Monitor pre-earnings options flows and sentiment swings closely for directional cues.
+- **SPY** remains near-term stable; trim speculative bets unless sentiment decisively shifts.
+- Hedge **dark pool positioning risk** (e.g., sudden reversals in AAPL volume could derail upside expectations).
+
+Investors should remain **cautiously optimistic**, preparing for hedged exposure to tech while keeping an eye on broader market risks.
+[DEBUG] Trying model: gpt-4o
+[DEBUG] Model gpt-4o returned non-empty response.
+[DEBUG] Final playbook from LLM: {
+  "trades": [
+    {
+      "ticker": "AAPL",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "188-190",
+      "profit_target": "195",
+      "stop_loss": "185",
+      "counter_signal": "Break below 185 with rising volume",
+      "thesis": "Strong breadth supports upside, though cautious sentiment suggests measured gains approaching earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Gradual climb supported by stable market internals.",
+        "bull_case": "25% - Earnings momentum creates breakout opportunity.",
+        "bear_case": "15% - Pre-earnings caution drives temporary downside."
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "direction": "long",
+      "instrument": "options",
+      "entry_range": "Call options, strike $350 expiring 07/14",
+      "profit_target": "Delta increase to $3.50",
+      "stop_loss": "Delta decrease below $1.50",
+      "counter_signal": "Put option flow increases significantly",
+      "thesis": "Institutional interest and favorable breadth improve the odds of MSFT outperforming into earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Moderate uptrend sustained by strong internals.",
+        "bull_case": "25% - Optimistic earnings outlook drives accelerated upside.",
+        "bear_case": "15% - Mixed sentiment coupled with earnings misses slow momentum."
+      }
+    },
+    {
+      "ticker": "SPY",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "443-445",
+      "profit_target": "452",
+      "stop_loss": "440",
+      "counter_signal": "Market breadth deteriorates below 1.5:1 advancers to decliners",
+      "thesis": "Broad market resilience driven by low volatility and strong breadth favors a continued gradual upward grind.",
+      "scenario_tree": {
+        "base_case": "60% - Stable trend supported by healthy breadth and low volatility.",
+        "bull_case": "25% - Tech leadership drives broader momentum rally.",
+        "bear_case": "15% - Unexpected volatility or macro catalysts trigger pullbacks."
+      }
+    }
+  ],
+  "tomorrows_tape": "Markets are primed for measured gains as strong breadth and low volatility support cautiously optimistic sentiment. Tech stocks, particularly AAPL and MSFT, lead attention into earnings catalysts. SPY continues to stabilize, showing resilience in its price action. Defensive positioning may limit upside explosiveness in the near term, but institutional flows and earnings optimism could fuel a rally. Investors should remain cautiously positioned while capitalizing on directional opportunities aligned with internals and sentiment trends."
+}
+
+[DEBUG] Raw LLM output:
+ {
+  "trades": [
+    {
+      "ticker": "AAPL",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "188-190",
+      "profit_target": "195",
+      "stop_loss": "185",
+      "counter_signal": "Break below 185 with rising volume",
+      "thesis": "Strong breadth supports upside, though cautious sentiment suggests measured gains approaching earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Gradual climb supported by stable market internals.",
+        "bull_case": "25% - Earnings momentum creates breakout opportunity.",
+        "bear_case": "15% - Pre-earnings caution drives temporary downside."
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "direction": "long",
+      "instrument": "options",
+      "entry_range": "Call options, strike $350 expiring 07/14",
+      "profit_target": "Delta increase to $3.50",
+      "stop_loss": "Delta decrease below $1.50",
+      "counter_signal": "Put option flow increases significantly",
+      "thesis": "Institutional interest and favorable breadth improve the odds of MSFT outperforming into earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Moderate uptrend sustained by strong internals.",
+        "bull_case": "25% - Optimistic earnings outlook drives accelerated upside.",
+        "bear_case": "15% - Mixed sentiment coupled with earnings misses slow momentum."
+      }
+    },
+    {
+      "ticker": "SPY",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "443-445",
+      "profit_target": "452",
+      "stop_loss": "440",
+      "counter_signal": "Market breadth deteriorates below 1.5:1 advancers to decliners",
+      "thesis": "Broad market resilience driven by low volatility and strong breadth favors a continued gradual upward grind.",
+      "scenario_tree": {
+        "base_case": "60% - Stable trend supported by healthy breadth and low volatility.",
+        "bull_case": "25% - Tech leadership drives broader momentum rally.",
+        "bear_case": "15% - Unexpected volatility or macro catalysts trigger pullbacks."
+      }
+    }
+  ],
+  "tomorrows_tape": "Markets are primed for measured gains as strong breadth and low volatility support cautiously optimistic sentiment. Tech stocks, particularly AAPL and MSFT, lead attention into earnings catalysts. SPY continues to stabilize, showing resilience in its price action. Defensive positioning may limit upside explosiveness in the near term, but institutional flows and earnings optimism could fuel a rally. Investors should remain cautiously positioned while capitalizing on directional opportunities aligned with internals and sentiment trends."
+}
+
+=== ORACLE-X FINAL PLAYBOOK ===
+
+{
+  "trades": [
+    {
+      "ticker": "AAPL",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "188-190",
+      "profit_target": "195",
+      "stop_loss": "185",
+      "counter_signal": "Break below 185 with rising volume",
+      "thesis": "Strong breadth supports upside, though cautious sentiment suggests measured gains approaching earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Gradual climb supported by stable market internals.",
+        "bull_case": "25% - Earnings momentum creates breakout opportunity.",
+        "bear_case": "15% - Pre-earnings caution drives temporary downside."
+      }
+    },
+    {
+      "ticker": "MSFT",
+      "direction": "long",
+      "instrument": "options",
+      "entry_range": "Call options, strike $350 expiring 07/14",
+      "profit_target": "Delta increase to $3.50",
+      "stop_loss": "Delta decrease below $1.50",
+      "counter_signal": "Put option flow increases significantly",
+      "thesis": "Institutional interest and favorable breadth improve the odds of MSFT outperforming into earnings.",
+      "scenario_tree": {
+        "base_case": "60% - Moderate uptrend sustained by strong internals.",
+        "bull_case": "25% - Optimistic earnings outlook drives accelerated upside.",
+        "bear_case": "15% - Mixed sentiment coupled with earnings misses slow momentum."
+      }
+    },
+    {
+      "ticker": "SPY",
+      "direction": "long",
+      "instrument": "shares",
+      "entry_range": "443-445",
+      "profit_target": "452",
+      "stop_loss": "440",
+      "counter_signal": "Market breadth deteriorates below 1.5:1 advancers to decliners",
+      "thesis": "Broad market resilience driven by low volatility and strong breadth favors a continued gradual upward grind.",
+      "scenario_tree": {
+        "base_case": "60% - Stable trend supported by healthy breadth and low volatility.",
+        "bull_case": "25% - Tech leadership drives broader momentum rally.",
+        "bear_case": "15% - Unexpected volatility or macro catalysts trigger pullbacks."
+      }
+    }
+  ],
+  "tomorrows_tape": "Markets are primed for measured gains as strong breadth and low volatility support cautiously optimistic sentiment. Tech stocks, particularly AAPL and MSFT, lead attention into earnings catalysts. SPY continues to stabilize, showing resilience in its price action. Defensive positioning may limit upside explosiveness in the near term, but institutional flows and earnings optimism could fuel a rally. Investors should remain cautiously positioned while capitalizing on directional opportunities aligned with internals and sentiment trends.",
+  "_meta": {
+    "model_attempts": [
+      {
+        "purpose": "sentiment",
+        "model": "gpt-4o",
+        "success": true,
+        "empty": false,
+        "error": null,
+        "latency_sec": 2.1161
+      },
+      {
+        "purpose": "adjust_scenario_tree_with_boost",
+        "model": "gpt-4o",
+        "success": true,
+        "empty": false,
+        "error": null,
+        "latency_sec": 8.854
+      },
+      {
+        "purpose": "generate_final_playbook",
+        "model": "gpt-4o",
+        "success": true,
+        "empty": false,
+        "error": null,
+        "latency_sec": 4.3188
+      }
+    ]
+  }
+}
+
+ Playbook saved to: playbooks/2025-08-16.json
+✅ Stored AAPL vector to Qdrant.
+✅ Stored MSFT vector to Qdrant.
+✅ Stored SPY vector to Qdrant.
+✅ Stored 3 / 3 attempted trade vectors to Qdrant.
+
+
+[TIMING] {'oracle_agent_pipeline': 125.17102122306824, 'parse_and_save_playbook': 0.0023512840270996094, 'store_trades_to_qdrant': 0.36727309226989746, 'total': 130.43548703193665}
+
+================ TIMINGS ================
+
+{'oracle_agent_pipeline': 125.17102122306824, 'parse_and_save_playbook': 0.0023512840270996094, 'store_trades_to_qdrant': 0.36727309226989746, 'total': 130.43548703193665}

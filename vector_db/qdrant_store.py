@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from qdrant_client import QdrantClient
+from qdrant_client.http import models as qmodels
 from openai import OpenAI
 from functools import lru_cache
 from typing import List, Dict
@@ -15,10 +16,14 @@ qdrant = QdrantClient(
 )
 
 
-# Always use Qwen3 embedding endpoint for embeddings
-QWEN3_API_BASE = "http://localhost:8000/v1"
-QWEN3_API_KEY = os.environ.get("QWEN3_API_KEY", "qwen3-local-key")
-client = OpenAI(api_key=QWEN3_API_KEY, base_url=QWEN3_API_BASE)
+import env_config  # project-level configuration module
+
+# Embedding configuration (falls back gracefully)
+EMBEDDING_MODEL = env_config.get_embedding_model() if hasattr(env_config, 'get_embedding_model') else os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_API_BASE = env_config.get_embedding_api_base() if hasattr(env_config, 'get_embedding_api_base') else os.environ.get("EMBEDDING_API_BASE")
+API_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("EMBEDDING_API_KEY")
+
+client = OpenAI(api_key=API_KEY, base_url=EMBEDDING_API_BASE or env_config.get_openai_api_base())
 
 COLLECTION_NAME = "oraclex_trades"
 
@@ -34,10 +39,7 @@ def ensure_collection():
         if COLLECTION_NAME not in [c.name for c in qdrant.get_collections().collections]:
             qdrant.create_collection(
                 collection_name=COLLECTION_NAME,
-                vectors_config={
-                    "size": 1024,
-                    "distance": "Cosine"
-                }
+                vectors_config=qmodels.VectorParams(size=1024, distance=qmodels.Distance.COSINE)
             )
     except Exception as e:
         print(f"[ERROR] Qdrant collection setup failed: {e}")
@@ -52,10 +54,10 @@ def embed_text(text: str) -> list:
     """
     try:
         resp = client.embeddings.create(
-            model="Qwen3-embedding",
+            model=EMBEDDING_MODEL,
             input=text
         )
-        return resp.data[0].embedding
+        return resp.data[0].embedding  # type: ignore[attr-defined]
     except Exception as e:
         print(f"[ERROR] Embedding failed: {e}")
         return []
@@ -80,52 +82,52 @@ def batch_embed_text(texts: List[str]) -> List[list]:
     if uncached:
         try:
             resp = client.embeddings.create(
-                model="Qwen3-embedding",
+                model=EMBEDDING_MODEL,
                 input=uncached
             )
-            for idx, emb in zip(uncached_indices, resp.data):
-                results[idx] = emb.embedding
-                EMBED_CACHE[uncached[idx]] = emb.embedding
+            for idx, emb in zip(uncached_indices, resp.data):  # type: ignore[attr-defined]
+                results[idx] = emb.embedding  # type: ignore[attr-defined]
+                EMBED_CACHE[uncached[idx]] = emb.embedding  # type: ignore[attr-defined]
         except Exception as e:
             print(f"[ERROR] Batch embedding failed: {e}")
             for idx in uncached_indices:
                 results[idx] = []
     return results
 
-def store_trade_vector(trade: dict) -> None:
+def store_trade_vector(trade: dict) -> bool:
+    """Store a single trade vector in Qdrant.
+
+    Returns True only if an embedding was generated AND the upsert succeeded.
+    Never raises; logs errors and returns False on any failure.
     """
-    Store a single trade with scenario & anomaly context.
-    Args:
-        trade (dict): Trade dictionary.
-    """
+    required_keys = ("ticker", "thesis", "scenario_tree", "counter_signal")
+    for k in required_keys:
+        if k not in trade:
+            print(f"[ERROR] Trade missing key '{k}' – cannot embed.")
+            return False
     text = f"{trade['ticker']} {trade['thesis']} {trade['scenario_tree']} {trade['counter_signal']}"
     vector = embed_text(text)
     if not vector:
-        print(f"[ERROR] No vector generated for {trade['ticker']}")
-        return
+        print(f"[ERROR] No vector generated for {trade.get('ticker','UNKNOWN')}")
+        return False
     payload = {
-        "ticker": trade["ticker"],
-        "direction": trade["direction"],
-        "thesis": trade["thesis"],
+        "ticker": trade.get("ticker"),
+        "direction": trade.get("direction"),
+        "thesis": trade.get("thesis"),
         "date": trade.get("date", "unknown")
     }
     import uuid
     try:
-        # Use a UUID for the point ID to comply with Qdrant's requirements
-        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{trade['ticker']}-{trade.get('date', 'unknown')}-{trade.get('direction', '')}"))
+        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{trade.get('ticker','UNK')}-{trade.get('date', 'unknown')}-{trade.get('direction', '')}"))
         qdrant.upsert(
             collection_name=COLLECTION_NAME,
-            points=[
-                {
-                    "id": point_id,
-                    "vector": vector,
-                    "payload": payload
-                }
-            ]
+            points=[qmodels.PointStruct(id=point_id, vector=vector, payload=payload)]
         )
-        print(f"✅ Stored {trade['ticker']} vector to Qdrant.")
+        print(f"✅ Stored {trade.get('ticker','UNKNOWN')} vector to Qdrant.")
+        return True
     except Exception as e:
         print(f"[ERROR] Qdrant upsert failed: {e}")
+        return False
 
 # Batch query for similar vectors
 

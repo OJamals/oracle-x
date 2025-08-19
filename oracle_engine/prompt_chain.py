@@ -42,7 +42,7 @@ def clean_signals_for_llm(signals: dict, max_items: int = 5) -> dict:
     cleaned["sentiment_llm"] = clean_text(str(signals.get("sentiment_llm", "")), 600)
     cleaned["chart_analysis"] = clean_text(str(signals.get("chart_analysis", "")), 600)
     cleaned["earnings_calendar"] = clean_list(signals.get("earnings_calendar", []), max_items=max_items)
-    cleaned["google_trends"] = clean_list(signals.get("google_trends", []), max_items=max_items)
+    # google_trends removed (disabled) – field omitted
     cleaned["yahoo_headlines"] = clean_list(signals.get("yahoo_headlines", []), key="headline" if signals.get("yahoo_headlines") and isinstance(signals["yahoo_headlines"], list) and signals["yahoo_headlines"] and isinstance(signals["yahoo_headlines"][0], dict) and "headline" in signals["yahoo_headlines"][0] else None, max_items=max_items)
     cleaned["finviz_breadth"] = clean_text(str(signals.get("finviz_breadth", "")), 400)
     cleaned["tickers"] = clean_list(signals.get("tickers", []), max_items=10)
@@ -157,18 +157,26 @@ from data_feeds.dark_pools import fetch_dark_pool_data
 from data_feeds.sentiment import fetch_sentiment_data
 from data_feeds.earnings_calendar import fetch_earnings_calendar
 from oracle_engine.tools import get_sentiment, analyze_chart
+# (Legacy) twitter sentiment import retained if needed elsewhere
 from data_feeds.twitter_sentiment import fetch_twitter_sentiment
-from data_feeds.google_trends import fetch_google_trends
 from data_feeds.news_scraper import fetch_headlines_yahoo_finance
 from data_feeds.finviz_scraper import fetch_finviz_breadth
 from data_feeds.ticker_universe import fetch_ticker_universe
 
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
-OPENAI_API_BASE = os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+import env_config
 
-client = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_API_BASE)
+API_KEY = os.environ.get("OPENAI_API_KEY")
+API_BASE = env_config.get_openai_api_base() or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+_PREFERRED_MODEL = env_config.get_openai_model()
 
-MODEL_NAME = "gpt-4.1-2025-04-14"
+client = OpenAI(api_key=API_KEY, base_url=API_BASE)
+
+# Resolve a valid model once at import time (light probe). If offline, we skip probing.
+try:
+    MODEL_NAME = env_config.resolve_model(client, _PREFERRED_MODEL, test=True)
+except Exception as e:
+    print(f"[WARN] Model resolution failed, using preferred '{_PREFERRED_MODEL}': {e}")
+    MODEL_NAME = _PREFERRED_MODEL
 
 def get_signals_from_scrapers(prompt_text: str, chart_image_b64: str) -> Dict[str, Any]:
     """
@@ -194,9 +202,39 @@ def get_signals_from_scrapers(prompt_text: str, chart_image_b64: str) -> Dict[st
         except Exception as e:
             print(f"[DEBUG] Failed to decode chart_image_b64: {e}")
     chart_analysis = analyze_chart(chart_bytes, model_name=MODEL_NAME)
-    google_trends = fetch_google_trends(tickers)
     yahoo_headlines = fetch_headlines_yahoo_finance()
     finviz_breadth = fetch_finviz_breadth()
+    # Orchestrator unified sentiment (reddit + twitter) best-effort enrichment
+    orchestrator_sentiment = {}
+    try:
+        from agent_bundle.data_feed_orchestrator import get_orchestrator  # local import to avoid hard dependency at module import
+        orch = get_orchestrator()
+        # Limit number of tickers for sentiment to control latency
+        for sym in tickers[:15]:
+            try:
+                smap = orch.get_sentiment_data(sym)  # dict[str, SentimentData]
+                adv = orch.get_advanced_sentiment_data(sym)
+                if smap or adv:
+                    reddit_sd = smap.get("reddit") if smap else None
+                    twitter_sd = smap.get("twitter") if smap else None
+                    orchestrator_sentiment[sym] = {
+                        "reddit": {
+                            "score": reddit_sd.sentiment_score if reddit_sd else None,
+                            "confidence": reddit_sd.confidence if reddit_sd else None,
+                        } if reddit_sd else {},
+                        "twitter": {
+                            "score": twitter_sd.sentiment_score if twitter_sd else None,
+                            "confidence": twitter_sd.confidence if twitter_sd else None,
+                        } if twitter_sd else {},
+                        "advanced": {
+                            "score": adv.sentiment_score if adv else None,
+                            "confidence": adv.confidence if adv else None,
+                        } if adv else {},
+                    }
+            except Exception:
+                continue
+    except Exception:
+        pass
     return {
         "tickers": tickers,
         "market_internals": internals,
@@ -206,9 +244,10 @@ def get_signals_from_scrapers(prompt_text: str, chart_image_b64: str) -> Dict[st
         "sentiment_llm": sentiment_llm,
         "chart_analysis": chart_analysis,
         "earnings_calendar": earnings,
-        "google_trends": google_trends,
+    # "google_trends": removed – feed disabled
         "yahoo_headlines": yahoo_headlines,
         "finviz_breadth": finviz_breadth,
+        "orchestrator_sentiment": orchestrator_sentiment,
     }
 
 def pull_similar_scenarios(thesis: str) -> str:
@@ -230,6 +269,25 @@ def pull_similar_scenarios(thesis: str) -> str:
                 f"Date: {payload.get('date', 'N/A')}\n"
             )
     return text.strip()
+
+def _iter_fallback_models(primary: str) -> List[str]:
+    """Return ordered list of models to try: primary then configured fallbacks (deduplicated)."""
+    try:
+        fallback = env_config.get_fallback_models()
+    except Exception:
+        fallback = []
+    ordered = [primary] + [m for m in fallback if m != primary]
+    # de‑dupe while preserving order
+    seen = set()
+    result: List[str] = []
+    for m in ordered:
+        if m not in seen:
+            seen.add(m)
+            result.append(m)
+    return result
+
+from oracle_engine.model_attempt_logger import log_attempt
+import time
 
 def adjust_scenario_tree(signals: Dict[str, Any], similar_scenarios: str, model_name: str = MODEL_NAME) -> str:
     """
@@ -253,8 +311,9 @@ Analyze and output a scenario tree with updated probabilities for base/bull/bear
 Explain how the past scenarios influence your adjustments.
 """.strip()
 
-    for model in [model_name]:
+    for model in _iter_fallback_models(model_name):
         print(f"[DEBUG] Trying model: {model}")
+        start = time.time()
         try:
             resp = client.chat.completions.create(
                 model=model,
@@ -264,16 +323,22 @@ Explain how the past scenarios influence your adjustments.
                 ],
                 max_completion_tokens=600
             )
-            content = resp.choices[0].message.content
-            if content is not None:
-                content = content.strip()
-                if content:
+            content = (resp.choices[0].message.content or "").strip()
+            if content:
+                if model != model_name:
+                    print(f"[INFO] Fallback model '{model}' succeeded for adjust_scenario_tree.")
+                else:
                     print(f"[DEBUG] Model {model} returned non-empty response.")
-                    return content
+                log_attempt("adjust_scenario_tree", model, start_time=start, success=True, empty=False, error=None)
+                return content
+            else:
+                log_attempt("adjust_scenario_tree", model, start_time=start, success=False, empty=True, error=None)
+                print(f"[DEBUG] Model {model} returned empty content – falling back.")
         except Exception as e:
+            log_attempt("adjust_scenario_tree", model, start_time=start, success=False, empty=False, error=str(e))
             print(f"[DEBUG] Model {model} failed: {e}")
-        break
-    print("[DEBUG] All models returned empty or failed.")
+            continue
+    print("[WARN] All models returned empty or failed for adjust_scenario_tree.")
     return ""
 
 def adjust_scenario_tree_with_boost(signals: Dict[str, Any], similar_scenarios: str, model_name: str = MODEL_NAME) -> str:
@@ -299,8 +364,9 @@ Explain how the past scenarios influence your adjustments.
 """.strip()
     # Boost the prompt with Qdrant recall
     boosted_prompt = build_boosted_prompt(base_prompt, str(signals.get('chart_analysis', '')))
-    for model in [model_name]:
+    for model in _iter_fallback_models(model_name):
         print(f"[DEBUG] Trying model: {model} (boosted)")
+        start = time.time()
         try:
             resp = client.chat.completions.create(
                 model=model,
@@ -310,16 +376,22 @@ Explain how the past scenarios influence your adjustments.
                 ],
                 max_completion_tokens=600
             )
-            content = resp.choices[0].message.content
-            if content is not None:
-                content = content.strip()
-                if content:
+            content = (resp.choices[0].message.content or "").strip()
+            if content:
+                if model != model_name:
+                    print(f"[INFO] Fallback model '{model}' succeeded for adjust_scenario_tree_with_boost.")
+                else:
                     print(f"[DEBUG] Model {model} returned non-empty response (boosted).")
-                    return content
+                log_attempt("adjust_scenario_tree_with_boost", model, start_time=start, success=True, empty=False, error=None)
+                return content
+            else:
+                log_attempt("adjust_scenario_tree_with_boost", model, start_time=start, success=False, empty=True, error=None)
+                print(f"[DEBUG] Model {model} returned empty content (boosted) – falling back.")
         except Exception as e:
+            log_attempt("adjust_scenario_tree_with_boost", model, start_time=start, success=False, empty=False, error=str(e))
             print(f"[DEBUG] Model {model} failed (boosted): {e}")
-        break
-    print("[DEBUG] All models returned empty or failed (boosted).")
+            continue
+    print("[WARN] All models returned empty or failed (boosted).")
     return ""
 
 def batch_adjust_scenario_trees_with_boost(
@@ -440,8 +512,9 @@ EXAMPLE RESPONSE (strictly follow this structure):
 DO NOT include any text before or after the JSON. Output only the JSON object.
 """.strip()
 
-    for model in [model_name]:
+    for model in _iter_fallback_models(model_name):
         print(f"[DEBUG] Trying model: {model}")
+        start = time.time()
         try:
             resp = client.chat.completions.create(
                 model=model,
@@ -451,14 +524,20 @@ DO NOT include any text before or after the JSON. Output only the JSON object.
                 ],
                 max_completion_tokens=1024
             )
-            content = resp.choices[0].message.content
-            if content is not None:
-                content = content.strip()
-                if content:
+            content = (resp.choices[0].message.content or "").strip()
+            if content:
+                if model != model_name:
+                    print(f"[INFO] Fallback model '{model}' succeeded for generate_final_playbook.")
+                else:
                     print(f"[DEBUG] Model {model} returned non-empty response.")
-                    return content
+                log_attempt("generate_final_playbook", model, start_time=start, success=True, empty=False, error=None)
+                return content
+            else:
+                log_attempt("generate_final_playbook", model, start_time=start, success=False, empty=True, error=None)
+                print(f"[DEBUG] Model {model} returned empty content – falling back.")
         except Exception as e:
+            log_attempt("generate_final_playbook", model, start_time=start, success=False, empty=False, error=str(e))
             print(f"[DEBUG] Model {model} failed: {e}")
-        break
-    print("[DEBUG] All models returned empty or failed.")
+            continue
+    print("[WARN] All models returned empty or failed for generate_final_playbook.")
     return ""

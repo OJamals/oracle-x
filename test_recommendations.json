@@ -1,0 +1,291 @@
+{
+  "query_date": "2025-08-19",
+  "timeframe": "10 days",
+  "top_recommendations": [
+    {
+      "rank": 1,
+      "symbol": "AAPL",
+      "instrument": "Call Option",
+      "strike": 0.0,
+      "expiry": "30 DTE",
+      "entry_range": "$0.00-$0.00",
+      "profit_target": "$0.00",
+      "stop_loss": "$0.00",
+      "confidence": "68.8%",
+      "scores": {
+        "momentum": "0.60",
+        "valuation": "0.50",
+        "trigger": "0.95",
+        "sentiment": "0.70",
+        "technical": "0.73",
+        "options_flow": "0.60",
+        "composite": "0.69"
+      },
+      "thesis": "AAPL shows positive sentiment, elevated activity, favorable technicals with 69% confidence for near-term appreciation."
+    },
+    {
+      "rank": 2,
+      "symbol": "AMZN",
+      "instrument": "Call Option",
+      "strike": 0.0,
+      "expiry": "30 DTE",
+      "entry_range": "$0.00-$0.00",
+      "profit_target": "$0.00",
+      "stop_loss": "$0.00",
+      "confidence": "67.9%",
+      "scores": {
+        "momentum": "0.72",
+        "valuation": "0.50",
+        "trigger": "0.89",
+        "sentiment": "0.67",
+        "technical": "0.52",
+        "options_flow": "0.60",
+        "composite": "0.68"
+      },
+      "thesis": "AMZN shows strong momentum, positive sentiment, elevated activity with 68% confidence for near-term appreciation."
+    },
+    {
+      "rank": 3,
+      "symbol": "MSFT",
+      "instrument": "Call Option",
+      "strike": 0.0,
+      "expiry": "30 DTE",
+      "entry_range": "$0.00-$0.00",
+      "profit_target": "$0.00",
+      "stop_loss": "$0.00",
+      "confidence": "63.1%",
+      "scores": {
+        "momentum": "0.48",
+        "valuation": "0.50",
+        "trigger": "1.00",
+        "sentiment": "0.60",
+        "technical": "0.55",
+        "options_flow": "0.60",
+        "composite": "0.63"
+      },
+      "thesis": "MSFT shows elevated activity with 63% confidence for near-term appreciation."
+    }
+  ],
+  "market_context": {
+    "market_breadth": "neutral",
+    "vix_level": "low",
+    "trend": "upward",
+    "key_risks": [
+      "Fed policy uncertainty",
+      "Earnings season volatility"
+    ],
+    "key_opportunities": [
+      "Tech sector momentum",
+      "AI-related plays"
+    ]
+  },
+  "raw_analyses": [
+    {
+      "symbol": "AAPL",
+      "quote": {
+        "symbol": "AAPL",
+        "price": 0.0,
+        "change_percent": 0.0,
+        "volume": 0,
+        "warning": "'Quote' object has no attribute 'quality_score'"
+      },
+      "technical": {
+        "5d_return": 1.9411936809079267,
+        "20d_return": 9.117487770594979,
+        "volume_ratio": 0.9546727116697727
+      },
+      "sentiment": {
+        "score": 0.4038166666666667,
+        "confidence": 0.56,
+        "sources": 1
+      },
+      "options": {
+        "suggested_strikes": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "suggested_expiry": "30-45 DTE",
+        "iv_rank": 35.0,
+        "put_call_ratio": 0.7,
+        "unusual_activity": false
+      }
+    },
+    {
+      "symbol": "MSFT",
+      "quote": {
+        "symbol": "MSFT",
+        "price": 0.0,
+        "change_percent": 0.0,
+        "volume": 0,
+        "warning": "'advanced_sentiment' is not a valid DataSource"
+      },
+      "technical": {
+        "5d_return": -0.30665553044446625,
+        "20d_return": 1.982116888200225,
+        "volume_ratio": 1.0116768014713116
+      },
+      "sentiment": {
+        "score": 0.19577500000000003,
+        "confidence": 0.62,
+        "sources": 1
+      },
+      "options": {
+        "suggested_strikes": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "suggested_expiry": "30-45 DTE",
+        "iv_rank": 35.0,
+        "put_call_ratio": 0.7,
+        "unusual_activity": false
+      }
+    },
+    {
+      "symbol": "GOOGL",
+      "quote": {
+        "symbol": "GOOGL",
+        "price": 0.0,
+        "change_percent": 0.0,
+        "volume": 0,
+        "warning": "'advanced_sentiment' is not a valid DataSource"
+      },
+      "technical": {
+        "5d_return": 1.442783033076811,
+        "20d_return": 7.259330536504138,
+        "volume_ratio": 0.7777001479139414
+      },
+      "sentiment": {
+        "score": 0.0,
+        "confidence": 0.3795879745630198,
+        "sources": 0
+      },
+      "options": {
+        "suggested_strikes": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "suggested_expiry": "30-45 DTE",
+        "iv_rank": 35.0,
+        "put_call_ratio": 0.7,
+        "unusual_activity": false
+      }
+    },
+    {
+      "symbol": "AMZN",
+      "quote": {
+        "symbol": "AMZN",
+        "price": 0.0,
+        "change_percent": 0.0,
+        "volume": 0,
+        "warning": "'advanced_sentiment' is not a valid DataSource"
+      },
+      "technical": {
+        "5d_return": 4.396744506715344,
+        "20d_return": 0.754468253168139,
+        "volume_ratio": 0.8870375100191358
+      },
+      "sentiment": {
+        "score": 0.3482375,
+        "confidence": 0.58,
+        "sources": 1
+      },
+      "options": {
+        "suggested_strikes": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "suggested_expiry": "30-45 DTE",
+        "iv_rank": 35.0,
+        "put_call_ratio": 0.7,
+        "unusual_activity": false
+      }
+    },
+    {
+      "symbol": "NVDA",
+      "quote": {
+        "symbol": "NVDA",
+        "price": 0.0,
+        "change_percent": 0.0,
+        "volume": 0,
+        "warning": "'advanced_sentiment' is not a valid DataSource"
+      },
+      "technical": {
+        "5d_return": -0.8843241963866322,
+        "20d_return": 5.2923280470388745,
+        "volume_ratio": 0.9714646081545052
+      },
+      "sentiment": {
+        "score": 0.17648181818181816,
+        "confidence": 0.72,
+        "sources": 1
+      },
+      "options": {
+        "suggested_strikes": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "suggested_expiry": "30-45 DTE",
+        "iv_rank": 35.0,
+        "put_call_ratio": 0.7,
+        "unusual_activity": false
+      }
+    }
+  ],
+  "plan": {
+    "query": "What are the best options to buy on 8/19/2025 which are underpriced and most likely to appreciate in value over the next 10 days?",
+    "constraints": {
+      "date": "2025-08-19",
+      "timeframe_days": 10,
+      "criteria": [
+        "undervalued",
+        "momentum"
+      ],
+      "instrument": "options",
+      "direction": "long"
+    },
+    "stages": [
+      {
+        "name": "market_context",
+        "description": "Assess overall market breadth and sector leadership",
+        "tools": [
+          "get_market_breadth",
+          "get_sector_performance"
+        ]
+      },
+      {
+        "name": "candidate_generation",
+        "description": "Form initial symbol set from sectors + liquid tech leaders",
+        "tools": [
+          "get_sector_performance"
+        ]
+      },
+      {
+        "name": "symbol_feature_fetch",
+        "description": "Pull quotes, market data, sentiment & advanced sentiment",
+        "tools": [
+          "get_quote",
+          "get_market_data",
+          "get_sentiment",
+          "get_advanced_sentiment"
+        ]
+      },
+      {
+        "name": "options_screen",
+        "description": "Derive simple synthetic options metrics",
+        "tools": [
+          "options_screener"
+        ]
+      },
+      {
+        "name": "scoring",
+        "description": "Compute multi-factor scores per blueprint",
+        "tools": []
+      }
+    ]
+  }
+}
