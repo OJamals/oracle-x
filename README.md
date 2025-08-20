@@ -4,11 +4,9 @@
 ORACLE-X is an AI-driven trading scenario engine that integrates real-time market data, options flow, sentiment, and anomaly detection to generate actionable playbooks and dashboards for traders.
 
 ## Structure
-- **main.py**: Main entry point for generating daily playbooks using the agent pipeline.
-- **main_optimized.py**: Optimized pipeline with prompt optimization and A/B testing.
+- **main.py**: Unified main entry point supporting multiple execution modes (standard, enhanced, optimized).
 - **signals_runner.py**: Collects and saves daily signals from all data feeds.
-- **oracle_options_cli.py**: CLI for options analysis and valuation.
-- **oracle_optimize_cli.py**: CLI for prompt optimization analytics and management.
+- **oracle_cli.py**: Unified CLI interface for all Oracle-X operations (options, optimization, validation, etc.).
 - **dashboard/app.py**: Streamlit dashboard for visualizing playbooks and signals.
 - **backtest_tracker/**: Tools for backtesting and analyzing playbook performance.
 - **data_feeds/**: Modular scrapers and data orchestrator for market data, options flow, sentiment, etc.

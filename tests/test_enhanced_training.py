@@ -3,6 +3,7 @@ Test Enhanced ML Training System
 Validates the improved training pipeline with robust error handling
 """
 
+import pytest
 import logging
 import sys
 import traceback
@@ -12,6 +13,9 @@ from datetime import datetime
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+@pytest.mark.ml
+@pytest.mark.slow
+@pytest.mark.network
 def test_enhanced_training():
     """Test the enhanced training system"""
     print("="*80)

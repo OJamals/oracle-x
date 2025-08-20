@@ -464,8 +464,8 @@ class TestErrorHandling(unittest.TestCase):
 class TestIntegrationFlow(unittest.TestCase):
     """Test complete integration flow"""
     
-    @patch('data_feeds.data_feed_orchestrator.DataFeedOrchestrator')
-    @patch('data_feeds.options_valuation_engine.OptionsValuationEngine')
+    @patch('oracle_options_pipeline.DataFeedOrchestrator')
+    @patch('oracle_options_pipeline.OptionsValuationEngine')
     def test_complete_workflow(self, mock_valuation_class, mock_orchestrator_class):
         """Test complete workflow from analysis to recommendations"""
         # Setup mocks

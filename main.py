@@ -25,18 +25,14 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict
 
-import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
 
 # Core Oracle engine imports
 from oracle_engine.agent import oracle_agent_pipeline
-from oracle_engine.prompt_chain import extract_scenario_tree
-from oracle_engine.model_attempt_logger import pop_attempts, get_attempts_snapshot
-from vector_db.qdrant_store import ensure_collection, store_trade_vector, embed_text
 
 # Data feeds
 try:

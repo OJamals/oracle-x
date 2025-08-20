@@ -25,6 +25,7 @@ from oracle_options_pipeline import (
 )
 
 
+@pytest.mark.unit
 class TestEnhancedPipelineConfig:
     """Test enhanced pipeline configuration"""
     

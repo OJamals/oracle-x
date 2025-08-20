@@ -3,10 +3,14 @@ Financial Calculation Integration Test
 Test the new financial calculator with real Oracle-X data.
 """
 
+import pytest
 import time
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
 from data_feeds.financial_calculator import FinancialCalculator, FinancialMetrics
 
+@pytest.mark.integration
+@pytest.mark.network
+@pytest.mark.api
 def test_financial_integration():
     """Test financial calculator integration with orchestrator"""
     
@@ -36,12 +40,12 @@ def test_financial_integration():
     
     # Get market data for enhanced calculations
     start_time = time.time()
-    market_data = orchestrator.get_market_data(symbol, timeframe="1mo")
+    market_data = orchestrator.get_market_data(symbol, period="1mo")
     market_time = time.time() - start_time
     
-    if market_data is not None and not market_data.empty:
+    if market_data is not None and not market_data.data.empty:
         print(f"✅ Market data retrieved in {market_time:.2f}s")
-        print(f"   Rows: {len(market_data)}, Columns: {list(market_data.columns)}")
+        print(f"   Rows: {len(market_data.data)}, Columns: {list(market_data.data.columns)}")
     else:
         print("⚠️ No market data available")
         market_data = None

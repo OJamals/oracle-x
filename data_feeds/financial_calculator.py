@@ -81,18 +81,18 @@ class FinancialCalculator:
         )
         
         # Enhanced calculations if market data is available
-        if market_data is not None and not market_data.empty:
+        if market_data is not None and not market_data.data.empty:
             try:
                 # Volume analysis
-                if 'Volume' in market_data.columns:
-                    avg_volume = market_data['Volume'].mean()
+                if 'Volume' in market_data.data.columns:
+                    avg_volume = market_data.data['Volume'].mean()
                     if avg_volume > 0 and quote.volume:
                         metrics.avg_volume = float(avg_volume)
                         metrics.volume_ratio = float(quote.volume / avg_volume)
                 
                 # Volatility calculations
-                if 'Close' in market_data.columns:
-                    close_prices = market_data['Close'].dropna()
+                if 'Close' in market_data.data.columns:
+                    close_prices = market_data.data['Close'].dropna()
                     if len(close_prices) >= 2:
                         # Daily volatility
                         daily_returns = close_prices.pct_change().dropna()

@@ -21,6 +21,11 @@ wheels/
 .installed.cfg
 *.egg
 
+# Compiled Python files in any directory
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
 # Virtual environments
 .venv/
 venv/
@@ -55,6 +60,15 @@ models/*.pkl
 results_*
 *_results_*
 pipeline_run_*.log
+
+# Backtest data
+backtest_data/*.pkl
+backtest_data/*
+
+# Test reports and temporary test files
+test_report.json
+test_results_*.json
+pytest.ini.backup
 
 # Configuration secrets
 *.env
