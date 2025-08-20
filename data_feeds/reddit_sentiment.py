@@ -1,5 +1,5 @@
 
-"""Reddit sentiment extraction with optional concurrency and early-exit heuristics."""
+"""Reddit sentiment extraction with optional concurrency, early-exit heuristics, and caching."""
 
 from __future__ import annotations
 
@@ -19,6 +19,11 @@ except Exception:  # pragma: no cover
 import praw  # type: ignore
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Simple in-memory cache to avoid repeated Reddit API calls
+_reddit_cache = {}
+_cache_timestamp = None
+_cache_ttl = 300  # 5 minutes default cache TTL
+
 
 def fetch_reddit_sentiment(subreddit: str = "stocks", limit: int = 100) -> Dict[str, Dict[str, Any]]:
     """Fetch ticker sentiment across multiple finance subreddits.
@@ -26,6 +31,19 @@ def fetch_reddit_sentiment(subreddit: str = "stocks", limit: int = 100) -> Dict[
     Returns a mapping: TICKER -> {mentions, compound, positive, neutral, negative, sample_texts, sentiment_score, confidence, sample_size}
     Safe fallbacks ensure an empty dict on credential / network failure.
     """
+    global _reddit_cache, _cache_timestamp
+    
+    # Check cache first
+    current_time = time.time()
+    cache_key = f"reddit_sentiment_{subreddit}_{limit}"
+    
+    if (_reddit_cache.get(cache_key) and 
+        _cache_timestamp and 
+        current_time - _cache_timestamp < _cache_ttl):
+        if os.environ.get("DEBUG_REDDIT", "0") == "1":
+            print(f"[DEBUG][reddit] Using cached data (age: {current_time - _cache_timestamp:.1f}s)")
+        return _reddit_cache[cache_key]
+    
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 
     # ----- Gather valid ticker universe (fallback list if unavailable) -----
@@ -70,11 +88,11 @@ def fetch_reddit_sentiment(subreddit: str = "stocks", limit: int = 100) -> Dict[
     ids_by_ticker: Dict[str, Set[str]] = {}
 
     DEBUG = os.environ.get("DEBUG_REDDIT", "0") == "1"
-    reduced_limit = min(limit, int(os.environ.get("REDDIT_POST_LIMIT", "50")))
+    reduced_limit = min(limit, int(os.environ.get("REDDIT_POST_LIMIT", "40")))  # Reduced from 50
     min_upvotes = 0
     listing_mode = os.environ.get("REDDIT_LISTING", "hot")  # hot|new|top
-    concurrency = max(1, min(int(os.environ.get("REDDIT_CONCURRENCY", "4")), len(subreddits)))
-    early_target = int(os.environ.get("REDDIT_EARLY_MENTION_TARGET", "60"))
+    concurrency = max(1, min(int(os.environ.get("REDDIT_CONCURRENCY", "8")), len(subreddits)))  # Increased from 4
+    early_target = int(os.environ.get("REDDIT_EARLY_MENTION_TARGET", "40"))  # Reduced from 60 for faster exit
 
     def _fetch_sub(sub: str, listing: str) -> Tuple[str, List[object], Exception | None]:
         try:
@@ -176,6 +194,13 @@ def fetch_reddit_sentiment(subreddit: str = "stocks", limit: int = 100) -> Dict[
         stats["sentiment_score"] = float(stats["compound"])  # align orchestrator expectation
         stats["confidence"] = float(max(0.2, min(0.95, 0.5 + 0.02 * m)))
         stats["sample_size"] = m
+
+    # Update cache
+    _reddit_cache[cache_key] = sentiment_by_ticker
+    _cache_timestamp = current_time
+    
+    if os.environ.get("DEBUG_REDDIT", "0") == "1":
+        print(f"[DEBUG][reddit] Cached {len(sentiment_by_ticker)} tickers")
 
     return sentiment_by_ticker
 

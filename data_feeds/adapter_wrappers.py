@@ -32,6 +32,7 @@ from data_feeds.consolidated_data_feed import (
     FMPAdapter as ConsolidatedFMP,
     FinnhubAdapter as ConsolidatedFinnhub,
     FinanceDatabaseAdapter as ConsolidatedFinanceDB,
+    DataCache,  # Import the DataCache class
     Quote,
     CompanyInfo,
     NewsItem,
@@ -46,6 +47,8 @@ class _BaseWrapper(SourceAdapterProtocol):
         self.rate_limiter = rate_limiter
         self.performance_tracker = performance_tracker
         self._last_error: Optional[str] = None
+        # Create the DataCache that the consolidated adapters expect
+        self._data_cache = DataCache()
         # Underlying consolidated adapter instance created by subclasses
         self._adapter = None  # type: ignore
 
@@ -99,7 +102,7 @@ class YFinanceAdapterWrapper(_BaseWrapper):
     def __init__(self, cache, rate_limiter, performance_tracker) -> None:
         super().__init__(cache, rate_limiter, performance_tracker)
         # Consolidated adapter expects its own cache/ratelimiter types; we pass through
-        self._adapter = ConsolidatedYF(cache, rate_limiter)
+        self._adapter = ConsolidatedYF(self._data_cache, rate_limiter)
 
     def capabilities(self) -> Set[str]:
         return {"quote", "historical", "company_info", "news"}
@@ -151,7 +154,7 @@ class YFinanceAdapterWrapper(_BaseWrapper):
 class FMPAdapterWrapper(_BaseWrapper):
     def __init__(self, cache, rate_limiter, performance_tracker) -> None:
         super().__init__(cache, rate_limiter, performance_tracker)
-        self._adapter = ConsolidatedFMP(cache, rate_limiter)
+        self._adapter = ConsolidatedFMP(self._data_cache, rate_limiter)
 
     def capabilities(self) -> Set[str]:
         return {"quote", "historical", "company_info"}
@@ -198,7 +201,7 @@ class FMPAdapterWrapper(_BaseWrapper):
 class FinnhubAdapterWrapper(_BaseWrapper):
     def __init__(self, cache, rate_limiter, performance_tracker) -> None:
         super().__init__(cache, rate_limiter, performance_tracker)
-        self._adapter = ConsolidatedFinnhub(cache, rate_limiter)
+        self._adapter = ConsolidatedFinnhub(self._data_cache, rate_limiter)
 
     def capabilities(self) -> Set[str]:
         return {"quote", "company_info", "news"}

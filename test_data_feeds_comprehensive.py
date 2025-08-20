@@ -146,31 +146,25 @@ def test_twelvedata_adapter():
         log_test("twelvedata_adapter", "ERROR", str(e))
 
 def test_twitter_adapter():
-    """Test Twitter adapter (if API keys available)"""
-    # Check for Twitter API credentials
-    has_creds = any([
-        os.getenv('TWITTER_BEARER_TOKEN'),
-        os.getenv('TWIKIT_USERNAME') and os.getenv('TWIKIT_PASSWORD'),
-    ])
+    """Test Twitter adapter (uses twscrape, no API keys required)"""
+    # Twitter adapter uses twscrape which doesn't require API credentials
+    # Skip only if twscrape is not available
+    try:
+        from twscrape import API
+        from data_feeds.twitter_feed import TwitterSentimentFeed
+        has_twscrape = True
+    except ImportError:
+        has_twscrape = False
     
-    if not has_creds:
-        log_test("twitter_adapter", "SKIP", "API credentials not configured")
+    if not has_twscrape:
+        log_test("twitter_adapter", "SKIP", "twscrape not available")
         return
         
     try:
         from data_feeds.twitter_adapter import TwitterAdapter
-        from data_feeds.cache_service import CacheService
         
-        # Local mock classes
-        class LocalMockRateLimiter:
-            def wait_if_needed(self, source): pass
-            
-        class LocalMockPerformanceTracker:
-            def record_success(self, *args, **kwargs): pass
-            def record_error(self, *args, **kwargs): pass
-        
-        cache = CacheService()
-        adapter = TwitterAdapter(cache, LocalMockRateLimiter(), LocalMockPerformanceTracker())
+        # TwitterAdapter doesn't require cache/rate_limiter parameters
+        adapter = TwitterAdapter()
         
         start_time = time.time()
         sentiment = adapter.get_sentiment('AAPL')
@@ -197,8 +191,10 @@ def test_investiny_adapter():
         
         start_time = time.time()
         
-        # Test searching for a symbol
+        # Test searching for a symbol with debug
+        print("DEBUG: Testing Investiny search for AAPL...")
         investing_id = search_investing_id('AAPL')
+        print(f"DEBUG: Investiny search result: {investing_id}")
         timing = time.time() - start_time
         
         if investing_id:
@@ -296,7 +292,7 @@ def test_adapter_wrappers():
         
         # Test FMP wrapper (may need API key)
         try:
-            if os.getenv('FMP_API_KEY'):
+            if os.getenv('FINANCIALMODELINGPREP_API_KEY'):
                 fmp_adapter = FMPAdapterWrapper(cache, rate_limiter, performance_tracker)
                 
                 start_time = time.time()
@@ -304,8 +300,23 @@ def test_adapter_wrappers():
                 timing = time.time() - start_time
                 
                 log_test("fmp_wrapper_capabilities", "PASS", json.dumps({"capabilities": list(capabilities)}), timing)
+                
+                # Test a quote fetch
+                start_time = time.time()
+                quote = fmp_adapter.fetch_quote('AAPL')
+                timing = time.time() - start_time
+                
+                if quote:
+                    details = {
+                        "symbol": quote.symbol,
+                        "has_price": quote.price is not None and quote.price > 0,
+                        "source": getattr(quote, 'source', 'fmp')
+                    }
+                    log_test("fmp_wrapper_quote", "PASS", json.dumps(details), timing)
+                else:
+                    log_test("fmp_wrapper_quote", "FAIL", "No quote data", timing)
             else:
-                log_test("fmp_wrapper", "SKIP", "FMP_API_KEY not configured")
+                log_test("fmp_wrapper", "SKIP", "FINANCIALMODELINGPREP_API_KEY not configured")
         except Exception as e:
             log_test("fmp_wrapper", "ERROR", str(e))
         
@@ -370,15 +381,17 @@ def test_adapter_wrappers():
         log_test("investiny_adapter", "SKIP", "Investiny adapter dependencies not available")
     except Exception as e:
         log_test("investiny_adapter", "ERROR", str(e))
-    """Test Twitter adapter (if API keys available)"""
-    # Check for Twitter API credentials
-    has_creds = any([
-        os.getenv('TWITTER_BEARER_TOKEN'),
-        os.getenv('TWIKIT_USERNAME') and os.getenv('TWIKIT_PASSWORD'),
-    ])
+    """Test Twitter adapter (using twscrape)"""
+    # Twitter adapter uses twscrape which doesn't require API credentials
+    # Check if twscrape is available
+    try:
+        import twscrape
+        has_twscrape = True
+    except ImportError:
+        has_twscrape = False
     
-    if not has_creds:
-        log_test("twitter_adapter", "SKIP", "API credentials not configured")
+    if not has_twscrape:
+        log_test("twitter_adapter", "SKIP", "twscrape library not available")
         return
         
     try:
@@ -395,7 +408,7 @@ def test_adapter_wrappers():
             def record_success(self, *args, **kwargs): pass
             def record_error(self, *args, **kwargs): pass
         
-        adapter = TwitterAdapter(cache, MockRateLimiter(), MockPerformanceTracker())
+        adapter = TwitterAdapter()
         
         start_time = time.time()
         sentiment = adapter.get_sentiment('AAPL')

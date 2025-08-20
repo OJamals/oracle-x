@@ -99,31 +99,92 @@ try:
 except Exception:
     pass
 # ---------------------------------------------------------------------------
-# Utility normalization helpers (shared)
+# Optimized utility normalization helpers (shared)
 # ---------------------------------------------------------------------------
+# Cached datetime formats for faster parsing
+_DATETIME_FORMATS = ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M:%S.%f")
+
 def _to_decimal(val: Any) -> Optional[Decimal]:
-    try:
-        if val is None or (isinstance(val, str) and not val.strip()):
-            return None
-        return Decimal(str(val))
-    except Exception:
+    """Optimized decimal conversion with early exits"""
+    if val is None:
         return None
+    if isinstance(val, Decimal):
+        return val
+    if isinstance(val, (int, float)):
+        try:
+            return Decimal(val)
+        except Exception:
+            return None
+    if isinstance(val, str):
+        val = val.strip()
+        if not val or val.lower() in ('none', 'null', 'nan', ''):
+            return None
+        try:
+            return Decimal(val)
+        except Exception:
+            return None
+    return None
 
 def _parse_datetime(val: Any) -> Optional[datetime]:
+    """Optimized datetime parsing with cached formats"""
+    if val is None:
+        return None
     if isinstance(val, datetime):
         return val
     if isinstance(val, (int, float)):
         try:
             return datetime.fromtimestamp(float(val))
-        except Exception:
+        except (ValueError, OSError):
             return None
     if isinstance(val, str):
-        for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S"):
+        val = val.strip()
+        if not val:
+            return None
+        # Try cached formats in order of frequency
+        for fmt in _DATETIME_FORMATS:
             try:
                 return datetime.strptime(val, fmt)
-            except Exception:
+            except ValueError:
                 continue
     return None
+
+def _batch_to_decimal(values: List[Any]) -> List[Optional[Decimal]]:
+    """Vectorized decimal conversion for batch processing"""
+    return [_to_decimal(val) for val in values]
+
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    """Fast float conversion with fallback"""
+    if val is None:
+        return default
+    if isinstance(val, (int, float)):
+        return float(val)
+    if isinstance(val, str):
+        val = val.strip()
+        if not val or val.lower() in ('none', 'null', 'nan', ''):
+            return default
+        try:
+            return float(val)
+        except ValueError:
+            return default
+    return default
+
+def _safe_int(val: Any, default: int = 0) -> int:
+    """Fast integer conversion with fallback"""
+    if val is None:
+        return default
+    if isinstance(val, int):
+        return val
+    if isinstance(val, float):
+        return int(val)
+    if isinstance(val, str):
+        val = val.strip()
+        if not val or val.lower() in ('none', 'null', 'nan', ''):
+            return default
+        try:
+            return int(float(val))  # Handle strings like "123.0"
+        except ValueError:
+            return default
+    return default
 
 def _log_error_and_record(perf: 'PerformanceTracker', source: str, msg: str, exc: Exception):  # Forward ref to PerformanceTracker
     emsg = f"{msg}: {exc}"
@@ -208,66 +269,101 @@ class DataQualityMetrics:
 # ============================================================================
 
 class DataValidator:
-    """Validates data quality and detects anomalies"""
+    """Optimized data validation and anomaly detection"""
+    
     @staticmethod
     def validate_quote(quote: Quote) -> Tuple[float, List[str]]:
+        """Fast quote validation with early exits"""
         issues = []
         score = 100.0
+        
+        # Price validation - most critical
         if not quote.price or quote.price <= 0:
             issues.append("Missing or invalid price")
             score -= 40
+            return max(0, score), issues  # Early exit for critical failure
+        
+        # Volume validation
         if not quote.volume or quote.volume < 0:
             issues.append("Missing or invalid volume")
             score -= 20
+        
+        # Timestamp validation - optimized check
         if quote.timestamp:
-            if (datetime.now() - quote.timestamp).total_seconds() > 3600:
+            age_seconds = (datetime.now() - quote.timestamp).total_seconds()
+            if age_seconds > 3600:  # 1 hour
                 issues.append("Stale quote timestamp")
                 score -= 20
         else:
             issues.append("Missing timestamp")
             score -= 10
-        if quote.day_low is not None and quote.day_high is not None and quote.price is not None:
+        
+        # Range validation - only if all values present
+        if (quote.day_low is not None and quote.day_high is not None and 
+            quote.price is not None):
             if not (quote.day_low <= quote.price <= quote.day_high):
                 issues.append("Price outside day range")
                 score -= 10
-        score = max(0, min(score, 100))
-        return score, issues
+        
+        return max(0, min(score, 100)), issues
 
     @staticmethod
     def validate_market_data(data: pd.DataFrame) -> Tuple[float, List[str]]:
+        """Optimized market data validation using pandas vectorization"""
         issues = []
         score = 100.0
+        
         if data.empty:
-            issues.append("Empty DataFrame")
-            score -= 50
-        missing_pct = data.isnull().sum().sum() / (len(data) * len(data.columns)) * 100 if len(data) and len(data.columns) else 100
-        if missing_pct > 5:
-            issues.append(f"Missing data: {missing_pct:.2f}%")
-            score -= 20
-        for col in data.select_dtypes(include=[float, int]).columns:
-            vals = data[col].dropna()
-            if len(vals) > 2:
-                std = vals.std()
-                mean = vals.mean()
-                if std > 0 and any(abs((v - mean) / std) > 5 for v in vals):
-                    issues.append(f"Outlier detected in {col}")
-                    score -= 10
-        score = max(0, min(score, 100))
-        return score, issues
+            return 0.0, ["Empty DataFrame"]
+        
+        # Fast missing data calculation
+        total_cells = data.size
+        if total_cells > 0:
+            missing_cells = data.isnull().sum().sum()
+            missing_pct = (missing_cells / total_cells) * 100
+            if missing_pct > 5:
+                issues.append(f"Missing data: {missing_pct:.2f}%")
+                score -= 20
+        
+        # Vectorized outlier detection for numeric columns
+        numeric_cols = data.select_dtypes(include=[float, int]).columns
+        if len(numeric_cols) > 0:
+            for col in numeric_cols:
+                vals = data[col].dropna()
+                if len(vals) > 2:
+                    # Fast vectorized z-score calculation
+                    mean_val = vals.mean()
+                    std_val = vals.std()
+                    if std_val > 0:
+                        z_scores = ((vals - mean_val) / std_val).abs()
+                        if (z_scores > 5).any():
+                            issues.append(f"Outlier detected in {col}")
+                            score -= 10
+                            break  # Don't check all columns if one has outliers
+        
+        return max(0, min(score, 100)), issues
 
     @staticmethod
     def detect_anomalies(data: pd.Series, threshold: float = 3.0) -> List[int]:
+        """Vectorized anomaly detection"""
         if data.empty:
             return []
+        
         vals = data.dropna()
         if len(vals) < 2:
             return []
-        mean = vals.mean()
-        std = vals.std()
-        if std == 0:
+        
+        # Vectorized z-score calculation
+        mean_val = vals.mean()
+        std_val = vals.std()
+        
+        if std_val == 0:
             return []
-        zscores = (vals - mean) / std
-        return [i for i, z in zip(vals.index, zscores) if abs(z) > threshold]
+        
+        z_scores = ((vals - mean_val) / std_val).abs()
+        anomalies = vals[z_scores > threshold]
+        
+        return anomalies.index.tolist()
 
 class PerformanceTracker:
     """Tracks data source performance and reliability with issue registry."""
@@ -495,17 +591,44 @@ class RateLimiter:
 # ============================================================================
 
 class YFinanceAdapter:
-    """Enhanced yfinance adapter with quality validation"""
+    """Enhanced yfinance adapter with performance optimizations"""
     
     def __init__(self, cache: SmartCache, rate_limiter: RateLimiter, performance_tracker: PerformanceTracker):
         self.cache = cache
         self.rate_limiter = rate_limiter
         self.performance_tracker = performance_tracker
         self.source = DataSource.YFINANCE
+        # Cache ticker objects to avoid re-initialization
+        self._ticker_cache: Dict[str, Any] = {}
+        self._ticker_cache_time: Dict[str, float] = {}
+        self._ticker_ttl = 300  # 5 minutes
+    
+    def _get_ticker(self, symbol: str):
+        """Get cached ticker object or create new one"""
+        current_time = time.time()
+        
+        if (symbol in self._ticker_cache and 
+            symbol in self._ticker_cache_time and
+            current_time - self._ticker_cache_time[symbol] < self._ticker_ttl):
+            return self._ticker_cache[symbol]
+        
+        # Create new ticker and cache it
+        ticker = yf.Ticker(symbol)
+        self._ticker_cache[symbol] = ticker
+        self._ticker_cache_time[symbol] = current_time
+        
+        # Cleanup old entries
+        if len(self._ticker_cache) > 50:  # Limit cache size
+            oldest_symbol = min(self._ticker_cache_time.keys(), 
+                               key=lambda s: self._ticker_cache_time[s])
+            del self._ticker_cache[oldest_symbol]
+            del self._ticker_cache_time[oldest_symbol]
+        
+        return ticker
     
     def get_quote(self, symbol: str) -> Optional[Quote]:
         logger.debug(f"YFinanceAdapter.get_quote called for symbol={symbol}")
-        """Get real-time quote with quality validation"""
+        """Get real-time quote with optimized validation"""
         cache_key = f"quote_{symbol}"
         cached_data = self.cache.get(cache_key, "quote")
         if cached_data:
@@ -513,25 +636,27 @@ class YFinanceAdapter:
         
         start_time = time.time()
         try:
-            ticker = yf.Ticker(symbol)
+            ticker = self._get_ticker(symbol)
             info = ticker.info
             
             if not info or 'currentPrice' not in info:
                 return None
             
-            # Fix for market_cap assignment
+            # Optimized field extraction with safe defaults
+            current_price = info.get('currentPrice')
+            if not current_price:
+                return None
+            
+            # Fast market cap processing
             mc_val = info.get('marketCap')
-            try:
-                market_cap = int(mc_val) if mc_val not in (None, '', 'None') and str(mc_val).isdigit() else None
-            except Exception:
-                market_cap = None
+            market_cap = _safe_int(mc_val) if mc_val not in (None, '', 'None') else None
             
             quote = Quote(
                 symbol=symbol,
-                price=_to_decimal(info.get('currentPrice')),
+                price=_to_decimal(current_price),
                 change=_to_decimal(info.get('change', 0)),
                 change_percent=_to_decimal(info.get('changePercent', 0)),
-                volume=int(info.get('volume', 0)) if info.get('volume') is not None else 0,
+                volume=_safe_int(info.get('volume')),
                 market_cap=market_cap,
                 pe_ratio=_to_decimal(info.get('trailingPE')),
                 day_low=_to_decimal(info.get('dayLow')),
@@ -542,13 +667,13 @@ class YFinanceAdapter:
                 source=self.source.value
             )
             
-            # Validate quality
+            # Fast validation
             quality_score, issues = DataValidator.validate_quote(quote)
             quote.quality_score = quality_score
             
             # Track performance
             response_time = (time.time() - start_time) * 1000
-            self.performance_tracker.record_success(self.source.value, response_time, quality_score)
+            self.performance_tracker.record_success(self.source.value, response_time, quality_score, issues)
             
             # Cache if quality is acceptable
             if quality_score >= 60:
@@ -562,7 +687,7 @@ class YFinanceAdapter:
     
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d") -> Optional[MarketData]:
         logger.debug(f"YFinanceAdapter.get_market_data called for symbol={symbol}, period={period}, interval={interval}")
-        """Get historical market data with quality validation"""
+        """Get historical market data with optimized processing"""
         cache_key = f"market_data_{symbol}_{period}_{interval}"
         cached_data = self.cache.get(cache_key, f"market_data_{interval}")
         if cached_data:
@@ -570,13 +695,13 @@ class YFinanceAdapter:
         
         start_time = time.time()
         try:
-            ticker = yf.Ticker(symbol)
+            ticker = self._get_ticker(symbol)
             data = ticker.history(period=period, interval=interval)
             
             if data.empty:
                 return None
             
-            # Validate quality
+            # Fast validation
             quality_score, issues = DataValidator.validate_market_data(data)
             
             market_data = MarketData(
@@ -590,7 +715,7 @@ class YFinanceAdapter:
             
             # Track performance
             response_time = (time.time() - start_time) * 1000
-            self.performance_tracker.record_success(self.source.value, response_time, quality_score)
+            self.performance_tracker.record_success(self.source.value, response_time, quality_score, issues)
             
             # Cache if quality is acceptable
             if quality_score >= 60:
