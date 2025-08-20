@@ -34,7 +34,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Fallback to default path if import fails
 try:
-    from env_config import get_cache_db_path
+    from config_manager import get_cache_db_path
     DEFAULT_DB_PATH = get_cache_db_path()
 except:
     DEFAULT_DB_PATH = "data/databases/model_monitoring.db"

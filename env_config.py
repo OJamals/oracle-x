@@ -33,7 +33,7 @@ are deprecated and no longer read. Set the new variables instead.
 ACCOUNTS_DB_PATH = os.environ.get('ACCOUNTS_DB_PATH', 'data/databases/accounts.db')
 MODEL_MONITORING_DB_PATH = os.environ.get('MODEL_MONITORING_DB_PATH', 'data/databases/model_monitoring.db')
 PROMPT_OPTIMIZATION_DB_PATH = os.environ.get('PROMPT_OPTIMIZATION_DB_PATH', 'data/databases/prompt_optimization.db')
-CACHE_DB_PATH = os.environ.get('CACHE_DB_PATH', 'data/databases/model_monitoring.db')
+CACHE_DB_PATH = os.environ.get('CACHE_DB_PATH', 'data/databases/cache.db')
 
 # Primary (non‑embedding) model used for chat/completions (user preferred)
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o')
@@ -85,6 +85,24 @@ def get_prompt_optimization_db_path() -> str:
 
 def get_cache_db_path() -> str:
     return CACHE_DB_PATH
+
+def load_config() -> dict:
+    """Load configuration values as a dictionary for compatibility.
+    
+    Returns:
+        dict: Configuration dictionary with all environment variables and paths
+    """
+    return {
+        'OPENAI_MODEL': OPENAI_MODEL,
+        'EMBEDDING_MODEL': EMBEDDING_MODEL,
+        'OPENAI_API_BASE': OPENAI_API_BASE,
+        'EMBEDDING_API_BASE': EMBEDDING_API_BASE,
+        'FALLBACK_MODELS': FALLBACK_MODELS,
+        'ACCOUNTS_DB_PATH': ACCOUNTS_DB_PATH,
+        'MODEL_MONITORING_DB_PATH': MODEL_MONITORING_DB_PATH,
+        'PROMPT_OPTIMIZATION_DB_PATH': PROMPT_OPTIMIZATION_DB_PATH,
+        'CACHE_DB_PATH': CACHE_DB_PATH,
+    }
 
 def resolve_model(client, preferred: Optional[str] = None, test: bool = True) -> str:
     """Attempt to resolve a supported chat/completions model.

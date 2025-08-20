@@ -163,17 +163,17 @@ from data_feeds.news_scraper import fetch_headlines_yahoo_finance
 from data_feeds.finviz_scraper import fetch_finviz_breadth
 from data_feeds.ticker_universe import fetch_ticker_universe
 
-import env_config
+import config_manager
 
 API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = env_config.get_openai_api_base() or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
-_PREFERRED_MODEL = env_config.get_openai_model()
+API_BASE = config_manager.get_openai_api_base() or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+_PREFERRED_MODEL = config_manager.get_openai_model()
 
 client = OpenAI(api_key=API_KEY, base_url=API_BASE)
 
 # Resolve a valid model once at import time (light probe). If offline, we skip probing.
 try:
-    MODEL_NAME = env_config.resolve_model(client, _PREFERRED_MODEL, test=True)
+    MODEL_NAME = config_manager.resolve_model(client, _PREFERRED_MODEL, test=True)
 except Exception as e:
     print(f"[WARN] Model resolution failed, using preferred '{_PREFERRED_MODEL}': {e}")
     MODEL_NAME = _PREFERRED_MODEL
@@ -273,7 +273,7 @@ def pull_similar_scenarios(thesis: str) -> str:
 def _iter_fallback_models(primary: str) -> List[str]:
     """Return ordered list of models to try: primary then configured fallbacks (deduplicated)."""
     try:
-        fallback = env_config.get_fallback_models()
+        fallback = config_manager.get_fallback_models()
     except Exception:
         fallback = []
     ordered = [primary] + [m for m in fallback if m != primary]

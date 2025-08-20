@@ -1,0 +1,32 @@
+{
+  "System Health": {
+    "command": "System Health Validation",
+    "returncode": 0,
+    "stdout": "System Health Validation Results:\n==================================================\n\u2705 PASS Main Pipeline\n\u2705 PASS Options Pipeline\n\u2705 PASS Data Orchestrator\n\u2705 PASS Environment Config\n\u2705 PASS ML Model Manager\n\u2705 PASS Prompt Chain\n",
+    "stderr": "/Users/omar/Documents/Projects/oracle-x/vector_db/qdrant_store.py:13: UserWarning: Api key is used with an insecure connection.\n  qdrant = QdrantClient(\n",
+    "success": true
+  },
+  "Critical Tests": [
+    {
+      "command": "python -m pytest tests/test_financial_calculator.py --tb=short --durations=10",
+      "returncode": 1,
+      "stdout": "============================= test session starts ==============================\nplatform darwin -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0\nrootdir: /Users/omar/Documents/Projects/oracle-x\nconfigfile: pytest.ini\nplugins: anyio-4.9.0, asyncio-1.1.0, dash-3.2.0, cov-6.2.1\nasyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 1 item\n\ntests/test_financial_calculator.py F                                     [100%]\n\n=================================== FAILURES ===================================\n__________________________ test_financial_integration __________________________\ntests/test_financial_calculator.py:39: in test_financial_integration\n    market_data = orchestrator.get_market_data(symbol, timeframe=\"1mo\")\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nE   TypeError: DataFeedOrchestrator.get_market_data() got an unexpected keyword argument 'timeframe'\n----------------------------- Captured stdout call -----------------------------\n=== Financial Calculator Integration Test ===\n\\n\ud83d\udd0d Testing financial calculations for AAPL...\n\u2705 Quote retrieved in 0.85s\n   Price: $230.56000000000000227373675443232059478759765625\n   Volume: 36,804,727\n   Market Cap: $3,421,602,578,432\n------------------------------ Captured log call -------------------------------\nWARNING  data_feeds.data_feed_orchestrator:data_feed_orchestrator.py:1476 TwelveData rate limit hit for AAPL: You have run out of API credits for the day. 912 API credits were used, with the current limit being 800. Wait for the next day or consider switching to a paid plan that will remove daily limits at https://twelvedata.com/pricing\n============================= slowest 10 durations =============================\n0.87s call     tests/test_financial_calculator.py::test_financial_integration\n\n(2 durations < 0.005s hidden.  Use -vv to show these durations.)\n=========================== short test summary info ============================\nFAILED tests/test_financial_calculator.py::test_financial_integration - TypeE...\n============================== 1 failed in 3.42s ===============================\n",
+      "stderr": "",
+      "success": false
+    },
+    {
+      "command": "python -m pytest tests/test_enhanced_sentiment_pipeline.py --tb=short --durations=10",
+      "returncode": 0,
+      "stdout": "============================= test session starts ==============================\nplatform darwin -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0\nrootdir: /Users/omar/Documents/Projects/oracle-x\nconfigfile: pytest.ini\nplugins: anyio-4.9.0, asyncio-1.1.0, dash-3.2.0, cov-6.2.1\nasyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 2 items\n\ntests/test_enhanced_sentiment_pipeline.py ..                             [100%]\n\n============================= slowest 10 durations =============================\n2.49s call     tests/test_enhanced_sentiment_pipeline.py::test_enhanced_sentiment_pipeline\n1.12s call     tests/test_enhanced_sentiment_pipeline.py::test_adapter_integration\n\n(4 durations < 0.005s hidden.  Use -vv to show these durations.)\n============================== 2 passed in 3.62s ===============================\n",
+      "stderr": "",
+      "success": true
+    },
+    {
+      "command": "python -m pytest tests/unit/test_basic_system.py --tb=short --durations=10",
+      "returncode": 0,
+      "stdout": "============================= test session starts ==============================\nplatform darwin -- Python 3.12.11, pytest-8.4.1, pluggy-1.6.0\nrootdir: /Users/omar/Documents/Projects/oracle-x\nconfigfile: pytest.ini\nplugins: anyio-4.9.0, asyncio-1.1.0, dash-3.2.0, cov-6.2.1\nasyncio: mode=Mode.STRICT, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollected 3 items\n\ntests/unit/test_basic_system.py ...                                      [100%]\n\n============================= slowest 10 durations =============================\n1.46s call     tests/unit/test_basic_system.py::test_basic_quotes\n0.79s call     tests/unit/test_basic_system.py::test_market_internals\n\n(7 durations < 0.005s hidden.  Use -vv to show these durations.)\n============================== 3 passed in 4.86s ===============================\n",
+      "stderr": "",
+      "success": true
+    }
+  ]
+}

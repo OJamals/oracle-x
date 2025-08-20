@@ -16,14 +16,14 @@ qdrant = QdrantClient(
 )
 
 
-import env_config  # project-level configuration module
+import config_manager  # project-level configuration module
 
 # Embedding configuration (falls back gracefully)
-EMBEDDING_MODEL = env_config.get_embedding_model() if hasattr(env_config, 'get_embedding_model') else os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
-EMBEDDING_API_BASE = env_config.get_embedding_api_base() if hasattr(env_config, 'get_embedding_api_base') else os.environ.get("EMBEDDING_API_BASE")
+EMBEDDING_MODEL = config_manager.get_embedding_model() if hasattr(config_manager, 'get_embedding_model') else os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
+EMBEDDING_API_BASE = config_manager.get_embedding_api_base() if hasattr(config_manager, 'get_embedding_api_base') else os.environ.get("EMBEDDING_API_BASE")
 API_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("EMBEDDING_API_KEY")
 
-client = OpenAI(api_key=API_KEY, base_url=EMBEDDING_API_BASE or env_config.get_openai_api_base())
+client = OpenAI(api_key=API_KEY, base_url=EMBEDDING_API_BASE or config_manager.get_openai_api_base())
 
 COLLECTION_NAME = "oraclex_trades"
 
