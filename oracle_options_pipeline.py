@@ -179,6 +179,10 @@ class OptionStrategy(Enum):
     STRADDLE = "straddle"
     STRANGLE = "strangle"
     COVERED_CALL = "covered_call"
+    CASH_SECURED_PUT = "cash_secured_put"
+    BULL_CALL_SPREAD = "bull_call_spread"
+    BEAR_PUT_SPREAD = "bear_put_spread"
+    IRON_CONDOR = "iron_condor"
 
 
 @dataclass
@@ -639,6 +643,10 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
         filtered = []
         
         for option in options:
+            # Check if option has market price
+            if option.market_price is None:
+                continue
+                
             # Check days to expiry
             days_to_expiry = option.time_to_expiry * 365
             if days_to_expiry < self.config.min_days_to_expiry:
@@ -1368,9 +1376,12 @@ class EnhancedFeatureEngine:
         try:
             if len(prices) < period + 1:
                 return None
-            rsi = talib.RSI(prices, timeperiod=period)
+            # Convert to float64 as TA-Lib requires double precision
+            prices_float = prices.astype(np.float64)
+            rsi = talib.RSI(prices_float, timeperiod=period)
             return float(rsi[-1]) if not np.isnan(rsi[-1]) else None
-        except:
+        except Exception as e:
+            logger.warning(f"RSI calculation failed: {e}")
             return None
     
     def _calculate_macd(self, prices: np.ndarray) -> Dict[str, Optional[float]]:
@@ -1379,13 +1390,16 @@ class EnhancedFeatureEngine:
             if len(prices) < 35:  # Need enough data for MACD
                 return {'macd': None, 'signal': None, 'histogram': None}
                 
-            macd, signal, histogram = talib.MACD(prices)
+            # Convert to float64 as TA-Lib requires double precision
+            prices_float = prices.astype(np.float64)
+            macd, signal, histogram = talib.MACD(prices_float)
             return {
                 'macd': float(macd[-1]) if not np.isnan(macd[-1]) else None,
                 'signal': float(signal[-1]) if not np.isnan(signal[-1]) else None,
                 'histogram': float(histogram[-1]) if not np.isnan(histogram[-1]) else None
             }
-        except:
+        except Exception as e:
+            logger.warning(f"MACD calculation failed: {e}")
             return {'macd': None, 'signal': None, 'histogram': None}
     
     def _calculate_bollinger_bands(self, prices: np.ndarray, period: int = 20, std_dev: int = 2) -> Dict[str, Optional[float]]:
@@ -1394,9 +1408,11 @@ class EnhancedFeatureEngine:
             if len(prices) < period:
                 return {'upper': None, 'lower': None, 'position': None}
                 
-            upper, middle, lower = talib.BBANDS(prices, timeperiod=period, nbdevup=std_dev, nbdevdn=std_dev)
+            # Convert to float64 as TA-Lib requires double precision
+            prices_float = prices.astype(np.float64)
+            upper, middle, lower = talib.BBANDS(prices_float, timeperiod=period, nbdevup=std_dev, nbdevdn=std_dev)
             
-            current_price = prices[-1]
+            current_price = prices_float[-1]
             current_upper = upper[-1]
             current_lower = lower[-1]
             
@@ -1411,7 +1427,8 @@ class EnhancedFeatureEngine:
                 'lower': float(current_lower) if not np.isnan(current_lower) else None,
                 'position': float(position) if position is not None else None
             }
-        except:
+        except Exception as e:
+            logger.warning(f"Bollinger Bands calculation failed: {e}")
             return {'upper': None, 'lower': None, 'position': None}
     
     def _calculate_stochastic(self, highs: np.ndarray, lows: np.ndarray, closes: np.ndarray, period: int = 14) -> Dict[str, Optional[float]]:
@@ -1420,12 +1437,18 @@ class EnhancedFeatureEngine:
             if len(closes) < period:
                 return {'k': None, 'd': None}
                 
-            slowk, slowd = talib.STOCH(highs, lows, closes, fastk_period=period)
+            # Convert to float64 as TA-Lib requires double precision
+            highs_float = highs.astype(np.float64)
+            lows_float = lows.astype(np.float64)
+            closes_float = closes.astype(np.float64)
+            
+            slowk, slowd = talib.STOCH(highs_float, lows_float, closes_float, fastk_period=period)
             return {
                 'k': float(slowk[-1]) if not np.isnan(slowk[-1]) else None,
                 'd': float(slowd[-1]) if not np.isnan(slowd[-1]) else None
             }
-        except:
+        except Exception as e:
+            logger.warning(f"Stochastic calculation failed: {e}")
             return {'k': None, 'd': None}
     
     def _calculate_williams_r(self, highs: np.ndarray, lows: np.ndarray, closes: np.ndarray, period: int = 14) -> Optional[float]:
@@ -1433,9 +1456,15 @@ class EnhancedFeatureEngine:
         try:
             if len(closes) < period:
                 return None
-            willr = talib.WILLR(highs, lows, closes, timeperiod=period)
+            # Convert to float64 as TA-Lib requires double precision
+            highs_float = highs.astype(np.float64)
+            lows_float = lows.astype(np.float64)
+            closes_float = closes.astype(np.float64)
+            
+            willr = talib.WILLR(highs_float, lows_float, closes_float, timeperiod=period)
             return float(willr[-1]) if not np.isnan(willr[-1]) else None
-        except:
+        except Exception as e:
+            logger.warning(f"Williams %R calculation failed: {e}")
             return None
     
     def _calculate_cci(self, highs: np.ndarray, lows: np.ndarray, closes: np.ndarray, period: int = 20) -> Optional[float]:
@@ -1443,9 +1472,15 @@ class EnhancedFeatureEngine:
         try:
             if len(closes) < period:
                 return None
-            cci = talib.CCI(highs, lows, closes, timeperiod=period)
+            # Convert to float64 as TA-Lib requires double precision
+            highs_float = highs.astype(np.float64)
+            lows_float = lows.astype(np.float64)
+            closes_float = closes.astype(np.float64)
+            
+            cci = talib.CCI(highs_float, lows_float, closes_float, timeperiod=period)
             return float(cci[-1]) if not np.isnan(cci[-1]) else None
-        except:
+        except Exception as e:
+            logger.warning(f"CCI calculation failed: {e}")
             return None
     
     def _calculate_realized_volatility(self, prices: np.ndarray, period: int) -> Optional[float]:
@@ -1579,7 +1614,7 @@ class EnhancedFeatureEngine:
     def _calculate_var(self, prices: np.ndarray, confidence: float = 0.95, horizon: int = 1) -> Optional[float]:
         """Calculate Value at Risk"""
         try:
-            if len(prices) < 30:
+            if len(prices) < 5:  # Need at least 5 data points for meaningful VaR
                 return None
                 
             returns = np.diff(np.log(prices))
@@ -1591,7 +1626,8 @@ class EnhancedFeatureEngine:
             var_scaled = var * np.sqrt(horizon)
             
             return float(abs(var_scaled))
-        except:
+        except Exception as e:
+            logger.warning(f"VaR calculation failed: {e}")
             return None
     
     def _calculate_max_drawdown(self, prices: np.ndarray) -> Optional[float]:
@@ -1610,13 +1646,14 @@ class EnhancedFeatureEngine:
             max_dd = np.min(drawdown)
             
             return float(abs(max_dd))
-        except:
+        except Exception as e:
+            logger.warning(f"Max drawdown calculation failed: {e}")
             return None
     
     def _calculate_sharpe_ratio(self, prices: np.ndarray, risk_free_rate: float = 0.02) -> Optional[float]:
         """Calculate Sharpe ratio"""
         try:
-            if len(prices) < 10:
+            if len(prices) < 3:  # Need at least 3 prices to get 2 returns
                 return None
                 
             returns = np.diff(np.log(prices))
@@ -1629,13 +1666,14 @@ class EnhancedFeatureEngine:
                 sharpe = (annual_return - risk_free_rate) / annual_vol
                 return float(sharpe)
             return None
-        except:
+        except Exception as e:
+            logger.warning(f"Sharpe ratio calculation failed: {e}")
             return None
     
     def _calculate_sortino_ratio(self, prices: np.ndarray, risk_free_rate: float = 0.02) -> Optional[float]:
         """Calculate Sortino ratio"""
         try:
-            if len(prices) < 10:
+            if len(prices) < 3:  # Need at least 3 prices to get 2 returns  
                 return None
                 
             returns = np.diff(np.log(prices))
@@ -1647,10 +1685,12 @@ class EnhancedFeatureEngine:
             negative_returns = returns[returns < 0]
             if len(negative_returns) > 0:
                 downside_vol = np.std(negative_returns) * np.sqrt(252)
-                sortino = (annual_return - risk_free_rate) / downside_vol
-                return float(sortino)
+                if downside_vol > 0:
+                    sortino = (annual_return - risk_free_rate) / downside_vol
+                    return float(sortino)
             return None
-        except:
+        except Exception as e:
+            logger.warning(f"Sortino ratio calculation failed: {e}")
             return None
 
 
@@ -1937,6 +1977,16 @@ class EnhancedOracleOptionsPipeline(BaseOptionsPipeline):
         
         logger.info("Enhanced Oracle Options Pipeline initialized successfully")
     
+    @property
+    def config(self):
+        """Override config property to return enhanced config for API compatibility"""
+        return self.enhanced_config
+    
+    @config.setter
+    def config(self, value):
+        """Allow setting the base config during initialization"""
+        self._base_config = value
+    
     def _initialize_components(self):
         """Initialize components with timeout and fallback handling"""
         
@@ -1988,6 +2038,11 @@ class EnhancedOracleOptionsPipeline(BaseOptionsPipeline):
                                symbol: str,
                                target_date: Optional[str] = None) -> List[Dict[str, Any]]:
         """Enhanced symbol analysis with advanced features"""
+        
+        # Input validation
+        if not symbol or symbol is None or not isinstance(symbol, str) or not symbol.strip():
+            logger.warning(f"Invalid symbol provided: {symbol}")
+            return []
         
         logger.info(f"Enhanced analysis for {symbol}...")
         

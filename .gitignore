@@ -82,3 +82,13 @@ tmp/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Debug and diagnostic files
+*debug*.py
+*_debug.py
+debug_*
+temp_*.py
+old_*.py
+backup_*.py
+test_temp_*
+*_temp_test*
