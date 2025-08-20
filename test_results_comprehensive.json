@@ -1,0 +1,156 @@
+[
+  {
+    "timestamp": "2025-08-19 19:31:31",
+    "test": "reddit_adapter",
+    "status": "PASS",
+    "details": "{\"tickers_found\": 8, \"sample_ticker\": \"AMZN\", \"sample_mentions\": 3, \"sample_sentiment\": 0.9098333333333333, \"has_sample_texts\": true}",
+    "timing_ms": 2643.68
+  },
+  {
+    "timestamp": "2025-08-19 19:31:31",
+    "test": "finviz_market_breadth",
+    "status": "PASS",
+    "details": "{\"advancers\": 2110, \"decliners\": 3213, \"new_highs\": 108, \"new_lows\": 104}",
+    "timing_ms": 265.53
+  },
+  {
+    "timestamp": "2025-08-19 19:31:31",
+    "test": "finviz_sector_performance",
+    "status": "PASS",
+    "details": "{\"sectors_count\": 11, \"sample_sector\": \"Basic Materials\", \"sample_1d_perf\": -0.0031}",
+    "timing_ms": 151.54
+  },
+  {
+    "timestamp": "2025-08-19 19:31:33",
+    "test": "twelvedata_quote",
+    "status": "PASS",
+    "details": "{\"symbol\": \"AAPL\", \"price\": 230.56, \"volume\": 36804727, \"quality_score\": 80.0}",
+    "timing_ms": 2166.47
+  },
+  {
+    "timestamp": "2025-08-19 19:31:33",
+    "test": "twitter_adapter",
+    "status": "SKIP",
+    "details": "API credentials not configured",
+    "timing_ms": null
+  },
+  {
+    "timestamp": "2025-08-19 19:31:34",
+    "test": "investiny_search",
+    "status": "PASS",
+    "details": "{\"investing_id\": {\"investing_id\": 6408, \"symbol\": \"AAPL\", \"name\": \"Apple Inc\", \"type\": \"stock\", \"exchange\": \"NASDAQ\", \"country\": null, \"raw\": {\"symbol\": \"AAPL\", \"full_name\": \"NASDAQ:AAPL\", \"description\": \"Apple Inc\", \"type\": \"Stock\", \"ticker\": \"6408\", \"exchange\": \"NASDAQ\", \"name\": \"Apple Inc\"}}}",
+    "timing_ms": 290.24
+  },
+  {
+    "timestamp": "2025-08-19 19:31:34",
+    "test": "investiny_history",
+    "status": "PASS",
+    "details": "{\"rows\": 22, \"columns\": [\"date\", \"open\", \"high\", \"low\", \"close\", \"volume\"]}",
+    "timing_ms": 649.58
+  },
+  {
+    "timestamp": "2025-08-19 19:31:34",
+    "test": "yfinance_wrapper_capabilities",
+    "status": "PASS",
+    "details": "{\"capabilities\": [\"news\", \"company_info\", \"historical\", \"quote\"]}",
+    "timing_ms": 0.0
+  },
+  {
+    "timestamp": "2025-08-19 19:31:35",
+    "test": "yfinance_wrapper_quote",
+    "status": "PASS",
+    "details": "{\"symbol\": \"AAPL\", \"has_price\": true, \"has_volume\": true}",
+    "timing_ms": 696.0
+  },
+  {
+    "timestamp": "2025-08-19 19:31:35",
+    "test": "fmp_wrapper",
+    "status": "SKIP",
+    "details": "FMP_API_KEY not configured",
+    "timing_ms": null
+  },
+  {
+    "timestamp": "2025-08-19 19:31:35",
+    "test": "finnhub_wrapper_capabilities",
+    "status": "PASS",
+    "details": "{\"capabilities\": [\"news\", \"company_info\", \"quote\"]}",
+    "timing_ms": 0.0
+  },
+  {
+    "timestamp": "2025-08-19 19:31:39",
+    "test": "financedb_wrapper_capabilities",
+    "status": "PASS",
+    "details": "{\"capabilities\": [\"fundamentals\"]}",
+    "timing_ms": 0.0
+  },
+  {
+    "timestamp": "2025-08-19 19:31:40",
+    "test": "investiny_search",
+    "status": "PASS",
+    "details": "{\"investing_id\": {\"investing_id\": 6408, \"symbol\": \"AAPL\", \"name\": \"Apple Inc\", \"type\": \"stock\", \"exchange\": \"NASDAQ\", \"country\": null, \"raw\": {\"symbol\": \"AAPL\", \"full_name\": \"NASDAQ:AAPL\", \"description\": \"Apple Inc\", \"type\": \"Stock\", \"ticker\": \"6408\", \"exchange\": \"NASDAQ\", \"name\": \"Apple Inc\"}}}",
+    "timing_ms": 264.67
+  },
+  {
+    "timestamp": "2025-08-19 19:31:40",
+    "test": "investiny_history",
+    "status": "PASS",
+    "details": "{\"rows\": 22, \"columns\": [\"date\", \"open\", \"high\", \"low\", \"close\", \"volume\"]}",
+    "timing_ms": 661.47
+  },
+  {
+    "timestamp": "2025-08-19 19:31:40",
+    "test": "twitter_adapter",
+    "status": "SKIP",
+    "details": "API credentials not configured",
+    "timing_ms": null
+  },
+  {
+    "timestamp": "2025-08-19 19:31:40",
+    "test": "orchestrator_init",
+    "status": "PASS",
+    "details": "Initialized in 0.02s",
+    "timing_ms": 23.7
+  },
+  {
+    "timestamp": "2025-08-19 19:31:41",
+    "test": "orchestrator_quote",
+    "status": "PASS",
+    "details": "{\"symbol\": \"AAPL\", \"price\": 230.56, \"source\": \"yfinance\", \"has_timestamp\": true}",
+    "timing_ms": 415.3
+  },
+  {
+    "timestamp": "2025-08-19 19:31:46",
+    "test": "orchestrator_sentiment",
+    "status": "PASS",
+    "details": "{\"sources_count\": 3, \"sources\": [\"reddit\", \"twitter\", \"yahoo_news\"], \"sample_source\": \"reddit\", \"sample_score\": 0.9921, \"sample_confidence\": 0.52}",
+    "timing_ms": 5444.82
+  },
+  {
+    "timestamp": "2025-08-19 19:31:47",
+    "test": "orchestrator_market_data",
+    "status": "PASS",
+    "details": "{\"symbol\": \"AAPL\", \"source\": \"yfinance\", \"rows\": 22, \"columns\": [\"Open\", \"High\", \"Low\", \"Close\", \"Volume\", \"Dividends\", \"Stock Splits\"], \"timeframe\": \"1mo_1d\", \"quality_score\": 100.0}",
+    "timing_ms": 405.98
+  },
+  {
+    "timestamp": "2025-08-19 19:31:50",
+    "test": "cli_validate_quote",
+    "status": "PASS",
+    "details": "CLI command succeeded",
+    "timing_ms": 3411.75
+  },
+  {
+    "timestamp": "2025-08-19 19:31:53",
+    "test": "cli_validate_market_breadth",
+    "status": "PASS",
+    "details": "CLI command succeeded",
+    "timing_ms": 2915.59
+  },
+  {
+    "timestamp": "2025-08-19 19:31:56",
+    "test": "cli_validate_sector_performance",
+    "status": "PASS",
+    "details": "CLI command succeeded",
+    "timing_ms": 2873.58
+  }
+]

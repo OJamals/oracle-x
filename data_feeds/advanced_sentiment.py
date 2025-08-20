@@ -6,6 +6,7 @@ Provides confidence-weighted sentiment scoring for trading decisions
 
 import logging
 import time
+import os  # Needed for ADV_SENTIMENT_VERBOSE flag and finbert verbosity gating
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
@@ -191,8 +192,7 @@ class FinBERTAnalyzer:
                 logger.info("FinBERT model loaded successfully")
                 load_elapsed = time.time() - load_start
                 logger.info(f"[TIMING][advanced_sentiment][finbert_load] {load_elapsed:.2f} seconds to load FinBERT")
-                # Also print to stdout for CLI visibility
-                print(f"[TIMING][advanced_sentiment][finbert_load] {load_elapsed:.2f} seconds to load FinBERT")
+                # Avoid unconditional print to stdout (causes Broken pipe when piping output)
                 
         except Exception as e:
             logger.error(f"Failed to load FinBERT model: {e}")
@@ -209,72 +209,82 @@ class FinBERTAnalyzer:
         if not self.is_loaded or self.tokenizer is None or self.model is None:
             return 0.0, 0.0
 
-        try:
-            # To fully avoid shared Encoding borrows, bypass pipeline and call model directly with fresh tensors
-            max_length = 512
-            with self._inference_lock:
-                enc_start = time.time()
-                enc = self.tokenizer(
-                    text,
-                    add_special_tokens=True,
-                    truncation=True,
-                    max_length=max_length,
-                    return_tensors="pt",
-                    padding=False
-                )
-                enc_elapsed = time.time() - enc_start
-                logger.info(f"[TIMING][advanced_sentiment][finbert_tokenize] {enc_elapsed:.2f} seconds")
-                print(f"[TIMING][advanced_sentiment][finbert_tokenize] {enc_elapsed:.2f} seconds")
-                input_ids = enc.get("input_ids")
-                attention_mask = enc.get("attention_mask")
-                if input_ids is None or input_ids.numel() == 0:
+        retries = 0
+        max_retries = int(os.getenv("FINBERT_MAX_RETRIES", "1"))
+        while True:
+            try:
+                # To fully avoid shared Encoding borrows, bypass pipeline and call model directly with fresh tensors
+                max_length = 512
+                with self._inference_lock:
+                    enc_start = time.time()
+                    enc = self.tokenizer(
+                        text,
+                        add_special_tokens=True,
+                        truncation=True,
+                        max_length=max_length,
+                        return_tensors="pt",
+                        padding=False
+                    )
+                    enc_elapsed = time.time() - enc_start
+                    if os.getenv("ADV_FINBERT_VERBOSE", "0") == "1":
+                        logger.info(f"[TIMING][advanced_sentiment][finbert_tokenize] {enc_elapsed:.2f} seconds")
+                    input_ids = enc.get("input_ids")
+                    attention_mask = enc.get("attention_mask")
+                    if input_ids is None or input_ids.numel() == 0:
+                        return 0.0, 0.0
+
+                # Inference: call model directly (no pipeline) to avoid any internal parallel tokenizers usage
+                with self._instance_lock, torch.no_grad():
+                    model_start = time.time()
+                    # self.model should be loaded and not None; assert for static check
+                    assert self.model is not None, "FinBERT model is not loaded"
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                    model_elapsed = time.time() - model_start
+                    if os.getenv("ADV_FINBERT_VERBOSE", "0") == "1":
+                        logger.info(f"[TIMING][advanced_sentiment][finbert_infer] {model_elapsed:.2f} seconds")
+                    logits = outputs.logits if hasattr(outputs, "logits") else outputs[0]
+                    # Softmax to get probabilities
+                    probs = torch.softmax(logits, dim=-1).cpu().numpy()[0]
+                    # FinBERT label order typically: [negative, neutral, positive]
+                    neg, neu, pos = float(probs[0]), float(probs[1]), float(probs[2])
+                    # Choose label with highest probability
+                    if pos >= max(neg, neu):
+                        label = "POSITIVE"
+                        score_val = pos
+                    elif neg >= max(pos, neu):
+                        label = "NEGATIVE"
+                        score_val = neg
+                    else:
+                        label = "NEUTRAL"
+                        score_val = neu
+
+                    # Build result dict compatible with previous logic
+                    result = {"label": label, "score": score_val}
+
+                # Convert to standardized score (-1 to 1)
+                label = result.get('label', '').upper()
+                confidence = float(result.get('score', 0.0) or 0.0)
+
+                if label == 'POSITIVE':
+                    sentiment_score = confidence
+                elif label == 'NEGATIVE':
+                    sentiment_score = -confidence
+                else:  # NEUTRAL or unknown
+                    sentiment_score = 0.0
+
+                return float(sentiment_score), confidence
+
+            except Exception as e:
+                logger.warning(f"FinBERT analysis error (attempt {retries+1}): {e}")
+                self.is_loaded = False  # Force reload next attempt
+                if retries >= max_retries:
+                    logger.error(f"FinBERT giving up after {retries+1} attempts: {e}")
                     return 0.0, 0.0
-
-            # Inference: call model directly (no pipeline) to avoid any internal parallel tokenizers usage
-            with self._instance_lock, torch.no_grad():
-                model_start = time.time()
-                # self.model should be loaded and not None; assert for static check
-                assert self.model is not None, "FinBERT model is not loaded"
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-                model_elapsed = time.time() - model_start
-                logger.info(f"[TIMING][advanced_sentiment][finbert_infer] {model_elapsed:.2f} seconds")
-                print(f"[TIMING][advanced_sentiment][finbert_infer] {model_elapsed:.2f} seconds")
-                logits = outputs.logits if hasattr(outputs, "logits") else outputs[0]
-                # Softmax to get probabilities
-                probs = torch.softmax(logits, dim=-1).cpu().numpy()[0]
-                # FinBERT label order typically: [negative, neutral, positive]
-                neg, neu, pos = float(probs[0]), float(probs[1]), float(probs[2])
-                # Choose label with highest probability
-                if pos >= max(neg, neu):
-                    label = "POSITIVE"
-                    score_val = pos
-                elif neg >= max(pos, neu):
-                    label = "NEGATIVE"
-                    score_val = neg
-                else:
-                    label = "NEUTRAL"
-                    score_val = neu
-
-                # Build result dict compatible with previous logic
-                result = {"label": label, "score": score_val}
-
-            # Convert to standardized score (-1 to 1)
-            label = result.get('label', '').upper()
-            confidence = float(result.get('score', 0.0) or 0.0)
-
-            if label == 'POSITIVE':
-                sentiment_score = confidence
-            elif label == 'NEGATIVE':
-                sentiment_score = -confidence
-            else:  # NEUTRAL or unknown
-                sentiment_score = 0.0
-
-            return float(sentiment_score), confidence
-
-        except Exception as e:
-            # Log once without duplicating upstream
-            logger.error(f"FinBERT analysis error: {e}")
-            return 0.0, 0.0
+                # Exponential backoff before retry
+                backoff = min(0.5 * (2 ** retries), 2.0)
+                time.sleep(backoff)
+                self._load_model()
+                retries += 1
 
 class AdvancedSentimentEngine:
     """
@@ -405,8 +415,10 @@ class AdvancedSentimentEngine:
 
         processing_time = time.time() - start_time
         result.processing_time = processing_time
-        logger.info(f"[TIMING][advanced_sentiment][analyze_text] {processing_time:.2f}s for {symbol} source={source}")
-        print(f"[TIMING][advanced_sentiment][analyze_text] {processing_time:.2f}s for {symbol} source={source}")
+        # Throttle verbose per-text timing logs unless explicitly enabled
+        if os.getenv("ADV_SENTIMENT_VERBOSE", "0") == "1":
+            logger.info(f"[TIMING][advanced_sentiment][analyze_text] {processing_time:.2f}s for {symbol} source={source}")
+            print(f"[TIMING][advanced_sentiment][analyze_text] {processing_time:.2f}s for {symbol} source={source}")
 
         return result
     
@@ -432,32 +444,125 @@ class AdvancedSentimentEngine:
         if len(texts) != len(symbols) or len(texts) != len(sources):
             raise ValueError("All input lists must have the same length")
 
-        results = []
+        results: List[SentimentResult] = []
 
+        # Micro-batching FinBERT path: we first run lightweight VADER + lexicon sequentially,
+        # collect batch of texts needing FinBERT, run FinBERT in a vectorized forward pass,
+        # then assemble ensemble scores. This avoids per-text model invocations.
         batch_start = time.time()
-        # Use ThreadPoolExecutor for parallel processing
-        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            # Submit all tasks
-            future_to_args = {
-                executor.submit(self.analyze_text, text, symbol, source): (text, symbol, source)
-                for text, symbol, source in zip(texts, symbols, sources)
-            }
+        finbert_needed: List[Tuple[int, str]] = []  # (index, text)
+        intermediate: List[Dict[str, Any]] = []
 
-            # Collect results as they complete
-            for future in as_completed(future_to_args):
-                try:
-                    result = future.result(timeout=30)  # 30 second timeout per text
-                    results.append(result)
-                except Exception as e:
-                    text, symbol, source = future_to_args[future]
-                    logger.error(f"Failed to analyze sentiment for {symbol}: {e}")
+        for idx, (text, symbol, source) in enumerate(zip(texts, symbols, sources)):
+            start_time = time.time()
+            vader = self.vader_analyzer.polarity_scores(text)
+            vader_compound = vader.get('compound', 0.0)
+            lex_score, lex_matches = self.financial_lexicon.get_lexicon_score(text)
+            # Heuristic: always include for FinBERT unless text extremely short
+            if len(text.strip()) >= 8:
+                finbert_needed.append((idx, text))
+            intermediate.append({
+                'symbol': symbol,
+                'source': source or 'unknown',
+                'text': text,
+                'vader': vader_compound,
+                'lex_score': lex_score,
+                'lex_matches': lex_matches,
+                'start_time': start_time
+            })
+
+        # Run FinBERT in batches (configurable size)
+        finbert_scores: Dict[int, Tuple[float, float]] = {}
+        batch_size = max(1, int(os.getenv('FINBERT_BATCH_SIZE', '8')))
+        if finbert_needed:
+            try:
+                # Ensure model/tokenizer loaded
+                if not self.finbert_analyzer.is_loaded:
+                    self.finbert_analyzer._load_model()
+                if self.finbert_analyzer.tokenizer is None or self.finbert_analyzer.model is None:
+                    raise RuntimeError("FinBERT model/tokenizer not available for batch inference")
+                for i in range(0, len(finbert_needed), batch_size):
+                    chunk = finbert_needed[i:i+batch_size]
+                    texts_chunk = [t for _, t in chunk]
+                    # Tokenize as batch
+                    with self.finbert_analyzer._inference_lock:
+                        enc = self.finbert_analyzer.tokenizer(
+                            texts_chunk,
+                            add_special_tokens=True,
+                            truncation=True,
+                            max_length=512,
+                            return_tensors='pt',
+                            padding=True
+                        )
+                    with self.finbert_analyzer._instance_lock, torch.no_grad():
+                        outputs = self.finbert_analyzer.model(input_ids=enc['input_ids'], attention_mask=enc['attention_mask'])  # type: ignore
+                        logits = outputs.logits if hasattr(outputs, 'logits') else outputs[0]
+                        probs = torch.softmax(logits, dim=-1).cpu().numpy()
+                    for (orig_idx, _), row in zip(chunk, probs):
+                        neg, neu, pos = float(row[0]), float(row[1]), float(row[2])
+                        if pos >= max(neg, neu):
+                            sentiment_score = pos
+                            conf = pos
+                        elif neg >= max(pos, neu):
+                            sentiment_score = -neg
+                            conf = neg
+                        else:
+                            sentiment_score = 0.0
+                            conf = neu
+                        finbert_scores[orig_idx] = (sentiment_score, conf)
+            except Exception as e:
+                logger.warning(f"FinBERT batch inference failed, falling back to per-text: {e}")
+                for orig_idx, text in finbert_needed:
+                    sc, cf = self.finbert_analyzer.analyze(text)
+                    finbert_scores[orig_idx] = (sc, cf)
+
+        # Assemble results
+        for idx, meta in enumerate(intermediate):
+            text = meta['text']
+            symbol = meta['symbol']
+            source = meta['source']
+            vader_compound = meta['vader']
+            lex_score = meta['lex_score']
+            lex_matches = meta['lex_matches']
+            start_time = meta['start_time']
+            finbert_score, finbert_conf = finbert_scores.get(idx, (0.0, 0.0))
+
+            # Derive dynamic weights using existing helper
+            weights = self._get_dynamic_weights(len(text), lex_matches, finbert_conf)
+            vader_w = float(weights.get('vader', 0.3))
+            finbert_w = float(weights.get('finbert', 0.5))
+            lex_w = float(weights.get('lexicon', 0.2))
+            denom = vader_w + finbert_w + lex_w or 1.0
+            numerator = vader_compound * vader_w + finbert_score * finbert_w + (lex_score if lex_matches > 0 else 0.0) * lex_w
+            ensemble_score = numerator / denom
+
+            # Confidence: blend FinBERT + VADER dispersion heuristic
+            confidence = max(0.05, min(0.99, (abs(finbert_score) * 0.5 + abs(vader_compound) * 0.3 + min(1.0, lex_matches / 8.0) * 0.2)))
+            processing_time = time.time() - start_time
+            result = SentimentResult(
+                symbol=symbol,
+                text_snippet=text[:100] + "..." if len(text) > 100 else text,
+                vader_score=vader_compound,
+                finbert_score=finbert_score,
+                ensemble_score=ensemble_score,
+                confidence=confidence,
+                timestamp=datetime.now(),
+                model_weights=weights,
+                text_length=len(text),
+                source=source,
+            )
+            result.processing_time = processing_time
+            results.append(result)
+            if os.getenv('ADV_SENTIMENT_VERBOSE', '0') == '1':
+                logger.info(f"[TIMING][advanced_sentiment][analyze_text_mb] {processing_time:.2f}s for {symbol} source={source}")
 
         batch_elapsed = time.time() - batch_start
         logger.info(f"[TIMING][advanced_sentiment][analyze_batch] {batch_elapsed:.2f}s for {len(texts)} texts")
-        print(f"[TIMING][advanced_sentiment][analyze_batch] {batch_elapsed:.2f}s for {len(texts)} texts")
+        if os.getenv("ADV_SENTIMENT_VERBOSE", "0") == "1":
+            print(f"[TIMING][advanced_sentiment][analyze_batch] {batch_elapsed:.2f}s for {len(texts)} texts")
 
         return results
-    
+
     def get_symbol_sentiment_summary(self, symbol: str, texts: Optional[List[str]], sources: Optional[List[str]] = None) -> SentimentSummary:
         """
         Get aggregated sentiment summary for a symbol

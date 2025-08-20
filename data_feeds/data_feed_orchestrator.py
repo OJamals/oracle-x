@@ -1276,45 +1276,44 @@ class DataFeedOrchestrator:
     def get_quote(self, symbol: str, preferred_sources: Optional[List[DataSource]] = None) -> Optional[Quote]:
         logger.debug(f"get_quote called for symbol={symbol}, preferred_sources={preferred_sources}")
         step_start = time.time()
-        timings = {}
-        step1 = time.time()
-        timings['init'] = step1 - step_start
+        timings: Dict[str, float] = {}
+        step1 = time.time(); timings['init'] = step1 - step_start
         if preferred_sources:
             logger.debug(f"Preferred sources provided: {preferred_sources}")
-        step2 = time.time()
-        timings['preferred_sources_check'] = step2 - step1
-        if preferred_sources is None or not preferred_sources:
+        step2 = time.time(); timings['preferred_sources_check'] = step2 - step1
+        if not preferred_sources:
             logger.debug("No preferred sources, using default order.")
-        step3 = time.time()
-        timings['default_order_check'] = step3 - step2
+        step3 = time.time(); timings['default_order_check'] = step3 - step2
         if preferred_sources and any(s == DataSource.TWELVE_DATA for s in preferred_sources):
             logger.debug("TWELVE_DATA present in preferred_sources.")
         else:
             logger.debug("TWELVE_DATA not present in preferred_sources.")
-        step4 = time.time()
-        timings['twelve_data_check'] = step4 - step3
-        best_quote = None
+        step4 = time.time(); timings['twelve_data_check'] = step4 - step3
+
+        best_quote: Optional[Quote] = None
         best_quality = 0
-        # Define ordered list of sources
-        ordered = preferred_sources if preferred_sources else [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
+        base_quote_order = [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
+        filtered_quote_order = [s for s in base_quote_order if s != DataSource.FINVIZ]
+        ordered = preferred_sources if preferred_sources else filtered_quote_order
         timings['ordered_list'] = time.time() - step4
         for source in ordered:
             sub_start = time.time()
             logger.debug(f"Fetching quote from source: {source}")
             try:
                 adapter = self.adapters.get(source)
-                if adapter:
-                    quote = adapter.get_quote(symbol)
+                if adapter and hasattr(adapter, 'get_quote'):
+                    quote = adapter.get_quote(symbol)  # type: ignore[attr-defined]
                     timings[f'fetch_{source.value}'] = time.time() - sub_start
                     logger.debug(f"Quote from {source}: {quote}")
-                    if quote and quote.quality_score and quote.quality_score > best_quality:
+                    if quote and getattr(quote, 'quality_score', 0) and quote.quality_score > best_quality:
                         best_quote = quote
                         best_quality = quote.quality_score
                 else:
-                    logger.warning(f"No adapter found for source: {source}")
+                    logger.debug(f"Skipping source without get_quote: {source}")
             except Exception as e:
                 logger.error(f"Error fetching quote from {source}: {e}")
                 timings[f'error_{source.value}'] = time.time() - sub_start
+
         timings['total'] = time.time() - step_start
         logger.info(f"Profiling timings for get_quote({symbol}): {timings}")
         return best_quote
@@ -1322,60 +1321,45 @@ class DataFeedOrchestrator:
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d", preferred_sources: Optional[List[DataSource]] = None) -> Optional[MarketData]:
         logger.debug(f"get_market_data called for symbol={symbol}, period={period}, interval={interval}, preferred_sources={preferred_sources}")
         step_start = time.time()
-        timings = {}
-        step1 = time.time()
-        timings['init'] = step1 - step_start
+        timings: Dict[str, float] = {}
+        step1 = time.time(); timings['init'] = step1 - step_start
         if preferred_sources:
             logger.debug(f"Preferred sources provided: {preferred_sources}")
-        step2 = time.time()
-        timings['preferred_sources_check'] = step2 - step1
+        step2 = time.time(); timings['preferred_sources_check'] = step2 - step1
         if preferred_sources and any(s == DataSource.TWELVE_DATA for s in preferred_sources):
             logger.debug("TWELVE_DATA present in preferred_sources.")
         else:
             logger.debug("TWELVE_DATA not present in preferred_sources.")
-        step3 = time.time()
-        timings['twelve_data_check'] = step3 - step2
-        # Define ordered list of sources
-        ordered = preferred_sources if preferred_sources else [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
+        step3 = time.time(); timings['twelve_data_check'] = step3 - step2
+
+        base_md_order = [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
+        filtered_md_order = [s for s in base_md_order if s != DataSource.FINVIZ]
+        ordered = preferred_sources if preferred_sources else filtered_md_order
         timings['ordered_list'] = time.time() - step3
-        best_data = None
+
+        best_data: Optional[MarketData] = None
         best_quality = 0
         for source in ordered:
             sub_start = time.time()
             logger.debug(f"Fetching market data from source: {source}")
             try:
                 adapter = self.adapters.get(source)
-                if adapter:
-                    data = adapter.get_market_data(symbol, period, interval)
+                if adapter and hasattr(adapter, 'get_market_data'):
+                    data = adapter.get_market_data(symbol, period, interval)  # type: ignore[attr-defined]
                     timings[f'fetch_{source.value}'] = time.time() - sub_start
                     logger.debug(f"Market data from {source}: {data}")
-                    if data and hasattr(data, 'quality_score') and data.quality_score > best_quality:
+                    if data and getattr(data, 'quality_score', 0) and data.quality_score > best_quality:
                         best_data = data
                         best_quality = data.quality_score
                 else:
-                    logger.warning(f"No adapter found for source: {source}")
+                    logger.debug(f"Skipping source without get_market_data: {source}")
             except Exception as e:
                 logger.error(f"Error fetching market data from {source}: {e}")
                 timings[f'error_{source.value}'] = time.time() - sub_start
+
         timings['total'] = time.time() - step_start
         logger.info(f"Profiling timings for get_market_data({symbol}): {timings}")
-        # Fallback to existing adapter path if wrapper absent or failed
-        if best_data:
-            return best_data
-        for source in ordered:
-            try:
-                adapter = self.adapters.get(source)
-                if adapter:
-                    data = adapter.get_market_data(symbol, period, interval)
-                    if data:
-                        return data
-            except Exception:
-                continue
-        # Final fallback
-        adapter = self.adapters.get(DataSource.YFINANCE)
-        if adapter:
-            return adapter.get_market_data(symbol, period, interval)
-        return None
+        return best_data
 
     # ------------------------------------------------------------------------
     # New methods delegating to ConsolidatedDataFeed (compatibility bridge)
@@ -1950,7 +1934,7 @@ class DataFeedOrchestrator:
         step_start = time.time()
         timings: Dict[str, float] = {}
 
-        # Validate sources list
+        # Determine order of sentiment sources (default list if none provided)
         if sources is None:
             logger.debug("No sources provided, using default sentiment sources.")
         ordered = sources if sources else [DataSource.REDDIT, DataSource.TWITTER, DataSource.YAHOO_NEWS, DataSource.FINVIZ]
@@ -1965,6 +1949,11 @@ class DataFeedOrchestrator:
                     logger.warning(f"No adapter found for source: {source}")
                     timings[f"missing_{getattr(source, 'value', str(source))}"] = time.time() - sub_start
                     continue
+                # Capability gating: skip adapters that do not implement get_sentiment
+                if not hasattr(adapter, 'get_sentiment') or not callable(getattr(adapter, 'get_sentiment', None)):
+                    logger.info(f"Skipping sentiment fetch for source {source} (no get_sentiment implementation)")
+                    timings[f"skipped_{getattr(source, 'value', str(source))}"] = time.time() - sub_start
+                    continue
 
                 adapter_name = getattr(source, 'value', str(source))
                 call_start = time.time()
@@ -1973,7 +1962,6 @@ class DataFeedOrchestrator:
                 elapsed = call_end - call_start
                 timings[f'fetch_{adapter_name}'] = elapsed
                 logger.info(f"[TIMING][oracle_agent_pipeline][{adapter_name}] {elapsed:.2f} seconds for get_sentiment({symbol})")
-                # Also print timing to stdout so CI/CLI runs capture adapter-level timings even when logging level is high
                 print(f"[TIMING][oracle_agent_pipeline][{adapter_name}] {elapsed:.2f} seconds for get_sentiment({symbol})")
                 try:
                     import sys as _sys

@@ -1,0 +1,91 @@
+================================================================================
+NEWS ADAPTERS COMPREHENSIVE TEST REPORT
+================================================================================
+Test Date: 2025-08-19T20:28:34.967368
+Total Adapters Tested: 7
+
+SUMMARY:
+  ✅ Successful: 6/7
+  ❌ Failed: 1/7
+  Average Response Time: 0.24s
+  Average Quality Score: 19.2
+
+DETAILED RESULTS:
+
+REUTERS - ❌ FAIL
+  Articles Count: 0
+  Response Time: 0.31s
+  Quality Score: 0.0
+  Sentiment Available: No
+  Error: No articles returned
+
+BENZINGA - ✅ PASS
+  Articles Count: 6
+  Response Time: 0.16s
+  Quality Score: 16.7
+  Sentiment Available: Yes
+  Sample Article:
+    Title: Here's How Much You Would Have Made Owning Imperial Oil Stock In The Last 5 Years...
+    Source: benzinga
+    Published: Tue, 19 Aug 2025 22:45:20 +0000
+
+CNN_BUSINESS - ✅ PASS
+  Articles Count: 10
+  Response Time: 0.15s
+  Quality Score: 10.0
+  Sentiment Available: Yes
+  Sample Article:
+    Title: The senior living market can't keep up with demand as boomers age...
+    Source: cnbc_business
+    Published: Tue, 19 Aug 2025 19:23:40 GMT
+
+FINANCIAL_TIMES - ✅ PASS
+  Articles Count: 4
+  Response Time: 0.58s
+  Quality Score: 25.0
+  Sentiment Available: Yes
+  Sample Article:
+    Title: US tech stocks hit by concerns over future of AI boom...
+    Source: financial_times
+    Published: Tue, 19 Aug 2025 23:11:57 GMT
+
+FORTUNE - ✅ PASS
+  Articles Count: 4
+  Response Time: 0.15s
+  Quality Score: 25.0
+  Sentiment Available: Yes
+  Sample Article:
+    Title: The ‘Ghosts of 2007’ and the graybeard ‘Nifty 50’: BofA looks at the rare situation in markets and f...
+    Source: fortune
+    Published: Tue, 19 Aug 2025 20:15:40 +0000
+
+MARKETWATCH - ✅ PASS
+  Articles Count: 3
+  Response Time: 0.22s
+  Quality Score: 33.3
+  Sentiment Available: Yes
+  Sample Article:
+    Title: Palo Alto Networks’ earnings beat sparks investor confidence in the cybersecurity industry...
+    Source: marketwatch
+    Published: Tue, 19 Aug 2025 23:43:00 GMT
+
+SEEKING_ALPHA - ✅ PASS
+  Articles Count: 10
+  Response Time: 0.12s
+  Quality Score: 5.0
+  Sentiment Available: Yes
+  Sample Article:
+    Title: Mitsubishi Motors Corporation 2026 Q1 - Results - Earnings Call Presentation...
+    Source: seeking_alpha
+    Published: Tue, 19 Aug 2025 20:17:58 -0400
+
+================================================================================
+RECOMMENDATIONS:
+
+Failed Adapters:
+  - reuters: No articles returned
+
+Top Performing Adapters:
+  - marketwatch: 33.3 quality, 0.22s
+  - financial_times: 25.0 quality, 0.58s
+  - fortune: 25.0 quality, 0.15s
