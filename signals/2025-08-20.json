@@ -1,0 +1,96 @@
+{
+  "market_internals": {
+    "breadth": {
+      "advancers": 3200,
+      "decliners": 1400,
+      "up_volume": 2500000000,
+      "down_volume": 1100000000
+    },
+    "vix": 17.5,
+    "trin": 0.85
+  },
+  "options_flow": {
+    "unusual_sweeps": [
+      {
+        "ticker": "AAPL",
+        "direction": "Call",
+        "strike": 200,
+        "volume": 10000
+      },
+      {
+        "ticker": "TSLA",
+        "direction": "Put",
+        "strike": 750,
+        "volume": 8000
+      }
+    ]
+  },
+  "dark_pools": {
+    "dark_pools": [
+      {
+        "ticker": "AAPL",
+        "block_size": 500000,
+        "price": 192.5
+      },
+      {
+        "ticker": "TSLA",
+        "block_size": 350000,
+        "price": 805.0
+      }
+    ]
+  },
+  "sentiment_data": {
+    "TSLA": {
+      "reddit_mentions": {
+        "mentions": 5,
+        "compound": 0.63628,
+        "positive": 0.11179999999999998,
+        "neutral": 0.8438000000000001,
+        "negative": 0.0442,
+        "sample_texts": [
+          "$TSLA: Tesla Pivot Point, Declining Auto EV vs. Batteries, RoboTaxi & Robots **TSLA $335.16**  \nShares Outstanding: 3.2 billion  \nMarket Capitalization: $1.1 trillion  \n\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\_\\...",
+          "My 4 year Tesla investing journey to 0% Return Doing a little Sunday night chart review and this is just brutal.\nIf you bought TSLA back in early December 2021, you paid about $335 a share.\nIf you hel...",
+          "Does value investing still work in this market? Been watching names like TSLA, RDDT, APPL and COIN, but honestly it feels like earnings and fundamentals barely matter right now. Sometimes great number...",
+          "Options Questions Safe Haven periodic megathread | August 18 2025 We *call* this the weekly Safe Haven thread, but it might stay up for more than a week.\n\nFor the options questions you wanted to ask, ...",
+          "All the market moving news in premarket summarised in one short 5 minute read. PEACE TALKS:\n\n* UKRAINE  TO OFFER TRUMP $100 BILLION WEAPONS DEAL IN EXCHANGE FOR U.S. SECURITY GUARANTEE, FUNDED BY EURO..."
+        ],
+        "sentiment_score": 0.63628,
+        "confidence": 0.6,
+        "sample_size": 5
+      },
+      "twitter_tweets": 0
+    },
+    "NVDA": {
+      "reddit_mentions": {
+        "mentions": 9,
+        "compound": 0.8608000000000001,
+        "positive": 0.086,
+        "neutral": 0.8889999999999999,
+        "negative": 0.024999999999999998,
+        "sample_texts": [
+          "(08/19) Interesting Stocks Today - Softbank Takes Stake in INTC! Hi! I am an ex-prop shop equity trader. This is a daily watchlist for short-term trading: I might trade all/none of the stocks listed, ...",
+          "Week Recap: PPI inflation made a huge negative surprise. Inflation expectations rose. Rate cut hopes continued to support the market. The S&P 500 extended winning streak to 2-week. August 11, 2025 \u2013 A...",
+          "Best way to invest $85K currently sitting in savings? I feel I am fairly savvy with managing finances and would consider myself slightly above novice with regards to trading and investing. \n\nI current...",
+          "Would you make any changes? I am starting a portfolio and want some opinions based off of what I plan to invest in. Currently my plan is to go 50% into VOO, 20% into BRK.B, 15% into UNH, 10% into NVDA...",
+          "Why is pretty much everything going down today? I've been looking at the stock market today and pretty much everything is going down, mostly starting at the same time. HAG, PLTR, GOOG, RXRX, BA, RDDT,..."
+        ],
+        "sentiment_score": 0.8608000000000001,
+        "confidence": 0.6799999999999999,
+        "sample_size": 9
+      },
+      "twitter_tweets": 20
+    }
+  },
+  "earnings_calendar": [
+    {
+      "ticker": "AAPL",
+      "date": "2025-07-10",
+      "estimate": 1.32
+    },
+    {
+      "ticker": "TSLA",
+      "date": "2025-07-12",
+      "estimate": 2.15
+    }
+  ]
+}

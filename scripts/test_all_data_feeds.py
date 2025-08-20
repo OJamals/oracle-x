@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Ensure DB path for CacheService and set conservative defaults
-os.environ.setdefault("CACHE_DB_PATH", "./model_monitoring.db")
+os.environ.setdefault("CACHE_DB_PATH", "data/databases/model_monitoring.db")
 os.environ.setdefault("CONSERVE_FMP_BANDWIDTH", "true")
 
 def _safe_run(name, fn):

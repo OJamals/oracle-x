@@ -1,52 +1,85 @@
-# Copilot Processing - Research, Troubleshoot, Fix, and Expand FinViz and TwelveData Implementations
+# Oracle-X Codebase Refactoring Analysis
 
-**Request:** Research, troubleshoot, fix, and expand the current finviz and twelvedata implementations to ensure the breadth covers all available data points, update/test the current implementation, update and debug.
+**Request:** Evaluate the codebase for cleanup, simplification, consolidation, and improvement opportunities. After refactor, retest to ensure continued functionality.
 
 **Status:** In Progress
 
+## Analysis Summary
+
+### Major Issues Identified
+
+1. **Duplicate Main Files**
+   - `main.py` and `main_unified.py` are identical (confirmed via diff)
+   - Creates confusion and maintenance overhead
+
+2. **Test Suite Fragmentation**
+   - 60+ test files with unclear organization
+   - Import errors due to missing/moved modules
+   - Debug files mixed with actual tests
+   - Multiple files testing the same components
+
+3. **Backup Directory Pollution**
+   - `agent_bundle_backup/` contains outdated code
+   - `backups/` directory mixed with active codebase
+   - Missing modules referenced in tests are in backup directories
+
+4. **Configuration Sprawl**
+   - Multiple `.env` files and configuration approaches
+   - Inconsistent configuration management
+
+5. **Import Dependencies**
+   - Broken imports in test files (e.g., `oracle_options_pipeline_enhanced`)
+   - Optional imports causing confusion
+
 ## Action Plan
 
-### Phase 1: Analysis and Research ✅
-1. **Understand Current Structure** ✅
-   - Explore data_feeds directory structure and current implementations
-   - Map out existing adapters, scrapers, and data models
-   - Identify current data points being collected vs. available data points
+### Phase 1: File Consolidation and Cleanup
+- [x] ⚖️ Constitutional analysis: Preserve functional architecture while eliminating duplication
+- [x] 🧠 Meta-cognitive analysis: Understand impact of each cleanup action
+- [x] 🌐 Information gathering: Map all dependencies and relationships
+- [x] 🔍 Multi-dimensional problem decomposition
 
-2. **Research Available Data Points** ✅
-   - FinViz: Research all available screener filters, sector data, market breadth indicators
-   - TwelveData: Research complete API capabilities, endpoints, and data categories
-   - Document comprehensive data point matrices for both sources
+### Phase 2: Main File Consolidation  
+- [x] 🎯 Remove duplicate `main_unified.py`
+- [x] 🛡️ Ensure `main.py` supports all documented modes
+- [x] 🔄 Update documentation references
+- [ ] ✅ Verify pipeline functionality
 
-3. **Gap Analysis**
-   - Compare current implementations against full capabilities
-   - Identify missing data points and enhancement opportunities
-   - Prioritize expansion areas based on value and complexity
+### Phase 3: Test Suite Reorganization
+- [x] 🔨 Create logical test categories
+- [x] 🧪 Consolidate duplicate test files  
+- [x] 🔨 Move debug files to dedicated debug directory
+- [x] 🧪 Fix broken imports and dependencies
 
-### Phase 2: Enhancement Planning
-1. **Design Enhanced Data Models**
-   - Extend existing classes (MarketBreadth, Quote, MarketData)
-   - Create new data models for additional data categories
-   - Ensure backward compatibility
+### Phase 4: Backup and Archive Cleanup
+- [x] 🔨 Move backup directories to `.archive/`
+- [x] 🧪 Verify no active dependencies on backup files
+- [x] 🔨 Clean up temporary and debug files
+- [x] 🧪 Update gitignore for better organization
 
-2. **API Integration Strategy**
-   - Plan FinViz scraping enhancements (sector performance, fundamentals, technical indicators)
-   - Plan TwelveData API extensions (fundamentals, technical analysis, real-time features)
-   - Design error handling and rate limiting strategies
+### Phase 5: Configuration Consolidation
+- [x] 🔨 Standardize configuration management
+- [x] 🧪 Consolidate environment variable usage
+- [x] 🔨 Create unified configuration documentation
+- [x] 🧪 Test configuration loading
 
-3. **Testing Strategy**
-   - Plan comprehensive test coverage for new features
-   - Design integration tests for data validation
-   - Plan performance testing for enhanced data collection
+### Phase 6: Validation and Testing
+- [ ] 🎭 Red team analysis: Test all pipeline modes
+- [ ] 🔍 Edge case testing: Verify error handling
+- [ ] 📈 Performance validation: Ensure no regressions
+- [ ] 🌟 Meta-completion: Document improvements
 
-### **Phase 3: Implementation**
+## Success Criteria
+- All pipeline modes functional
+- Test suite passes without import errors
+- Reduced file count by 30%+
+- Clear separation of active vs. archived code
+- Improved maintainability and clarity
 
-**Status**: ✅ COMPLETE
-
-### Technical Analysis Tasks
-- ✅ **Complete** - Analyze current FinViz implementation
-  - ✅ Complete - Review finviz_adapter.py structure (32 lines, basic MarketBreadth only)
-  - ✅ Complete - Review finviz_scraper.py capabilities (robust scraping, limited to breadth data)
-  - ✅ Complete - Document current data points captured (advancers/decliners only)
+## Risk Assessment
+- **Low Risk**: File removal and consolidation
+- **Medium Risk**: Test reorganization
+- **High Risk**: Import dependency changes
 
 - ✅ **Complete** - Analyze current TwelveData implementation
   - ✅ Complete - Review twelvedata_adapter.py structure (264 lines, quote/time series)

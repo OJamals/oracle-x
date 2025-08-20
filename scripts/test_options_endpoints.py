@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 
 # Ensure DB path is set for CacheService compatibility
-os.environ.setdefault("CACHE_DB_PATH", "./model_monitoring.db")
+os.environ.setdefault("CACHE_DB_PATH", "data/databases/model_monitoring.db")
 
 
 def test_options_math():
@@ -30,8 +30,9 @@ def test_options_store():
     from data_feeds import options_store as store
 
     print("\n--- options_store schema test ---")
-    store.ensure_schema(os.getenv("CACHE_DB_PATH"))
-    con = sqlite3.connect(os.getenv("CACHE_DB_PATH"))
+    db_path = os.getenv("CACHE_DB_PATH", "data/databases/model_monitoring.db")
+    store.ensure_schema(db_path)
+    con = sqlite3.connect(db_path)
     try:
         cur = con.cursor()
         cur.execute(
@@ -67,7 +68,8 @@ def test_earnings_cache():
                 "eps_actual": sample.get("eps_actual"),
             },
         )
-    con = sqlite3.connect(os.getenv("CACHE_DB_PATH"))
+    db_path = os.getenv("CACHE_DB_PATH", "data/databases/model_monitoring.db")
+    con = sqlite3.connect(db_path)
     try:
         cur = con.cursor()
         cur.execute(

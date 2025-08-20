@@ -152,7 +152,7 @@ class ModelVersionManager:
 class ModelMonitor:
     """Monitor model performance and trigger retraining"""
     
-    def __init__(self, db_path: str = "model_monitoring.db"):
+    def __init__(self, db_path: str = "data/databases/model_monitoring.db"):
         self.db_path = db_path
         self.metrics: Dict[str, ModelMetrics] = {}
         self.monitoring_active = False
@@ -332,7 +332,7 @@ class ModelMonitor:
 class MLModelManager:
     """Production ML model lifecycle manager"""
     
-    def __init__(self, models_dir: str = "models", monitoring_db: str = "model_monitoring.db"):
+    def __init__(self, models_dir: str = "models", monitoring_db: str = "data/databases/model_monitoring.db"):
         self.ensemble_engine: Optional[EnsemblePredictionEngine] = None
         self.version_manager = ModelVersionManager(models_dir)
         self.monitor = ModelMonitor(monitoring_db)
@@ -515,7 +515,7 @@ class MLModelManager:
 
 
 # Factory function for easy initialization
-def create_ml_model_manager(models_dir: str = "models", monitoring_db: str = "model_monitoring.db") -> MLModelManager:
+def create_ml_model_manager(models_dir: str = "models", monitoring_db: str = "data/databases/model_monitoring.db") -> MLModelManager:
     """Factory function to create and initialize ML Model Manager"""
     manager = MLModelManager(models_dir, monitoring_db)
     return manager

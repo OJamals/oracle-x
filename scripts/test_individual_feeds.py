@@ -35,7 +35,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Conservative defaults used elsewhere
-os.environ.setdefault("CACHE_DB_PATH", "./model_monitoring.db")
+os.environ.setdefault("CACHE_DB_PATH", "data/databases/model_monitoring.db")
 os.environ.setdefault("CONSERVE_FMP_BANDWIDTH", "true")
 
 from data_feeds.data_feed_orchestrator import (

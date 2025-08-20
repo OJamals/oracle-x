@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 # Import Quote from the correct location
 try:
-    from agent_bundle.models import Quote
+    from data_feeds.models import Quote
 except ImportError:
     # Fallback for development/testing
     from typing import NamedTuple

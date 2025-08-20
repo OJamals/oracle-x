@@ -22,8 +22,9 @@ from functools import wraps
 import numpy as np
 from collections import defaultdict, deque
 from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
-from data_feeds.twelvedata_adapter import TwelveDataAdapter  # New import
+from data_feeds.twelvedata_adapter import TwelveDataAdapter, TwelveDataThrottled, TwelveDataError  # Enhanced import
 from data_feeds.finviz_adapter import FinVizAdapter  # New import
+from data_feeds.fallback_manager import FallbackManager, FallbackConfig, FallbackReason  # New import for intelligent fallback
 # Delegate models and feed for consolidation parity
 from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem  # absolute imports as required (avoid Quote name clash)
 from dotenv import load_dotenv
@@ -1298,6 +1299,11 @@ class DataFeedOrchestrator:
         )
         self.performance_tracker = PerformanceTracker()
         self.validator = DataValidator()  # Add validator instance
+        
+        # Initialize intelligent fallback manager
+        fallback_config = FallbackConfig()
+        self.fallback_manager = FallbackManager(fallback_config)
+        
         # Initialize persistent cache (SQLite) for long-lived artifacts
         try:
             self.persistent_cache = CacheService(db_path=os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
@@ -1403,44 +1409,108 @@ class DataFeedOrchestrator:
         step_start = time.time()
         timings: Dict[str, float] = {}
         step1 = time.time(); timings['init'] = step1 - step_start
+        
+        # Convert preferred sources to strings for fallback manager
+        preferred_source_names = None
         if preferred_sources:
-            logger.debug(f"Preferred sources provided: {preferred_sources}")
-        step2 = time.time(); timings['preferred_sources_check'] = step2 - step1
-        if not preferred_sources:
-            logger.debug("No preferred sources, using default order.")
-        step3 = time.time(); timings['default_order_check'] = step3 - step2
-        if preferred_sources and any(s == DataSource.TWELVE_DATA for s in preferred_sources):
-            logger.debug("TWELVE_DATA present in preferred_sources.")
-        else:
-            logger.debug("TWELVE_DATA not present in preferred_sources.")
-        step4 = time.time(); timings['twelve_data_check'] = step4 - step3
+            preferred_source_names = [s.value for s in preferred_sources]
+            logger.debug(f"Preferred sources provided: {preferred_source_names}")
+        
+        # Get optimized source order from fallback manager
+        ordered_source_names = self.fallback_manager.get_fallback_order("quote", preferred_source_names)
+        
+        # Convert back to DataSource enums
+        ordered_sources = []
+        for source_name in ordered_source_names:
+            try:
+                source_enum = DataSource(source_name)
+                if source_enum in self.adapters:
+                    ordered_sources.append(source_enum)
+            except ValueError:
+                logger.debug(f"Unknown data source: {source_name}")
+        
+        step2 = time.time(); timings['fallback_order'] = step2 - step1
 
         best_quote: Optional[Quote] = None
         best_quality = 0
-        base_quote_order = [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
-        filtered_quote_order = [s for s in base_quote_order if s != DataSource.FINVIZ]
-        ordered = preferred_sources if preferred_sources else filtered_quote_order
-        timings['ordered_list'] = time.time() - step4
-        for source in ordered:
+        
+        for source in ordered_sources:
             sub_start = time.time()
+            source_name = source.value
             logger.debug(f"Fetching quote from source: {source}")
+            
+            # Check if source is in fallback mode and if we should retry
+            if self.fallback_manager.is_in_fallback(source_name):
+                if not self.fallback_manager.can_retry(source_name):
+                    logger.debug(f"Skipping {source_name} - in fallback mode, retry not ready")
+                    continue
+                logger.info(f"Attempting recovery for {source_name}")
+            
             try:
                 adapter = self.adapters.get(source)
                 if adapter and hasattr(adapter, 'get_quote'):
                     quote = adapter.get_quote(symbol)  # type: ignore[attr-defined]
-                    timings[f'fetch_{source.value}'] = time.time() - sub_start
+                    response_time = time.time() - sub_start
+                    timings[f'fetch_{source.value}'] = response_time
+                    
                     logger.debug(f"Quote from {source}: {quote}")
-                    if quote and getattr(quote, 'quality_score', 0) and quote.quality_score > best_quality:
-                        best_quote = quote
-                        best_quality = quote.quality_score
+                    
+                    if quote and getattr(quote, 'quality_score', 0):
+                        # Record success with fallback manager
+                        self.fallback_manager.record_success(source_name, response_time)
+                        
+                        if quote.quality_score > best_quality:
+                            best_quote = quote
+                            best_quality = quote.quality_score
+                            
+                        # If we got excellent quality, we can stop here
+                        if quote.quality_score >= 95.0:
+                            logger.debug(f"Excellent quality quote from {source_name}, stopping search")
+                            break
+                    else:
+                        logger.debug(f"No valid quote from {source_name}")
                 else:
                     logger.debug(f"Skipping source without get_quote: {source}")
+                    
+            except TwelveDataThrottled as e:
+                logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
+                should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
+                if should_fallback:
+                    logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
+                timings[f'throttled_{source.value}'] = time.time() - sub_start
+                
+                # If this was a recovery attempt, record the failure
+                if self.fallback_manager.is_in_fallback(source_name):
+                    self.fallback_manager.record_retry_attempt(source_name, success=False)
+                    
+            except TwelveDataError as e:
+                logger.warning(f"TwelveData API error for {symbol}: {e}")
+                should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
+                if should_fallback:
+                    logger.info(f"Data source {source_name} put in fallback mode due to API error")
+                timings[f'error_{source.value}'] = time.time() - sub_start
+                
+                # If this was a recovery attempt, record the failure
+                if self.fallback_manager.is_in_fallback(source_name):
+                    self.fallback_manager.record_retry_attempt(source_name, success=False)
+                    
             except Exception as e:
                 logger.error(f"Error fetching quote from {source}: {e}")
+                should_fallback = self.fallback_manager.record_error(source_name, e, "unknown")
                 timings[f'error_{source.value}'] = time.time() - sub_start
+                
+                # If this was a recovery attempt, record the failure
+                if self.fallback_manager.is_in_fallback(source_name):
+                    self.fallback_manager.record_retry_attempt(source_name, success=False)
 
         timings['total'] = time.time() - step_start
         logger.info(f"Profiling timings for get_quote({symbol}): {timings}")
+        
+        # Log fallback status if any sources are in fallback mode
+        fallback_status = self.fallback_manager.get_fallback_status()
+        if fallback_status:
+            logger.info(f"Current fallback status: {fallback_status}")
+            
         return best_quote
     
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d", preferred_sources: Optional[List[DataSource]] = None) -> Optional[MarketData]:
@@ -1448,42 +1518,108 @@ class DataFeedOrchestrator:
         step_start = time.time()
         timings: Dict[str, float] = {}
         step1 = time.time(); timings['init'] = step1 - step_start
+        
+        # Convert preferred sources to strings for fallback manager
+        preferred_source_names = None
         if preferred_sources:
-            logger.debug(f"Preferred sources provided: {preferred_sources}")
-        step2 = time.time(); timings['preferred_sources_check'] = step2 - step1
-        if preferred_sources and any(s == DataSource.TWELVE_DATA for s in preferred_sources):
-            logger.debug("TWELVE_DATA present in preferred_sources.")
-        else:
-            logger.debug("TWELVE_DATA not present in preferred_sources.")
-        step3 = time.time(); timings['twelve_data_check'] = step3 - step2
-
-        base_md_order = [DataSource.YFINANCE, DataSource.TWELVE_DATA, DataSource.FINVIZ]
-        filtered_md_order = [s for s in base_md_order if s != DataSource.FINVIZ]
-        ordered = preferred_sources if preferred_sources else filtered_md_order
-        timings['ordered_list'] = time.time() - step3
+            preferred_source_names = [s.value for s in preferred_sources]
+            logger.debug(f"Preferred sources provided: {preferred_source_names}")
+        
+        # Get optimized source order from fallback manager
+        ordered_source_names = self.fallback_manager.get_fallback_order("market_data", preferred_source_names)
+        
+        # Convert back to DataSource enums
+        ordered_sources = []
+        for source_name in ordered_source_names:
+            try:
+                source_enum = DataSource(source_name)
+                if source_enum in self.adapters:
+                    ordered_sources.append(source_enum)
+            except ValueError:
+                logger.debug(f"Unknown data source: {source_name}")
+        
+        step2 = time.time(); timings['fallback_order'] = step2 - step1
 
         best_data: Optional[MarketData] = None
         best_quality = 0
-        for source in ordered:
+        
+        for source in ordered_sources:
             sub_start = time.time()
+            source_name = source.value
             logger.debug(f"Fetching market data from source: {source}")
+            
+            # Check if source is in fallback mode and if we should retry
+            if self.fallback_manager.is_in_fallback(source_name):
+                if not self.fallback_manager.can_retry(source_name):
+                    logger.debug(f"Skipping {source_name} - in fallback mode, retry not ready")
+                    continue
+                logger.info(f"Attempting recovery for {source_name}")
+            
             try:
                 adapter = self.adapters.get(source)
                 if adapter and hasattr(adapter, 'get_market_data'):
                     data = adapter.get_market_data(symbol, period, interval)  # type: ignore[attr-defined]
-                    timings[f'fetch_{source.value}'] = time.time() - sub_start
+                    response_time = time.time() - sub_start
+                    timings[f'fetch_{source.value}'] = response_time
+                    
                     logger.debug(f"Market data from {source}: {data}")
-                    if data and getattr(data, 'quality_score', 0) and data.quality_score > best_quality:
-                        best_data = data
-                        best_quality = data.quality_score
+                    
+                    if data and getattr(data, 'quality_score', 0):
+                        # Record success with fallback manager
+                        self.fallback_manager.record_success(source_name, response_time)
+                        
+                        if data.quality_score > best_quality:
+                            best_data = data
+                            best_quality = data.quality_score
+                            
+                        # If we got excellent quality, we can stop here
+                        if data.quality_score >= 95.0:
+                            logger.debug(f"Excellent quality market data from {source_name}, stopping search")
+                            break
+                    else:
+                        logger.debug(f"No valid market data from {source_name}")
                 else:
                     logger.debug(f"Skipping source without get_market_data: {source}")
+                    
+            except TwelveDataThrottled as e:
+                logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
+                should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
+                if should_fallback:
+                    logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
+                timings[f'throttled_{source.value}'] = time.time() - sub_start
+                
+                # If this was a recovery attempt, record the failure
+                if self.fallback_manager.is_in_fallback(source_name):
+                    self.fallback_manager.record_retry_attempt(source_name, success=False)
+                    
+            except TwelveDataError as e:
+                logger.warning(f"TwelveData API error for {symbol}: {e}")
+                should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
+                if should_fallback:
+                    logger.info(f"Data source {source_name} put in fallback mode due to API error")
+                timings[f'error_{source.value}'] = time.time() - sub_start
+                
+                # If this was a recovery attempt, record the failure
+                if self.fallback_manager.is_in_fallback(source_name):
+                    self.fallback_manager.record_retry_attempt(source_name, success=False)
+                    
             except Exception as e:
                 logger.error(f"Error fetching market data from {source}: {e}")
+                should_fallback = self.fallback_manager.record_error(source_name, e, "unknown")
                 timings[f'error_{source.value}'] = time.time() - sub_start
+                
+                # If this was a recovery attempt, record the failure
+                if self.fallback_manager.is_in_fallback(source_name):
+                    self.fallback_manager.record_retry_attempt(source_name, success=False)
 
         timings['total'] = time.time() - step_start
         logger.info(f"Profiling timings for get_market_data({symbol}): {timings}")
+        
+        # Log fallback status if any sources are in fallback mode
+        fallback_status = self.fallback_manager.get_fallback_status()
+        if fallback_status:
+            logger.info(f"Current fallback status: {fallback_status}")
+            
         return best_data
 
     # ------------------------------------------------------------------------

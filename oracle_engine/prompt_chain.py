@@ -207,7 +207,7 @@ def get_signals_from_scrapers(prompt_text: str, chart_image_b64: str) -> Dict[st
     # Orchestrator unified sentiment (reddit + twitter) best-effort enrichment
     orchestrator_sentiment = {}
     try:
-        from agent_bundle.data_feed_orchestrator import get_orchestrator  # local import to avoid hard dependency at module import
+        from data_feeds.data_feed_orchestrator import get_orchestrator  # local import to avoid hard dependency at module import
         orch = get_orchestrator()
         # Limit number of tickers for sentiment to control latency
         for sym in tickers[:15]:

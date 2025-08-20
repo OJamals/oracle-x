@@ -1,0 +1,51 @@
+{
+  "optimization": {
+    "enabled": true,
+    "database_path": "oracle_optimization.db",
+    "experiments_enabled": true,
+    "learning_enabled": true,
+    "performance_threshold": 0.7,
+    "min_runs_for_learning": 10,
+    "template_evolution_rate": 0.1,
+    "log_level": "INFO"
+  },
+  "strategies": {
+    "conservative": {
+      "temperature": 0.3,
+      "max_tokens": 2000,
+      "context_compression_ratio": 0.7
+    },
+    "balanced": {
+      "temperature": 0.5,
+      "max_tokens": 3000,
+      "context_compression_ratio": 0.8
+    },
+    "aggressive": {
+      "temperature": 0.7,
+      "max_tokens": 4000,
+      "context_compression_ratio": 0.9
+    }
+  },
+  "market_conditions": {
+    "bullish": [
+      "positive_sentiment",
+      "upward_trends",
+      "growth_signals"
+    ],
+    "bearish": [
+      "negative_sentiment",
+      "downward_trends",
+      "risk_signals"
+    ],
+    "volatile": [
+      "high_volatility",
+      "mixed_signals",
+      "uncertainty"
+    ],
+    "stable": [
+      "low_volatility",
+      "consistent_trends",
+      "steady_signals"
+    ]
+  }
+}

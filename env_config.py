@@ -4,6 +4,9 @@ from typing import List, Optional
 try:  # optional dotenv support
     from dotenv import load_dotenv
     load_dotenv()
+    # Load additional config files from config/ directory
+    load_dotenv('config/optimization.env')
+    load_dotenv('config/rss_feeds_config.env')
 except Exception:
     pass
 
@@ -16,9 +19,21 @@ Standard (preferred) environment variables:
   - EMBEDDING_MODEL      : Embedding model name
   - EMBEDDING_API_BASE   : Base URL for embedding endpoint (falls back to OPENAI_API_BASE if unset)
 
+Database paths:
+  - ACCOUNTS_DB_PATH     : Path to accounts database (default: data/databases/accounts.db)
+  - MODEL_MONITORING_DB_PATH : Path to model monitoring database (default: data/databases/model_monitoring.db)
+  - PROMPT_OPTIMIZATION_DB_PATH : Path to prompt optimization database (default: data/databases/prompt_optimization.db)
+  - CACHE_DB_PATH        : Path to cache database (default: data/databases/model_monitoring.db)
+
 Legacy variables (NON_EMBEDDING_MODEL, OPENAI_NON_EMBEDDING_MODEL, OPENAI_EMBEDDING_MODEL, QWEN3_*)
 are deprecated and no longer read. Set the new variables instead.
 """
+
+# Database path configurations
+ACCOUNTS_DB_PATH = os.environ.get('ACCOUNTS_DB_PATH', 'data/databases/accounts.db')
+MODEL_MONITORING_DB_PATH = os.environ.get('MODEL_MONITORING_DB_PATH', 'data/databases/model_monitoring.db')
+PROMPT_OPTIMIZATION_DB_PATH = os.environ.get('PROMPT_OPTIMIZATION_DB_PATH', 'data/databases/prompt_optimization.db')
+CACHE_DB_PATH = os.environ.get('CACHE_DB_PATH', 'data/databases/model_monitoring.db')
 
 # Primary (non‑embedding) model used for chat/completions (user preferred)
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o')
@@ -58,6 +73,18 @@ def get_embedding_api_base() -> str | None:
 
 def get_fallback_models() -> List[str]:
     return FALLBACK_MODELS
+
+def get_accounts_db_path() -> str:
+    return ACCOUNTS_DB_PATH
+
+def get_model_monitoring_db_path() -> str:
+    return MODEL_MONITORING_DB_PATH
+
+def get_prompt_optimization_db_path() -> str:
+    return PROMPT_OPTIMIZATION_DB_PATH
+
+def get_cache_db_path() -> str:
+    return CACHE_DB_PATH
 
 def resolve_model(client, preferred: Optional[str] = None, test: bool = True) -> str:
     """Attempt to resolve a supported chat/completions model.

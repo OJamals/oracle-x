@@ -7,7 +7,11 @@ in real Oracle-X trading scenarios
 import sys
 sys.path.append('/Users/omar/Documents/Projects/oracle-x')
 
-from consolidated_data_feed import ConsolidatedDataFeed, get_quote, get_historical, get_company_info
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+
+from scripts.consolidated_data_feed import ConsolidatedDataFeed, get_quote, get_historical, get_company_info
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta

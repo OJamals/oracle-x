@@ -4,8 +4,6 @@ Stores small/medium payloads inline as JSON; large payloads can be stored on dis
 
 Usage:
   from data_feeds.cache_service import CacheService, CacheEntry
-
-  cache = CacheService(db_path=os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
   key = cache.make_key("google_trends", {"keywords": ["AAPL","MSFT"], "geo":"US", "timeframe":"now 7-d"})
   entry = cache.get(key)
   if entry and not entry.is_expired():
@@ -25,12 +23,21 @@ from __future__ import annotations
 import json
 import os
 import sqlite3
+import sys
 import time
 import hashlib
 from dataclasses import dataclass
 from typing import Any, Optional, Dict
 
-DEFAULT_DB_PATH = "./model_monitoring.db"
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Fallback to default path if import fails
+try:
+    from env_config import get_cache_db_path
+    DEFAULT_DB_PATH = get_cache_db_path()
+except:
+    DEFAULT_DB_PATH = "data/databases/model_monitoring.db"
 
 DDL_CACHE_ENTRIES = """
 CREATE TABLE IF NOT EXISTS cache_entries (

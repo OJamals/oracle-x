@@ -575,7 +575,7 @@ class XGBoostPredictor(BaseMLModel):
 
 # Neural Network implementation placeholder
 class NeuralNetworkPredictor(BaseMLModel):
-    """Neural Network implementation with PyTorch"""
+    """Enhanced Neural Network implementation with PyTorch"""
     
     def __init__(self, prediction_type: PredictionType, **kwargs):
         super().__init__(ModelType.NEURAL_NETWORK, prediction_type)
@@ -583,28 +583,41 @@ class NeuralNetworkPredictor(BaseMLModel):
         if not PYTORCH_AVAILABLE:
             raise ImportError("PyTorch required for NeuralNetworkPredictor")
         
+        # Enhanced architecture parameters
         self.hidden_size = kwargs.get('hidden_size', 128)
         self.num_layers = kwargs.get('num_layers', 3)
-        self.dropout = kwargs.get('dropout', 0.2)
+        self.dropout = kwargs.get('dropout', 0.3)  # Increased for better regularization
         self.learning_rate = kwargs.get('learning_rate', 0.001)
+        
+        # Enhanced training configuration
+        self.use_batch_norm = kwargs.get('use_batch_norm', True)
+        self.use_early_stopping = kwargs.get('use_early_stopping', True)
+        self.use_lr_scheduling = kwargs.get('use_lr_scheduling', True)
+        self.patience = kwargs.get('patience', 15)
+        self.min_lr = kwargs.get('min_lr', 1e-6)
         
         # Will be initialized in train()
         self.input_size = None
         self.optimizer = None
         self.criterion = None
+        self.scheduler = None
     
     def _create_model(self, input_size: int):
-        """Create neural network model"""
+        """Create enhanced neural network model with batch normalization"""
         layers = []
         
         # Input layer
         layers.append(nn.Linear(input_size, self.hidden_size))
+        if self.use_batch_norm:
+            layers.append(nn.BatchNorm1d(self.hidden_size))
         layers.append(nn.ReLU())
         layers.append(nn.Dropout(self.dropout))
         
         # Hidden layers
         for _ in range(self.num_layers - 1):
             layers.append(nn.Linear(self.hidden_size, self.hidden_size))
+            if self.use_batch_norm:
+                layers.append(nn.BatchNorm1d(self.hidden_size))
             layers.append(nn.ReLU())
             layers.append(nn.Dropout(self.dropout))
         
@@ -618,18 +631,36 @@ class NeuralNetworkPredictor(BaseMLModel):
         return nn.Sequential(*layers)
     
     def train(self, X: pd.DataFrame, y: pd.Series, validation_split: float = 0.2) -> Dict[str, Any]:
-        """Train neural network"""
+        """Train neural network with early stopping and timeout"""
+        import time
+        
         # Initialize model
         self.input_size = X.shape[1]
         self.model = self._create_model(self.input_size)
         
-        # Setup training
+        # Setup enhanced training
         if self.prediction_type == PredictionType.PRICE_DIRECTION:
             self.criterion = nn.BCELoss()
         else:
             self.criterion = nn.MSELoss()
         
-        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        # Use AdamW optimizer for better performance
+        self.optimizer = optim.AdamW(
+            self.model.parameters(), 
+            lr=self.learning_rate,
+            weight_decay=1e-4  # L2 regularization
+        )
+        
+        # Add learning rate scheduler
+        if self.use_lr_scheduling:
+            self.scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+                self.optimizer, 
+                mode='min', 
+                factor=0.5, 
+                patience=5,
+                min_lr=self.min_lr,
+                verbose=True
+            )
         
         # Split data
         X_train, X_val, y_train, y_val = train_test_split(
@@ -642,17 +673,71 @@ class NeuralNetworkPredictor(BaseMLModel):
         X_val_tensor = torch.FloatTensor(X_val.values)
         y_val_tensor = torch.FloatTensor(y_val.values).unsqueeze(1)
         
-        # Training loop
+        # Training configuration
+        max_epochs = 50  # Reduced from 100
+        patience = 10    # Early stopping patience
+        min_improvement = 1e-4  # Minimum improvement threshold
+        timeout_seconds = 60    # Maximum training time
+        
+        # Training loop with early stopping and timeout
+        start_time = time.time()
+        best_val_loss = float('inf')
+        patience_counter = 0
+        
         self.model.train()
-        for epoch in range(100):  # Simple training loop
+        
+        for epoch in range(max_epochs):
+            # Check timeout
+            if time.time() - start_time > timeout_seconds:
+                logger.warning(f"Neural network training timeout after {timeout_seconds}s at epoch {epoch}")
+                break
+            
+            # Training step
             self.optimizer.zero_grad()
             outputs = self.model(X_train_tensor)
-            loss = self.criterion(outputs, y_train_tensor)
-            loss.backward()
+            train_loss = self.criterion(outputs, y_train_tensor)
+            train_loss.backward()
             self.optimizer.step()
             
-            if epoch % 20 == 0:
-                logger.debug(f"Epoch {epoch}, Loss: {loss.item():.4f}")
+            # Validation step
+            self.model.eval()
+            with torch.no_grad():
+                val_outputs = self.model(X_val_tensor)
+                val_loss = self.criterion(val_outputs, y_val_tensor).item()
+            self.model.train()
+            
+            # Early stopping check
+            if val_loss < best_val_loss - min_improvement:
+                best_val_loss = val_loss
+                patience_counter = 0
+                # Save best model state
+                best_model_state = self.model.state_dict().copy()
+            else:
+                patience_counter += 1
+            
+            # Update learning rate scheduler
+            if self.use_lr_scheduling and self.scheduler:
+                self.scheduler.step(val_loss)
+            
+            # Log progress with learning rate
+            current_lr = self.optimizer.param_groups[0]['lr']
+            if epoch % 10 == 0 or epoch < 5:
+                logger.info(f"NN Epoch {epoch}/{max_epochs}: train_loss={train_loss.item():.4f}, val_loss={val_loss:.4f}, lr={current_lr:.6f}")
+            
+            # Early stopping
+            if patience_counter >= patience:
+                logger.info(f"Early stopping at epoch {epoch} (patience={patience})")
+                # Restore best model
+                self.model.load_state_dict(best_model_state)
+                break
+            
+            # Convergence check
+            if train_loss.item() < 1e-6:
+                logger.info(f"Converged at epoch {epoch} (loss < 1e-6)")
+                break
+        
+        training_time = time.time() - start_time
+        logger.info(f"Neural network training completed in {training_time:.2f}s ({epoch+1} epochs)")
         
         self.is_trained = True
         
@@ -665,7 +750,11 @@ class NeuralNetworkPredictor(BaseMLModel):
         return {
             'training_samples': len(X_train),
             'validation_metrics': validation_metrics,
-            'feature_importance': self.feature_importance
+            'feature_importance': self.feature_importance,
+            'training_time': training_time,
+            'epochs_completed': epoch + 1,
+            'early_stopped': patience_counter >= patience,
+            'best_val_loss': best_val_loss
         }
     
     def predict(self, X: pd.DataFrame) -> Tuple[np.ndarray, np.ndarray]:

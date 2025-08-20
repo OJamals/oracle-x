@@ -5,14 +5,21 @@ ORACLE-X is an AI-driven trading scenario engine that integrates real-time marke
 
 ## Structure
 - **main.py**: Main entry point for generating daily playbooks using the agent pipeline.
+- **main_optimized.py**: Optimized pipeline with prompt optimization and A/B testing.
 - **signals_runner.py**: Collects and saves daily signals from all data feeds.
+- **oracle_options_cli.py**: CLI for options analysis and valuation.
+- **oracle_optimize_cli.py**: CLI for prompt optimization analytics and management.
 - **dashboard/app.py**: Streamlit dashboard for visualizing playbooks and signals.
 - **backtest_tracker/**: Tools for backtesting and analyzing playbook performance.
-- **data_feeds/**: Modular scrapers and stubs for market data, options flow, sentiment, etc.
-- **oracle_engine/**: Core agent logic, prompt chains, and scenario tree generation.
+- **data_feeds/**: Modular scrapers and data orchestrator for market data, options flow, sentiment, etc.
+- **oracle_engine/**: Core agent logic, prompt chains, ML engines, and optimization systems.
 - **vector_db/**: Qdrant vector store integration for scenario recall and prompt boosting.
-- **config/**: Configuration files (e.g., settings.yaml).
-- **docs/**: Project documentation and SOPs.
+- **config/**: Configuration files (settings.yaml, optimization configs, RSS feeds, etc.).
+- **data/databases/**: SQLite databases for caching, model monitoring, and optimization tracking.
+- **docs/**: Project documentation, reports, and SOPs.
+- **scripts/**: Utility scripts organized by type (diagnostics, demos, analysis).
+- **examples/**: Example implementations and training scripts.
+- **tests/**: Comprehensive test suite with unit, integration, and validation tests.
 
 ## Setup
 1. Install dependencies:
@@ -190,3 +197,288 @@ python -c "from data_feeds.data_feed_orchestrator import DataFeedOrchestrator; o
 ```
 
 The FinViz ambiguous DataFrame truth-value path has been refactored to explicit sequential checks, eliminating prior warnings.
+
+## 🎯 Oracle-X Options Prediction Pipeline
+
+The Oracle Options Pipeline is a unified system for identifying optimal stock options to purchase by combining valuation analysis, machine learning predictions, and comprehensive risk assessment.
+
+### 📊 Key Features
+
+- **Multi-Model Valuation**: Uses Black-Scholes, Binomial, and Monte Carlo models for consensus pricing
+- **ML-Powered Predictions**: Integrates ensemble machine learning for price movement prediction
+- **Advanced Sentiment Analysis**: Aggregates sentiment from Reddit, Twitter, news, and custom RSS feeds
+- **Risk Management**: Comprehensive risk assessment with position sizing based on Kelly Criterion
+- **Real-Time & Batch Processing**: Supports both single-ticker analysis and market-wide scanning
+- **Portfolio Optimization**: Suggests position sizes and hedging strategies
+
+### 🚀 Quick Start
+
+#### Installation
+
+```bash
+# Ensure all dependencies are installed
+pip install -r requirements.txt
+
+# Set up environment variables (optional)
+export OPENAI_API_KEY="your-key-here"
+export FINANCIALMODELINGPREP_API_KEY="your-key-here"
+export FINNHUB_API_KEY="your-key-here"
+```
+
+#### Basic Usage
+
+```python
+from oracle_options_pipeline import create_pipeline
+
+# Create pipeline with default configuration
+pipeline = create_pipeline()
+
+# Analyze a single ticker
+recommendations = pipeline.analyze_ticker("AAPL")
+
+# Display top opportunity
+if recommendations:
+    top = recommendations[0]
+    print(f"Best opportunity: {top.symbol} {top.contract.option_type.value}")
+    print(f"Score: {top.opportunity_score:.1f}/100")
+    print(f"Entry: ${top.entry_price:.2f}, Target: ${top.target_price:.2f}")
+```
+
+### 💻 Command Line Interface
+
+The pipeline includes a comprehensive CLI for easy interaction:
+
+#### Analyze Single Ticker
+```bash
+# Basic analysis
+python oracle_options_cli.py analyze AAPL
+
+# With custom parameters
+python oracle_options_cli.py analyze AAPL \
+    --limit 10 \
+    --min-score 75 \
+    --risk conservative \
+    --verbose
+
+# Save results to file
+python oracle_options_cli.py analyze AAPL --output aapl_opportunities.json
+```
+
+#### Scan Market for Opportunities
+```bash
+# Scan default universe (top liquid options)
+python oracle_options_cli.py scan --top 10
+
+# Scan specific symbols
+python oracle_options_cli.py scan \
+    --symbols AAPL,MSFT,GOOGL,NVDA \
+    --min-score 80 \
+    --risk moderate
+
+# Save scan results
+python oracle_options_cli.py scan --output market_scan.json
+```
+
+#### Monitor Existing Positions
+```bash
+# Create positions file (positions.json)
+cat > positions.json << EOF
+[
+  {
+    "symbol": "AAPL",
+    "strike": 180.0,
+    "expiry": "2024-12-20",
+    "type": "call",
+    "entry_price": 5.50,
+    "quantity": 10
+  }
+]
+EOF
+
+# Monitor positions
+python oracle_options_cli.py monitor positions.json
+```
+
+### 🔧 Configuration
+
+Create custom configurations for different trading styles:
+
+```python
+from oracle_options_pipeline import create_pipeline, RiskTolerance
+
+# Conservative configuration
+conservative_config = {
+    'risk_tolerance': 'conservative',
+    'max_position_size': 0.02,  # 2% max position
+    'min_opportunity_score': 80.0,
+    'min_confidence': 0.7,
+    'min_days_to_expiry': 30,
+    'max_days_to_expiry': 120
+}
+
+pipeline = create_pipeline(conservative_config)
+
+# Aggressive configuration
+aggressive_config = {
+    'risk_tolerance': 'aggressive',
+    'max_position_size': 0.10,  # 10% max position
+    'min_opportunity_score': 65.0,
+    'min_confidence': 0.5,
+    'min_days_to_expiry': 7,
+    'max_days_to_expiry': 45
+}
+
+pipeline = create_pipeline(aggressive_config)
+```
+
+### 📈 Pipeline Workflow
+
+1. **Data Collection**: Fetches market data, options chains, and sentiment from multiple sources
+2. **Valuation Analysis**: Calculates fair values using multiple pricing models
+3. **Signal Generation**: Aggregates technical, flow, and sentiment signals
+4. **ML Prediction**: Predicts price movement probability using ensemble models
+5. **Opportunity Scoring**: Combines all scores with risk assessment (0-100 scale)
+6. **Recommendation**: Generates actionable trade recommendations with entry/exit points
+
+### 📋 Output Format
+
+Each recommendation includes:
+
+```json
+{
+  "symbol": "AAPL",
+  "contract": {
+    "strike": 180.0,
+    "expiry": "2024-12-20",
+    "type": "call",
+    "volume": 5234,
+    "open_interest": 12453
+  },
+  "scores": {
+    "opportunity": 85.3,
+    "ml_confidence": 0.762,
+    "valuation": 0.152
+  },
+  "trade": {
+    "entry_price": 5.45,
+    "target_price": 8.20,
+    "stop_loss": 3.80,
+    "position_size": 0.032,
+    "max_contracts": 10
+  },
+  "risk": {
+    "max_loss": 545.0,
+    "expected_return": 0.504,
+    "probability_of_profit": 0.652,
+    "risk_reward_ratio": 2.14,
+    "breakeven_price": 185.45
+  },
+  "analysis": {
+    "key_reasons": [
+      "Undervalued by 15.2%",
+      "High ML confidence: 76.2%",
+      "Low IV rank: 28"
+    ],
+    "risk_factors": [
+      "Time decay risk",
+      "Earnings in 2 weeks"
+    ]
+  }
+}
+```
+
+### 🧪 Running Tests
+
+```bash
+# Run all integration tests
+python test_oracle_options_pipeline.py
+
+# Run with pytest for more detailed output
+pytest test_oracle_options_pipeline.py -v
+
+# Run specific test class
+pytest test_oracle_options_pipeline.py::TestPipelineAnalysis -v
+```
+
+### 📚 Examples
+
+See `example_options_trading.py` for comprehensive examples including:
+
+1. **Basic Analysis**: Single ticker opportunity identification
+2. **Conservative Trading**: Blue-chip options with strict risk limits
+3. **Market Scanning**: Finding opportunities across multiple symbols
+4. **Position Monitoring**: Tracking existing positions for exit signals
+5. **Advanced Filtering**: High-confidence opportunity selection
+6. **Performance Statistics**: Pipeline performance metrics
+
+Run all examples:
+```bash
+python example_options_trading.py
+```
+
+### ⚙️ Advanced Features
+
+#### Custom Signal Integration
+```python
+# Add custom signals to the pipeline
+pipeline = create_pipeline()
+
+# Access internal components
+valuation_engine = pipeline.valuation_engine
+signal_aggregator = pipeline.signal_aggregator
+orchestrator = pipeline.orchestrator
+
+# Get advanced sentiment
+sentiment = orchestrator.get_advanced_sentiment_data("AAPL")
+```
+
+#### Batch Processing
+```python
+# Process multiple symbols efficiently
+symbols = ["AAPL", "GOOGL", "MSFT", "NVDA", "TSLA"]
+result = pipeline.scan_market(symbols, max_symbols=len(symbols))
+
+print(f"Found {result.opportunities_found} opportunities")
+print(f"Execution time: {result.execution_time:.2f}s")
+```
+
+#### Position Sizing with Kelly Criterion
+```python
+# The pipeline automatically calculates optimal position sizes
+rec = recommendations[0]
+print(f"Suggested position: {rec.position_size:.1%} of portfolio")
+print(f"Max contracts: {rec.max_contracts}")
+print(f"Max loss: ${rec.max_loss:.2f}")
+```
+
+### 🔍 Performance Metrics
+
+The pipeline tracks performance metrics:
+
+```python
+# Get performance statistics
+stats = pipeline.get_performance_stats()
+print(f"Cache size: {stats['cache_size']}")
+print(f"Avg opportunity score: {stats['avg_opportunity_score']:.1f}")
+print(f"Avg ML confidence: {stats['avg_ml_confidence']:.1%}")
+```
+
+### ⚠️ Important Notes
+
+1. **Risk Management**: Always validate recommendations with your own analysis
+2. **Market Hours**: Best results during market hours when data is fresh
+3. **API Limits**: Be mindful of rate limits when scanning many symbols
+4. **Paper Trading**: Test strategies with paper trading before using real money
+
+### 🛠️ Troubleshooting
+
+Common issues and solutions:
+
+1. **No opportunities found**: Lower `min_opportunity_score` or expand search criteria
+2. **Slow performance**: Reduce `max_workers` or implement caching
+3. **API errors**: Check API keys and rate limits
+4. **Missing data**: Ensure market is open or use cached data
+
+### 📄 License & Disclaimer
+
+This is a research and educational tool. Not financial advice. Always conduct your own due diligence before making investment decisions. Options trading involves substantial risk and is not suitable for all investors.
