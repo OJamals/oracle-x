@@ -102,8 +102,39 @@ def auto_generate_market_summary():
 def _extracted_from_auto_generate_market_summary_8(playbooks):
     latest_playbook = load_playbook(playbooks[0])
     print(f"[DEBUG] Loaded latest playbook: {latest_playbook}")
-    tape = latest_playbook.get("tomorrows_tape")
-    trades = latest_playbook.get("trades", [])
+
+    # Handle different playbook structures
+    if "playbook" in latest_playbook:
+        # Structure: {"playbook": {"trades": [...], "tomorrows_tape": "..."}}
+        playbook_content = latest_playbook["playbook"]
+        tape = playbook_content.get("tomorrows_tape")
+        trades = playbook_content.get("trades", [])
+    else:
+        # Structure: {"trades": [...], "tomorrows_tape": "..."}
+        tape = latest_playbook.get("tomorrows_tape")
+        trades = latest_playbook.get("trades", [])
+
+    # Skip test data
+    if latest_playbook.get("pipeline_mode") == "test" or not tape:
+        # Try to find a better playbook
+        for playbook_file in playbooks[1:]:
+            try:
+                alt_playbook = load_playbook(playbook_file)
+                if "playbook" in alt_playbook:
+                    alt_content = alt_playbook["playbook"]
+                    alt_tape = alt_content.get("tomorrows_tape")
+                    alt_trades = alt_content.get("trades", [])
+                else:
+                    alt_tape = alt_playbook.get("tomorrows_tape")
+                    alt_trades = alt_playbook.get("trades", [])
+
+                if alt_tape and alt_trades:
+                    tape = alt_tape
+                    trades = alt_trades
+                    break
+            except Exception:
+                continue
+
     tickers = ', '.join([t.get('ticker', '') for t in trades if 'ticker' in t])
     summary = f"Tomorrow's tape: {tape}\nKey trades: {tickers}"
     print(f"[DEBUG] Generated summary: {summary}")

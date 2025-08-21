@@ -233,37 +233,38 @@ class DataManager:
     
     def _add_technical_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
         """Add common technical indicators to prevent recalculation"""
-        # Simple moving averages
-        data['SMA_20'] = data['Close'].rolling(window=20).mean()
-        data['SMA_50'] = data['Close'].rolling(window=50).mean()
-        data['SMA_200'] = data['Close'].rolling(window=200).mean()
-        
+        # Simple moving averages with forward fill to handle NaN values
+        data['SMA_20'] = data['Close'].rolling(window=20).mean().ffill()
+        data['SMA_50'] = data['Close'].rolling(window=50).mean().ffill()
+        data['SMA_200'] = data['Close'].rolling(window=200).mean().ffill()
+
         # Exponential moving averages
         data['EMA_12'] = data['Close'].ewm(span=12).mean()
         data['EMA_26'] = data['Close'].ewm(span=26).mean()
-        
+
         # MACD
         data['MACD'] = data['EMA_12'] - data['EMA_26']
         data['MACD_Signal'] = data['MACD'].ewm(span=9).mean()
         data['MACD_Histogram'] = data['MACD'] - data['MACD_Signal']
-        
-        # RSI
+
+        # RSI with forward fill
         delta = data['Close'].diff()
         gain = delta.clip(lower=0).rolling(window=14).mean()
         loss = (-delta.clip(upper=0)).rolling(window=14).mean()
         rs = gain / loss
         data['RSI'] = 100 - (100 / (1 + rs))
-        
-        # Bollinger Bands
-        data['BB_Middle'] = data['Close'].rolling(window=20).mean()
-        bb_std = data['Close'].rolling(window=20).std()
+        data['RSI'] = data['RSI'].ffill()
+
+        # Bollinger Bands with forward fill
+        data['BB_Middle'] = data['Close'].rolling(window=20).mean().ffill()
+        bb_std = data['Close'].rolling(window=20).std().ffill()
         data['BB_Upper'] = data['BB_Middle'] + (bb_std * 2)
         data['BB_Lower'] = data['BB_Middle'] - (bb_std * 2)
-        
-        # Volume indicators
-        data['Volume_SMA'] = data['Volume'].rolling(window=20).mean()
+
+        # Volume indicators with forward fill
+        data['Volume_SMA'] = data['Volume'].rolling(window=20).mean().ffill()
         data['Volume_Ratio'] = data['Volume'] / data['Volume_SMA']
-        
+
         return data
     
     def get_point_in_time_data(self, symbol: str, as_of_date: datetime, 
@@ -533,31 +534,35 @@ class BacktestEngine:
     
     def _calculate_position_size(self, signal: Dict, price: float, portfolio_value: float) -> int:
         """Calculate appropriate position size based on risk management"""
+        # Use quantity from signal if provided, otherwise calculate based on risk management
+        if 'quantity' in signal and signal['quantity'] > 0:
+            return signal['quantity']
+
         confidence = signal.get('confidence', 0.5)
-        
+
         # Base position size as percentage of portfolio
         base_allocation = self.config.max_position_size * confidence
-        
+
         # For options, apply additional constraints
         if signal['action'] in ['buy_call', 'buy_put']:
             base_allocation = min(base_allocation, self.config.max_options_allocation)
-        
+
         position_value = portfolio_value * base_allocation
         position_size = int(position_value / price)
-        
+
         return max(0, position_size)
     
     def _check_risk_limits(self, portfolio) -> bool:
         """Check if risk limits have been breached"""
-        # Check maximum drawdown
-        if portfolio.max_drawdown > self.config.max_portfolio_drawdown:
+        # Check maximum drawdown - use absolute value since drawdown is negative
+        if abs(portfolio.max_drawdown) > self.config.max_portfolio_drawdown:
             return True
-        
+
         # Check daily loss limit
         daily_loss = (portfolio.initial_capital - portfolio.total_value) / portfolio.initial_capital
         if daily_loss > self.config.max_daily_loss:
             return True
-        
+
         return False
     
     def _calculate_performance_metrics(self, daily_values: List[Dict], 
@@ -614,13 +619,24 @@ class BacktestEngine:
         var_95 = np.percentile(df['returns'], 5) if len(df) > 0 else 0
         expected_shortfall = df['returns'][df['returns'] <= var_95].mean() if len(df) > 0 else 0
         
+        # Fix Calmar ratio calculation - handle edge cases
+        calmar_ratio = 0
+        if max_drawdown < 0 and annualized_return > 0:
+            calmar_ratio = annualized_return / abs(max_drawdown)
+
+        # Fix profit factor calculation - avoid division by zero
+        if losing_trades and sum(p.pnl for p in losing_trades) != 0:
+            profit_factor = abs(sum(p.pnl for p in winning_trades) / sum(p.pnl for p in losing_trades))
+        else:
+            profit_factor = float('inf') if winning_trades else 0.0
+
         return PerformanceMetrics(
             total_return=total_return,
             annualized_return=annualized_return,
             volatility=volatility,
             sharpe_ratio=sharpe_ratio,
             sortino_ratio=sortino_ratio,
-            calmar_ratio=annualized_return / abs(max_drawdown) if max_drawdown < 0 else 0,
+            calmar_ratio=calmar_ratio,
             max_drawdown=max_drawdown,
             win_rate=win_rate,
             profit_factor=profit_factor,
@@ -708,7 +724,7 @@ class Portfolio:
     def update_portfolio_value(self, current_date: datetime, current_prices: Dict[str, float]):
         """Update portfolio value based on current prices"""
         positions_value = 0.0
-        
+
         for position in self.positions:
             if position.is_open and position.symbol in current_prices:
                 current_price = current_prices[position.symbol]
@@ -717,16 +733,20 @@ class Portfolio:
                 else:  # SHORT or PUT
                     position_value = position.entry_price * position.quantity - (current_price - position.entry_price) * position.quantity
                 positions_value += position_value
-        
+
         self.positions_value = positions_value
         self.total_value = self.cash + positions_value
-        
-        # Update drawdown tracking
+
+        # Update drawdown tracking - fix the calculation
         if self.total_value > self.peak_value:
             self.peak_value = self.total_value
-        
-        current_drawdown = (self.peak_value - self.total_value) / self.peak_value
-        self.max_drawdown = max(self.max_drawdown, current_drawdown)
+
+        # Calculate drawdown as percentage decline from peak
+        if self.peak_value > 0:
+            current_drawdown = (self.peak_value - self.total_value) / self.peak_value
+            self.max_drawdown = max(self.max_drawdown, current_drawdown)
+        else:
+            current_drawdown = 0.0
     
     def check_exit_conditions(self, current_date: datetime, current_prices: Dict[str, float]) -> List[Position]:
         """Check and execute exit conditions for open positions"""

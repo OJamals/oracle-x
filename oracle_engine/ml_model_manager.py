@@ -20,6 +20,17 @@ import numpy as np
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
 from oracle_engine.ml_prediction_engine import PredictionType
 
+# Import required dependencies for EnsemblePredictionEngine
+try:
+    from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
+    from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+    DEPENDENCIES_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Ensemble dependencies not available: {e}")
+    DEPENDENCIES_AVAILABLE = False
+    DataFeedOrchestrator = None
+    AdvancedSentimentEngine = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -347,22 +358,35 @@ class MLModelManager:
     def initialize_ensemble(self, symbols: List[str]) -> bool:
         """Initialize the ensemble prediction engine"""
         try:
-            # For simplified initialization, we'll create a minimal setup
-            # This will be expanded with proper dependencies later
-            logger.info("Initializing ML Model Manager with simplified setup")
-            
-            # Note: Full ensemble initialization would require:
-            # - DataFeedOrchestrator
-            # - AdvancedSentimentEngine
-            # For now, we'll track this as a future enhancement
-            
-            self.ensemble_engine = None  # Will be initialized when needed
-            
-            logger.info("ML Model Manager initialized successfully (simplified mode)")
-            return True
-            
+            logger.info("Initializing Ensemble Prediction Engine")
+
+            if not DEPENDENCIES_AVAILABLE:
+                logger.error("Required dependencies not available for ensemble engine")
+                self.ensemble_engine = None
+                return False
+
+            # Initialize data orchestrator and sentiment engine
+            try:
+                data_orchestrator = DataFeedOrchestrator()
+                sentiment_engine = AdvancedSentimentEngine()
+
+                # Initialize the ensemble engine with proper dependencies
+                self.ensemble_engine = EnsemblePredictionEngine(
+                    data_orchestrator=data_orchestrator,
+                    sentiment_engine=sentiment_engine
+                )
+
+                logger.info("Ensemble Prediction Engine initialized successfully")
+                return True
+
+            except Exception as e:
+                logger.error(f"Failed to create ensemble engine dependencies: {e}")
+                self.ensemble_engine = None
+                return False
+
         except Exception as e:
-            logger.error(f"Failed to initialize ML Model Manager: {e}")
+            logger.error(f"Failed to initialize Ensemble Prediction Engine: {e}")
+            self.ensemble_engine = None
             return False
     
     def train_models(self, symbols: List[str], days_back: int = 100, force_retrain: bool = False) -> Dict[str, bool]:
@@ -425,17 +449,30 @@ class MLModelManager:
             }
         
         try:
-            # Note: This would use the ensemble engine when properly initialized
-            # For now, return a default prediction structure
-            logger.warning(f"Prediction requested for {symbol} {prediction_type}, returning placeholder")
-            
-            return {
-                "symbol": symbol,
-                "prediction_type": prediction_type.value,
-                "prediction": 0.0,
-                "confidence": 0.5,
-                "source": "placeholder"
-            }
+            # Use the ensemble engine for actual predictions
+            prediction_result = self.ensemble_engine.predict(symbol, prediction_type, horizon_days)
+
+            if prediction_result:
+                # Convert PredictionResult to the expected dictionary format
+                return {
+                    "symbol": prediction_result.symbol,
+                    "prediction_type": prediction_result.prediction_type.value,
+                    "prediction": float(prediction_result.prediction),
+                    "confidence": float(prediction_result.confidence),
+                    "uncertainty": float(prediction_result.uncertainty),
+                    "feature_importance": prediction_result.feature_importance,
+                    "model_contributions": prediction_result.model_contributions,
+                    "source": "ensemble_engine"
+                }
+            else:
+                logger.warning(f"Ensemble engine returned None for {symbol} {prediction_type}")
+                return {
+                    "symbol": symbol,
+                    "prediction_type": prediction_type.value,
+                    "prediction": 0.0,
+                    "confidence": 0.5,
+                    "source": "fallback"
+                }
             
         except Exception as e:
             logger.error(f"Prediction failed for {symbol} {prediction_type}: {e}")

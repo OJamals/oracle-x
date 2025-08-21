@@ -186,8 +186,8 @@ class FeatureEngineer:
                     symbol_df['sentiment_score'] = sentiment.overall_sentiment
                     symbol_df['sentiment_confidence'] = sentiment.confidence
                     symbol_df['sentiment_quality'] = sentiment.quality_score
-                    symbol_df['bullish_ratio'] = sentiment.bullish_mentions / max(sentiment.sample_size, 1)
-                    symbol_df['bearish_ratio'] = sentiment.bearish_mentions / max(sentiment.sample_size, 1)
+                    symbol_df['bullish_ratio'] = float(sentiment.bullish_mentions) / max(sentiment.sample_size, 1)
+                    symbol_df['bearish_ratio'] = float(sentiment.bearish_mentions) / max(sentiment.sample_size, 1)
                 else:
                     symbol_df['sentiment_score'] = 0.0
                     symbol_df['sentiment_confidence'] = 0.0
@@ -731,6 +731,14 @@ class EnsemblePredictionEngine:
             if features_df.empty:
                 logger.warning(f"No features available for {symbol}")
                 return None
+            # Convert all numeric columns to float to prevent Decimal division issues
+            for col in features_df.columns:
+                if features_df[col].dtype in [float64, int64, object]:
+                    try:
+                        features_df[col] = features_df[col].astype(float)
+                    except (ValueError, TypeError):
+                        # Keep as is if conversion fails
+                        pass
             
             # Get latest feature row
             latest_features = features_df.iloc[-1:].copy()
@@ -781,10 +789,10 @@ class EnsemblePredictionEngine:
             ensemble_uncertainty = np.sqrt(sum([u**2 for u in uncertainties]))
             
             # Calculate confidence (inverse of normalized uncertainty)
-            confidence = max(0.1, 1.0 / (1.0 + ensemble_uncertainty))
+            confidence = max(0.1, 1.0 / (1.0 + float(ensemble_uncertainty)))
             
             # Data quality score (simple heuristic)
-            data_quality = min(1.0, len(data) / 50.0)  # Better with more data
+            data_quality = min(1.0, float(len(data)) / 50.0)  # Better with more data
             
             # Market regime detection
             market_regime = self._detect_market_regime(data)

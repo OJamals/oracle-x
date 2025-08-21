@@ -13,6 +13,7 @@ from xml.etree import ElementTree as ET
 from urllib.parse import urljoin
 import sys
 import os
+import time
 
 # Import from data_feed_orchestrator for proper base classes
 from data_feeds.data_feed_orchestrator import SentimentData
@@ -72,41 +73,68 @@ class BaseNewsAdapter:
             return []
     
     def _fetch_from_rss(self, symbol: str, limit: int) -> List[Dict[str, Any]]:
-        """Fetch articles from RSS feed"""
+        """Fetch articles from RSS feed with enhanced error handling and retry logic"""
         if not self.rss_url:
             logger.error(f"No RSS URL configured for {self.source_name}")
             return []
-            
-        try:
-            response = requests.get(self.rss_url, headers=self.headers, timeout=10)
-            response.raise_for_status()
-            
-            feed = feedparser.parse(response.content)
-            articles = []
-            
-            for entry in feed.entries[:limit * 3]:  # Fetch more to filter by symbol
-                # Extract article data
-                article = {
-                    'title': entry.get('title', ''),
-                    'description': entry.get('description', '') or entry.get('summary', ''),
-                    'link': entry.get('link', ''),
-                    'published': entry.get('published', ''),
-                    'source': self.source_name
-                }
-                
-                # Check if article is relevant to symbol
-                if self._is_relevant_to_symbol(article, symbol):
-                    articles.append(article)
-                    
-                if len(articles) >= limit:
-                    break
-                    
-            logger.info(f"Fetched {len(articles)} relevant articles from {self.source_name} RSS for {symbol}")
-            return articles
-            
-        except Exception as e:
-            logger.error(f"Failed to fetch RSS from {self.source_name}: {e}")
-            return []
+
+        max_retries = 3
+        retry_delay = 2
+
+        for attempt in range(max_retries):
+            try:
+                logger.info(f"Fetching RSS from {self.source_name} (attempt {attempt + 1}/{max_retries})")
+
+                response = requests.get(
+                    self.rss_url,
+                    headers=self.headers,
+                    timeout=15,  # Increased timeout
+                    verify=True
+                )
+                response.raise_for_status()
+
+                feed = feedparser.parse(response.content)
+                articles = []
+
+                for entry in feed.entries[:limit * 3]:  # Fetch more to filter by symbol
+                    # Extract article data
+                    article = {
+                        'title': entry.get('title', ''),
+                        'description': entry.get('description', '') or entry.get('summary', ''),
+                        'link': entry.get('link', ''),
+                        'published': entry.get('published', ''),
+                        'source': self.source_name
+                    }
+
+                    # Check if article is relevant to symbol
+                    if self._is_relevant_to_symbol(article, symbol):
+                        articles.append(article)
+
+                    if len(articles) >= limit:
+                        break
+
+                logger.info(f"Successfully fetched {len(articles)} relevant articles from {self.source_name} RSS for {symbol}")
+                return articles
+
+            except requests.exceptions.ConnectTimeout:
+                logger.warning(f"Connection timeout for {self.source_name} RSS (attempt {attempt + 1})")
+            except requests.exceptions.ConnectionError as e:
+                logger.warning(f"Connection error for {self.source_name} RSS (attempt {attempt + 1}): {e}")
+            except requests.exceptions.HTTPError as e:
+                logger.warning(f"HTTP error for {self.source_name} RSS (attempt {attempt + 1}): {e}")
+            except requests.exceptions.Timeout:
+                logger.warning(f"Request timeout for {self.source_name} RSS (attempt {attempt + 1})")
+            except Exception as e:
+                logger.error(f"Unexpected error fetching RSS from {self.source_name} (attempt {attempt + 1}): {e}")
+
+            # Wait before retry (exponential backoff)
+            if attempt < max_retries - 1:
+                wait_time = retry_delay * (2 ** attempt)
+                logger.info(f"Waiting {wait_time}s before retry...")
+                time.sleep(wait_time)
+
+        logger.error(f"Failed to fetch RSS from {self.source_name} after {max_retries} attempts")
+        return []
     
     def _fetch_from_api(self, symbol: str, limit: int) -> List[Dict[str, Any]]:
         """Fetch articles from API - should be overridden by specific adapters"""

@@ -57,13 +57,31 @@ class ModelConfig:
 @dataclass
 class DataFeedConfig:
     """Data feed configuration settings"""
+    # Primary API Keys
     twelve_data_api_key: Optional[str] = None
+    financial_modeling_prep_api_key: Optional[str] = None
+    finnhub_api_key: Optional[str] = None
+    alphavantage_api_key: Optional[str] = None
+    polygon_api_key: Optional[str] = None
+    twitter_bearer_token: Optional[str] = None
+
+    # Social Media APIs
     reddit_client_id: Optional[str] = None
     reddit_client_secret: Optional[str] = None
-    twitter_bearer_token: Optional[str] = None
+
+    # Optional API Keys
+    iex_api_key: Optional[str] = None
+    tradingeconomics_api_key: Optional[str] = None
+    fred_api_key: Optional[str] = None
+    newsapi_api_key: Optional[str] = None
+    google_news_api_key: Optional[str] = None
+
+    # Configuration Settings
     cache_ttl_minutes: int = 5
     max_retries: int = 3
     request_timeout: int = 30
+    api_rate_limit_delay: float = 1.0
+    enable_api_fallback: bool = True
 
 @dataclass
 class OptimizationConfig:
@@ -107,6 +125,125 @@ class ConfigurationManager:
         """Refresh configuration from sources"""
         self._config = None
         return self.get_config()
+
+    def validate_api_keys(self, config: SystemConfig) -> Dict[str, Any]:
+        """Validate API keys and return validation results"""
+        validation_results = {
+            'valid': [],
+            'missing': [],
+            'warnings': [],
+            'summary': {'total': 0, 'valid': 0, 'missing': 0}
+        }
+
+        # Define required API keys
+        required_keys = {
+            'twelve_data_api_key': 'TwelveData API Key',
+            'financial_modeling_prep_api_key': 'Financial Modeling Prep API Key',
+            'finnhub_api_key': 'Finnhub API Key',
+            'alphavantage_api_key': 'Alpha Vantage API Key',
+            'polygon_api_key': 'Polygon.io API Key',
+            'twitter_bearer_token': 'Twitter Bearer Token'
+        }
+
+        # Define optional API keys
+        optional_keys = {
+            'iex_api_key': 'IEX API Key',
+            'tradingeconomics_api_key': 'TradingEconomics API Key',
+            'fred_api_key': 'FRED API Key',
+            'newsapi_api_key': 'NewsAPI API Key',
+            'google_news_api_key': 'Google News API Key',
+            'reddit_client_id': 'Reddit Client ID',
+            'reddit_client_secret': 'Reddit Client Secret'
+        }
+
+        # Validate required keys
+        for field_name, display_name in required_keys.items():
+            if hasattr(config.data_feeds, field_name):
+                api_key = getattr(config.data_feeds, field_name)
+                validation_results['summary']['total'] += 1
+
+                if api_key and isinstance(api_key, str) and api_key.strip():
+                    validation_results['valid'].append({
+                        'key': field_name,
+                        'name': display_name,
+                        'status': 'valid'
+                    })
+                    validation_results['summary']['valid'] += 1
+                else:
+                    validation_results['missing'].append({
+                        'key': field_name,
+                        'name': display_name,
+                        'status': 'missing',
+                        'message': f'{display_name} is required but not provided'
+                    })
+                    validation_results['summary']['missing'] += 1
+
+        # Validate optional keys
+        for field_name, display_name in optional_keys.items():
+            if hasattr(config.data_feeds, field_name):
+                api_key = getattr(config.data_feeds, field_name)
+                if api_key and isinstance(api_key, str) and api_key.strip():
+                    validation_results['valid'].append({
+                        'key': field_name,
+                        'name': display_name,
+                        'status': 'valid'
+                    })
+                    validation_results['summary']['total'] += 1
+                    validation_results['summary']['valid'] += 1
+
+        # Add warnings for missing required keys
+        if validation_results['summary']['missing'] > 0:
+            validation_results['warnings'].append({
+                'type': 'missing_required_keys',
+                'message': f"{validation_results['summary']['missing']} required API keys are missing. Some features may not work properly.",
+                'severity': 'high'
+            })
+
+        # Add fallback recommendation if no keys are provided
+        if validation_results['summary']['valid'] == 0:
+            validation_results['warnings'].append({
+                'type': 'no_api_keys',
+                'message': 'No API keys configured. System will rely on fallback data sources with limited functionality.',
+                'severity': 'medium'
+            })
+
+        return validation_results
+
+    def print_validation_report(self, config: SystemConfig) -> None:
+        """Print a formatted validation report"""
+        results = self.validate_api_keys(config)
+
+        print("\n" + "="*60)
+        print("🔑 API KEY VALIDATION REPORT")
+        print("="*60)
+
+        # Summary
+        summary = results['summary']
+        print(f"\n📊 SUMMARY:")
+        print(f"   Total API Keys: {summary['total']}")
+        print(f"   Valid Keys: {summary['valid']}")
+        print(f"   Missing Keys: {summary['missing']}")
+
+        # Valid keys
+        if results['valid']:
+            print(f"\n✅ VALID API KEYS:")
+            for key_info in results['valid']:
+                print(f"   ✓ {key_info['name']}")
+
+        # Missing keys
+        if results['missing']:
+            print(f"\n❌ MISSING REQUIRED API KEYS:")
+            for key_info in results['missing']:
+                print(f"   ✗ {key_info['name']}")
+
+        # Warnings
+        if results['warnings']:
+            print(f"\n⚠️  WARNINGS:")
+            for warning in results['warnings']:
+                severity_icon = "🔴" if warning['severity'] == 'high' else "🟡"
+                print(f"   {severity_icon} {warning['message']}")
+
+        print("\n" + "="*60)
     
     def _load_configuration(self) -> SystemConfig:
         """Load configuration from all sources"""
@@ -162,14 +299,49 @@ class ConfigurationManager:
         
         # Data feed configuration
         data_config = {}
+
+        # Primary API Keys
         if os.getenv('TWELVEDATA_API_KEY'):
             data_config['twelve_data_api_key'] = os.getenv('TWELVEDATA_API_KEY')
+        if os.getenv('FINANCIALMODELINGPREP_API_KEY'):
+            data_config['financial_modeling_prep_api_key'] = os.getenv('FINANCIALMODELINGPREP_API_KEY')
+        if os.getenv('FINNHUB_API_KEY'):
+            data_config['finnhub_api_key'] = os.getenv('FINNHUB_API_KEY')
+        if os.getenv('ALPHAVANTAGE_API_KEY'):
+            data_config['alphavantage_api_key'] = os.getenv('ALPHAVANTAGE_API_KEY')
+        if os.getenv('POLYGON_API_KEY'):
+            data_config['polygon_api_key'] = os.getenv('POLYGON_API_KEY')
+        if os.getenv('TWITTER_BEARER_TOKEN'):
+            data_config['twitter_bearer_token'] = os.getenv('TWITTER_BEARER_TOKEN')
+
+        # Social Media APIs
         if os.getenv('REDDIT_CLIENT_ID'):
             data_config['reddit_client_id'] = os.getenv('REDDIT_CLIENT_ID')
         if os.getenv('REDDIT_CLIENT_SECRET'):
             data_config['reddit_client_secret'] = os.getenv('REDDIT_CLIENT_SECRET')
-        if os.getenv('TWITTER_BEARER_TOKEN'):
-            data_config['twitter_bearer_token'] = os.getenv('TWITTER_BEARER_TOKEN')
+
+        # Optional API Keys
+        if os.getenv('IEX_API_KEY'):
+            data_config['iex_api_key'] = os.getenv('IEX_API_KEY')
+        if os.getenv('TRADINGECONOMICS_API_KEY'):
+            data_config['tradingeconomics_api_key'] = os.getenv('TRADINGECONOMICS_API_KEY')
+        if os.getenv('FRED_API_KEY'):
+            data_config['fred_api_key'] = os.getenv('FRED_API_KEY')
+        if os.getenv('NEWSAPI_API_KEY'):
+            data_config['newsapi_api_key'] = os.getenv('NEWSAPI_API_KEY')
+        if os.getenv('GOOGLE_NEWS_API_KEY'):
+            data_config['google_news_api_key'] = os.getenv('GOOGLE_NEWS_API_KEY')
+
+        # Configuration Settings
+        if os.getenv('API_REQUEST_TIMEOUT'):
+            data_config['request_timeout'] = int(os.getenv('API_REQUEST_TIMEOUT', 30))
+        if os.getenv('API_MAX_RETRIES'):
+            data_config['max_retries'] = int(os.getenv('API_MAX_RETRIES', 3))
+        if os.getenv('API_RATE_LIMIT_DELAY'):
+            data_config['api_rate_limit_delay'] = float(os.getenv('API_RATE_LIMIT_DELAY', 1.0))
+        if os.getenv('ENABLE_API_FALLBACK'):
+            data_config['enable_api_fallback'] = os.getenv('ENABLE_API_FALLBACK', '').lower() in ('true', '1', 'yes')
+
         if data_config:
             env_config['data_feeds'] = data_config
         
@@ -252,13 +424,63 @@ class ConfigurationManager:
             'EMBEDDING_API_BASE': 'embedding_api_base',
             'OPENAI_API_KEY': 'openai_api_key'
         }
-        
+
         model_config = {}
         for env_key, config_key in model_keys.items():
             if env_key in env_data:
                 model_config[config_key] = env_data[env_key]
         if model_config:
             config['model'] = model_config
+
+        # Data feed configuration
+        data_keys = {
+            # Primary API Keys
+            'TWELVEDATA_API_KEY': 'twelve_data_api_key',
+            'FINANCIALMODELINGPREP_API_KEY': 'financial_modeling_prep_api_key',
+            'FINNHUB_API_KEY': 'finnhub_api_key',
+            'ALPHAVANTAGE_API_KEY': 'alphavantage_api_key',
+            'POLYGON_API_KEY': 'polygon_api_key',
+            'TWITTER_BEARER_TOKEN': 'twitter_bearer_token',
+
+            # Social Media APIs
+            'REDDIT_CLIENT_ID': 'reddit_client_id',
+            'REDDIT_CLIENT_SECRET': 'reddit_client_secret',
+
+            # Optional API Keys
+            'IEX_API_KEY': 'iex_api_key',
+            'TRADINGECONOMICS_API_KEY': 'tradingeconomics_api_key',
+            'FRED_API_KEY': 'fred_api_key',
+            'NEWSAPI_API_KEY': 'newsapi_api_key',
+            'GOOGLE_NEWS_API_KEY': 'google_news_api_key',
+
+            # Configuration Settings
+            'API_REQUEST_TIMEOUT': 'request_timeout',
+            'API_MAX_RETRIES': 'max_retries',
+            'API_RATE_LIMIT_DELAY': 'api_rate_limit_delay',
+            'ENABLE_API_FALLBACK': 'enable_api_fallback'
+        }
+
+        data_config = {}
+        for env_key, config_key in data_keys.items():
+            if env_key in env_data:
+                value = env_data[env_key]
+                # Convert string values to appropriate types
+                if config_key in ['request_timeout', 'max_retries']:
+                    try:
+                        value = int(value)
+                    except (ValueError, TypeError):
+                        value = 30 if config_key == 'request_timeout' else 3
+                elif config_key == 'api_rate_limit_delay':
+                    try:
+                        value = float(value)
+                    except (ValueError, TypeError):
+                        value = 1.0
+                elif config_key == 'enable_api_fallback':
+                    value = value.lower() in ('true', '1', 'yes')
+                data_config[config_key] = value
+
+        if data_config:
+            config['data_feeds'] = data_config
         
         return config
     
@@ -296,7 +518,19 @@ class ConfigurationManager:
         
         # Build data feeds config - filter known fields
         data_feeds_data = config_data.get('data_feeds', {})
-        data_fields = {'twelve_data_api_key', 'reddit_client_id', 'reddit_client_secret', 'twitter_bearer_token', 'cache_ttl_minutes', 'max_retries', 'request_timeout'}
+        data_fields = {
+            # Primary API Keys
+            'twelve_data_api_key', 'financial_modeling_prep_api_key', 'finnhub_api_key',
+            'alphavantage_api_key', 'polygon_api_key', 'twitter_bearer_token',
+            # Social Media APIs
+            'reddit_client_id', 'reddit_client_secret',
+            # Optional API Keys
+            'iex_api_key', 'tradingeconomics_api_key', 'fred_api_key',
+            'newsapi_api_key', 'google_news_api_key',
+            # Configuration Settings
+            'cache_ttl_minutes', 'max_retries', 'request_timeout',
+            'api_rate_limit_delay', 'enable_api_fallback'
+        }
         filtered_data_feeds_data = {k: v for k, v in data_feeds_data.items() if k in data_fields}
         data_feeds = DataFeedConfig(**filtered_data_feeds_data)
         
@@ -339,6 +573,47 @@ def get_data_feeds_config() -> DataFeedConfig:
 def get_optimization_config() -> OptimizationConfig:
     """Get optimization configuration"""
     return get_config().optimization
+
+# Data feed API key convenience functions
+def get_twelve_data_api_key() -> Optional[str]:
+    """Get TwelveData API key"""
+    return get_data_feeds_config().twelve_data_api_key
+
+def get_financial_modeling_prep_api_key() -> Optional[str]:
+    """Get Financial Modeling Prep API key"""
+    return get_data_feeds_config().financial_modeling_prep_api_key
+
+def get_finnhub_api_key() -> Optional[str]:
+    """Get Finnhub API key"""
+    return get_data_feeds_config().finnhub_api_key
+
+def get_alphavantage_api_key() -> Optional[str]:
+    """Get Alpha Vantage API key"""
+    return get_data_feeds_config().alphavantage_api_key
+
+def get_polygon_api_key() -> Optional[str]:
+    """Get Polygon.io API key"""
+    return get_data_feeds_config().polygon_api_key
+
+def get_twitter_bearer_token() -> Optional[str]:
+    """Get Twitter Bearer Token"""
+    return get_data_feeds_config().twitter_bearer_token
+
+def get_reddit_client_id() -> Optional[str]:
+    """Get Reddit Client ID"""
+    return get_data_feeds_config().reddit_client_id
+
+def get_reddit_client_secret() -> Optional[str]:
+    """Get Reddit Client Secret"""
+    return get_data_feeds_config().reddit_client_secret
+
+def validate_api_key_configuration() -> Dict[str, Any]:
+    """Validate the current API key configuration"""
+    return _config_manager.validate_api_keys(get_config())
+
+def print_api_key_validation_report() -> None:
+    """Print a formatted API key validation report"""
+    _config_manager.print_validation_report(get_config())
 
 # Backward compatibility functions
 def get_cache_db_path() -> str:
@@ -402,14 +677,28 @@ PROMPT_OPTIMIZATION_DB_PATH = get_database_config().prompt_optimization_db
 
 # Export configuration classes
 __all__ = [
-    'get_config', 'get_database_config', 'get_model_config', 
+    # Main configuration functions
+    'get_config', 'get_database_config', 'get_model_config',
     'get_data_feeds_config', 'get_optimization_config',
+    'validate_api_key_configuration', 'print_api_key_validation_report',
+
+    # Database path functions
     'get_cache_db_path', 'get_accounts_db_path', 'get_model_monitoring_db_path', 'get_prompt_optimization_db_path',
+
+    # Model configuration functions
     'get_openai_model', 'get_non_embedding_model', 'get_embedding_model',
     'get_openai_api_base', 'get_embedding_api_base', 'get_fallback_models',
     'resolve_model', 'load_config',
+
+    # Data feed API key functions
+    'get_twelve_data_api_key', 'get_financial_modeling_prep_api_key', 'get_finnhub_api_key',
+    'get_alphavantage_api_key', 'get_polygon_api_key', 'get_twitter_bearer_token',
+    'get_reddit_client_id', 'get_reddit_client_secret',
+
+    # Configuration classes
     'SystemConfig', 'DatabaseConfig', 'ModelConfig', 'DataFeedConfig', 'OptimizationConfig',
     'Environment', 'ConfigurationManager',
+
     # Legacy exports
     'OPENAI_MODEL', 'EMBEDDING_MODEL', 'CACHE_DB_PATH', 'ACCOUNTS_DB_PATH',
     'MODEL_MONITORING_DB_PATH', 'PROMPT_OPTIMIZATION_DB_PATH'

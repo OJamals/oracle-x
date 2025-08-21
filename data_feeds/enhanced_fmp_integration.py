@@ -77,10 +77,16 @@ class EnhancedFMPAdapter:
     """Enhanced Financial Modeling Prep API adapter with comprehensive features"""
     
     def __init__(self):
-        self.api_key = os.getenv('FINANCIALMODELINGPREP_API_KEY')
+        # Try to get API key from configuration manager first, then fallback to environment
+        try:
+            from config_manager import get_financial_modeling_prep_api_key
+            self.api_key = get_financial_modeling_prep_api_key()
+        except ImportError:
+            self.api_key = os.getenv('FINANCIALMODELINGPREP_API_KEY')
+
         self.base_url = "https://financialmodelingprep.com/api/v3"
         self.base_url_v4 = "https://financialmodelingprep.com/api/v4"
-        
+
         if not self.api_key:
             logger.warning("FMP API key not found. Some features may be limited.")
     

@@ -287,12 +287,12 @@ class BreakoutStrategy(TradingStrategy):
         super().__init__(name)
         self.parameters = {
             'breakout_period': 20,  # Look for 20-day highs/lows
-            'volume_multiplier': 2.0,  # Volume must be 2x average
+            'volume_multiplier': 1.5,  # Volume must be 1.5x average (reduced for more signals)
             'atr_multiplier': 1.5,  # ATR-based stops
             'min_price_change': 0.03,  # Minimum 3% breakout
             'stop_loss_atr': 2.0,  # 2x ATR stop loss
             'take_profit_ratio': 2.0,  # 2:1 reward/risk ratio
-            'min_confidence': 0.6
+            'min_confidence': 0.4  # Reduced for more signals
         }
     
     def generate_signals(self, data: Dict[str, pd.DataFrame], current_date: datetime) -> List[Dict]:
@@ -339,18 +339,16 @@ class BreakoutStrategy(TradingStrategy):
         recent_high = recent_data['High'].max()
         recent_low = recent_data['Low'].min()
         
-        # Upside breakout
+        # Upside breakout - simplified condition
         upside_breakout = (
-            current_price > recent_high and
-            (current_price / recent_data['Close'].iloc[0] - 1) >= self.parameters['min_price_change'] and
-            volume_ratio >= self.parameters['volume_multiplier']
+            current_price > recent_high and  # Price broke above recent high
+            volume_ratio >= self.parameters['volume_multiplier']  # Volume confirmation
         )
-        
+
         # Downside breakout (for short positions)
         downside_breakout = (
-            current_price < recent_low and
-            (recent_data['Close'].iloc[0] / current_price - 1) >= self.parameters['min_price_change'] and
-            volume_ratio >= self.parameters['volume_multiplier']
+            current_price < recent_low and  # Price broke below recent low
+            volume_ratio >= self.parameters['volume_multiplier']  # Volume confirmation
         )
         
         if upside_breakout:

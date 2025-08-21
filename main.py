@@ -380,3 +380,31 @@ Examples:
 
 if __name__ == "__main__":
     main()
+
+# Dashboard integration function
+def run_oracle_pipeline(prompt_text: str) -> Dict:
+    """Function for dashboard integration - runs standard pipeline with given prompt"""
+    pipeline = OracleXPipeline(mode="standard")
+    try:
+        # Run the pipeline
+        result_file = pipeline.run_standard_pipeline()
+        if result_file and os.path.exists(result_file):
+            # Load the results
+            with open(result_file, 'r') as f:
+                results = json.load(f)
+
+            # Add current date and logs for dashboard compatibility
+            results["date"] = datetime.now().strftime("%Y-%m-%d")
+            results["logs"] = f"Pipeline executed successfully at {datetime.now().isoformat()}"
+
+            return results
+        else:
+            raise Exception("Pipeline execution failed - no results file generated")
+    except Exception as e:
+        print(f"Dashboard pipeline execution failed: {e}")
+        # Return minimal structure for dashboard compatibility
+        return {
+            "date": datetime.now().strftime("%Y-%m-%d"),
+            "playbook": {"trades": [], "tomorrows_tape": "Pipeline execution failed"},
+            "logs": f"Error: {str(e)}"
+        }

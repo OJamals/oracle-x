@@ -1,0 +1,293 @@
+{
+  "results": [
+    {
+      "symbol": "AAPL",
+      "iteration": 1,
+      "processing_time": 5.033907890319824,
+      "sources_count": 9,
+      "sentiment": 0.36139675649753306,
+      "confidence": 0.41217923381129784,
+      "cached": false
+    },
+    {
+      "symbol": "AAPL",
+      "iteration": 2,
+      "processing_time": 8.344650268554688e-06,
+      "sources_count": 9,
+      "sentiment": 0.36139675649753306,
+      "confidence": 0.41217923381129784,
+      "cached": true
+    },
+    {
+      "symbol": "AAPL",
+      "iteration": 3,
+      "processing_time": 2.6226043701171875e-06,
+      "sources_count": 9,
+      "sentiment": 0.36139675649753306,
+      "confidence": 0.41217923381129784,
+      "cached": true
+    },
+    {
+      "symbol": "TSLA",
+      "iteration": 1,
+      "processing_time": 2.0669121742248535,
+      "sources_count": 9,
+      "sentiment": 0.2059189389264117,
+      "confidence": 0.4331148121816682,
+      "cached": false
+    },
+    {
+      "symbol": "TSLA",
+      "iteration": 2,
+      "processing_time": 3.0994415283203125e-06,
+      "sources_count": 9,
+      "sentiment": 0.2059189389264117,
+      "confidence": 0.4331148121816682,
+      "cached": true
+    },
+    {
+      "symbol": "TSLA",
+      "iteration": 3,
+      "processing_time": 7.152557373046875e-07,
+      "sources_count": 9,
+      "sentiment": 0.2059189389264117,
+      "confidence": 0.4331148121816682,
+      "cached": true
+    },
+    {
+      "symbol": "NVDA",
+      "iteration": 1,
+      "processing_time": 2.275132894515991,
+      "sources_count": 9,
+      "sentiment": 0.3431447394583283,
+      "confidence": 0.46078029841407564,
+      "cached": false
+    },
+    {
+      "symbol": "NVDA",
+      "iteration": 2,
+      "processing_time": 4.0531158447265625e-06,
+      "sources_count": 9,
+      "sentiment": 0.3431447394583283,
+      "confidence": 0.46078029841407564,
+      "cached": true
+    },
+    {
+      "symbol": "NVDA",
+      "iteration": 3,
+      "processing_time": 9.5367431640625e-07,
+      "sources_count": 9,
+      "sentiment": 0.3431447394583283,
+      "confidence": 0.46078029841407564,
+      "cached": true
+    },
+    {
+      "symbol": "MSFT",
+      "iteration": 1,
+      "processing_time": 2.166104793548584,
+      "sources_count": 9,
+      "sentiment": 0.3027393716688412,
+      "confidence": 0.4069372021333739,
+      "cached": false
+    },
+    {
+      "symbol": "MSFT",
+      "iteration": 2,
+      "processing_time": 5.9604644775390625e-06,
+      "sources_count": 9,
+      "sentiment": 0.3027393716688412,
+      "confidence": 0.4069372021333739,
+      "cached": true
+    },
+    {
+      "symbol": "MSFT",
+      "iteration": 3,
+      "processing_time": 2.1457672119140625e-06,
+      "sources_count": 9,
+      "sentiment": 0.3027393716688412,
+      "confidence": 0.4069372021333739,
+      "cached": true
+    },
+    {
+      "symbol": "GOOGL",
+      "iteration": 1,
+      "processing_time": 2.2366251945495605,
+      "sources_count": 8,
+      "sentiment": 0.241492489049771,
+      "confidence": 0.3887141142877101,
+      "cached": false
+    },
+    {
+      "symbol": "GOOGL",
+      "iteration": 2,
+      "processing_time": 3.814697265625e-06,
+      "sources_count": 8,
+      "sentiment": 0.241492489049771,
+      "confidence": 0.3887141142877101,
+      "cached": true
+    },
+    {
+      "symbol": "GOOGL",
+      "iteration": 3,
+      "processing_time": 9.5367431640625e-07,
+      "sources_count": 8,
+      "sentiment": 0.241492489049771,
+      "confidence": 0.3887141142877101,
+      "cached": true
+    },
+    {
+      "symbol": "META",
+      "iteration": 1,
+      "processing_time": 2.201772928237915,
+      "sources_count": 9,
+      "sentiment": 0.30980554520244863,
+      "confidence": 0.413212686195028,
+      "cached": false
+    },
+    {
+      "symbol": "META",
+      "iteration": 2,
+      "processing_time": 1.6689300537109375e-06,
+      "sources_count": 9,
+      "sentiment": 0.30980554520244863,
+      "confidence": 0.413212686195028,
+      "cached": true
+    },
+    {
+      "symbol": "META",
+      "iteration": 3,
+      "processing_time": 9.5367431640625e-07,
+      "sources_count": 9,
+      "sentiment": 0.30980554520244863,
+      "confidence": 0.413212686195028,
+      "cached": true
+    },
+    {
+      "symbol": "AMZN",
+      "iteration": 1,
+      "processing_time": 2.114838123321533,
+      "sources_count": 9,
+      "sentiment": 0.25636727559123873,
+      "confidence": 0.4172225569606261,
+      "cached": false
+    },
+    {
+      "symbol": "AMZN",
+      "iteration": 2,
+      "processing_time": 3.0994415283203125e-06,
+      "sources_count": 9,
+      "sentiment": 0.25636727559123873,
+      "confidence": 0.4172225569606261,
+      "cached": true
+    },
+    {
+      "symbol": "AMZN",
+      "iteration": 3,
+      "processing_time": 1.6689300537109375e-06,
+      "sources_count": 9,
+      "sentiment": 0.25636727559123873,
+      "confidence": 0.4172225569606261,
+      "cached": true
+    }
+  ],
+  "performance_stats": {
+    "average_time": 0.8616825739542643,
+    "median_time": 3.814697265625e-06,
+    "min_time": 7.152557373046875e-07,
+    "max_time": 5.033907890319824,
+    "total_requests": 21,
+    "target_met": true
+  },
+  "pipeline_health": {
+    "pipeline_status": "operational",
+    "sources_count": 8,
+    "reddit_available": true,
+    "yahoo_news_available": false,
+    "max_workers": 8,
+    "timeout_seconds": 10,
+    "batch_size": 3,
+    "cache_size": 7,
+    "performance_stats": {
+      "total_requests": 56,
+      "successful_requests": 56,
+      "failed_requests": 0,
+      "average_response_time": 0.9120941635254303,
+      "cache_hits": 14,
+      "cache_misses": 7
+    },
+    "sources": {
+      "twitter": {
+        "source": "twitter_enhanced",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "twitter_feed_status": "available"
+      },
+      "reuters": {
+        "source": "reuters",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "rss_url": "https://www.reuters.com/arc/outboundfeeds/rss/?outputType=xml",
+        "api_url": false,
+        "fallback_feeds_available": 5,
+        "fallback_feeds": [
+          "https://feeds.npr.org/1006/rss.xml",
+          "https://feeds.bloomberg.com/markets/news.rss",
+          "https://rss.cnn.com/rss/edition_business.rss",
+          "https://feeds.marketwatch.com/marketwatch/realtimeheadlines",
+          "https://feeds.businesswire.com/BWTopStories"
+        ],
+        "resilient_mode": true
+      },
+      "marketwatch": {
+        "source": "marketwatch",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "rss_url": "https://feeds.marketwatch.com/marketwatch/topstories/",
+        "api_url": false
+      },
+      "cnn_business": {
+        "source": "cnbc_business",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "rss_url": "https://www.cnbc.com/id/10001147/device/rss/rss.html",
+        "api_url": false
+      },
+      "financial_times": {
+        "source": "financial_times",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "rss_url": "https://www.ft.com/rss/home",
+        "api_url": false
+      },
+      "seeking_alpha": {
+        "source": "seeking_alpha",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "rss_url": "https://seekingalpha.com/feed.xml",
+        "api_url": false
+      },
+      "benzinga": {
+        "source": "benzinga",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "rss_url": "http://feeds.benzinga.com/benzinga",
+        "api_url": false
+      },
+      "fortune": {
+        "source": "fortune",
+        "status": "operational",
+        "advanced_sentiment_available": false,
+        "sentiment_engine_loaded": false,
+        "rss_url": "https://fortune.com/feed/fortune-feeds/?id=3230629",
+        "api_url": false
+      }
+    }
+  }
+}
