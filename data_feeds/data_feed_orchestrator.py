@@ -24,6 +24,7 @@ from collections import defaultdict, deque
 from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
 from data_feeds.twelvedata_adapter import TwelveDataAdapter, TwelveDataThrottled, TwelveDataError  # Enhanced import
 from data_feeds.finviz_adapter import FinVizAdapter  # New import
+from data_feeds.gnews_adapter import GNewsAdapter  # GNews sentiment adapter
 from data_feeds.fallback_manager import FallbackManager, FallbackConfig, FallbackReason  # New import for intelligent fallback
 # Delegate models and feed for consolidation parity
 from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem  # absolute imports as required (avoid Quote name clash)
@@ -215,6 +216,7 @@ class DataSource(Enum):
     SEC_EDGAR = "sec_edgar"
     TWELVE_DATA = "twelve_data"
     FINVIZ = "finviz"
+    GNEWS = "gnews"
 
 class DataQuality(Enum):
     """Data quality levels"""
@@ -518,7 +520,7 @@ class RateLimiter:
             DataSource.FINNHUB: (60, 60),      # 60 calls per minute
             DataSource.IEX_CLOUD: (100, 60),   # 100 calls per minute (free tier)
             DataSource.REDDIT: (60, 60),       # 60 calls per minute
-            DataSource.TWITTER: (100, 900),    # 100 calls per 15 minutes
+            # DataSource.TWITTER: No rate limits - twscrape is rate-limit free
             DataSource.FRED: (120, 60),        # 120 calls per minute
             DataSource.TWELVE_DATA: (60, 60),  # 60 req per 60s (quick-path default)
             DataSource.FINVIZ: (12, 60),       # 12 req per 60s
@@ -1126,10 +1128,10 @@ class TwitterAdapter:
         if cached_data:
             return cached_data
             
-        # Check rate limits
-        if not self.rate_limiter.wait_if_needed(self.source):
-            logger.warning(f"Rate limit exceeded for Twitter sentiment: {symbol}")
-            return None
+        # Skip rate limiting for Twitter since twscrape has no inherent rate limits
+        # if not self.rate_limiter.wait_if_needed(self.source):
+        #     logger.warning(f"Rate limit exceeded for Twitter sentiment: {symbol}")
+        #     return None
             
         start_time = time.time()
         try:
@@ -1311,23 +1313,43 @@ class DataFeedOrchestrator:
         # Initialize persistent cache (SQLite) for long-lived artifacts
         try:
             self.persistent_cache = CacheService(db_path=os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
-# Initialize Redis cache manager for enhanced performance
+        except Exception as e:
+            logger.error(f"Failed to initialize persistent cache: {e}")
+            self.persistent_cache = None
+
+        # Initialize Redis cache manager for enhanced performance
         try:
             self.redis_cache = get_redis_cache_manager()
             if self.redis_cache:
                 logger.info("Redis cache manager initialized successfully")
             else:
-# Initialize cache warming service
+                logger.info("Redis cache manager not available (Redis not installed or disabled)")
+        except Exception as e:
+            logger.error(f"Failed to initialize Redis cache manager: {e}")
+            self.redis_cache = None
+
+        # Initialize cache warming service
         try:
             self.cache_warming_service = get_cache_warming_service(self)
             if self.cache_warming_service:
-# Initialize cache analytics
+                logger.info("Cache warming service initialized successfully")
+            else:
+                logger.info("Cache warming service not enabled")
+        except Exception as e:
+            logger.error(f"Failed to initialize cache warming service: {e}")
+            self.cache_warming_service = None
+
+        # Initialize cache analytics
         try:
             self.cache_metrics, self.cache_optimizer, self.cache_monitor = get_cache_analytics()
             logger.info("Cache analytics initialized successfully")
         except Exception as e:
             logger.error(f"Failed to initialize cache analytics: {e}")
-# Initialize cache invalidation service
+            self.cache_metrics = None
+            self.cache_optimizer = None
+            self.cache_monitor = None
+
+        # Initialize cache invalidation service
         try:
             self.cache_invalidation_service = get_cache_invalidation_service(self.redis_cache, self)
             if self.cache_invalidation_service:
@@ -1337,22 +1359,6 @@ class DataFeedOrchestrator:
         except Exception as e:
             logger.error(f"Failed to initialize cache invalidation service: {e}")
             self.cache_invalidation_service = None
-            self.cache_metrics = None
-            self.cache_optimizer = None
-            self.cache_monitor = None
-                logger.info("Cache warming service initialized successfully")
-            else:
-                logger.info("Cache warming service not enabled")
-        except Exception as e:
-            logger.error(f"Failed to initialize cache warming service: {e}")
-            self.cache_warming_service = None
-                logger.info("Redis cache manager not available (Redis not installed or disabled)")
-        except Exception as e:
-            logger.error(f"Failed to initialize Redis cache manager: {e}")
-            self.redis_cache = None
-        except Exception as e:
-            _log_error_and_record(self.performance_tracker, "advanced_sentiment", "AdvancedSentimentAdapter error", e)
-            return None
         
         # Initialize data source adapters
         self.adapters = {
@@ -1363,6 +1369,7 @@ class DataFeedOrchestrator:
             # New adapters
             DataSource.TWELVE_DATA: TwelveDataAdapter(api_key=os.getenv("TWELVEDATA_API_KEY")),
             DataSource.FINVIZ: FinVizAdapter(),
+            DataSource.GNEWS: GNewsAdapter(),  # Google News sentiment adapter
         }
         # Attempt to add FinVizNewsSentimentAdapter using existing FINVIZ headlines if available
         try:
@@ -2239,9 +2246,10 @@ class DataFeedOrchestrator:
         timings: Dict[str, float] = {}
 
         # Determine order of sentiment sources (default list if none provided)
+        # Exclude FinViz from default sentiment sources as it doesn't implement get_sentiment
         if sources is None:
             logger.debug("No sources provided, using default sentiment sources.")
-        ordered = sources if sources else [DataSource.REDDIT, DataSource.TWITTER, DataSource.YAHOO_NEWS, DataSource.FINVIZ]
+        ordered = sources if sources else [DataSource.REDDIT, DataSource.TWITTER, DataSource.YAHOO_NEWS]
         timings['ordered_list'] = time.time() - step_start
 
         for source in ordered:
@@ -2847,6 +2855,268 @@ class DataFeedOrchestrator:
                 logger.warning(f"[cache] google_trends write failed: {str(e)[:120]}")
         return result
 
+    # ============================================================================
+    # Enhanced Redis-Backed Methods for Improved Performance
+    # ============================================================================
+    
+    def get_enhanced_quote(self, symbol: str, use_redis_cache: bool = True) -> Optional[Quote]:
+        """
+        Get enhanced quote with Redis caching for improved performance.
+        Falls back to regular quote if Redis is unavailable.
+        """
+        if not symbol:
+            return None
+            
+        cache_key = f"enhanced_quote:{symbol}"
+        
+        # Try to get from Redis cache first
+        if use_redis_cache and self.redis_cache:
+            try:
+                cached_data = self.redis_cache.get(cache_key, "quote")
+                if cached_data:
+                    logger.debug(f"Cache hit for enhanced quote: {symbol}")
+                    return cached_data
+            except Exception as e:
+                logger.warning(f"Redis cache read failed for quote {symbol}: {e}")
+        
+        # Get quote using regular method
+        quote = self.get_quote(symbol)
+        
+        # Cache in Redis if available and successful
+        if quote and use_redis_cache and self.redis_cache:
+            try:
+                # Cache for 5 minutes (300 seconds) for quotes
+                self.redis_cache.set("quotes", symbol, quote, "quote", quality_score=90.0)
+                logger.debug(f"Cached enhanced quote for {symbol}")
+            except Exception as e:
+                logger.warning(f"Redis cache write failed for quote {symbol}: {e}")
+        
+        return quote
+    
+    def get_enhanced_market_data(self, symbol: str, period: str = "1y", interval: str = "1d",
+                                use_redis_cache: bool = True) -> Optional[MarketData]:
+        """
+        Get enhanced market data with Redis caching for improved performance.
+        Falls back to regular market data if Redis is unavailable.
+        """
+        if not symbol:
+            return None
+            
+        cache_key = f"enhanced_market_data:{symbol}:{period}:{interval}"
+        
+        # Try to get from Redis cache first
+        if use_redis_cache and self.redis_cache:
+            try:
+                cached_data = self.redis_cache.get(cache_key, "market_data")
+                if cached_data:
+                    logger.debug(f"Cache hit for enhanced market data: {symbol}")
+                    return cached_data
+            except Exception as e:
+                logger.warning(f"Redis cache read failed for market data {symbol}: {e}")
+        
+        # Get market data using regular method
+        market_data = self.get_market_data(symbol, period, interval)
+        
+        # Cache in Redis if available and successful
+        if market_data and use_redis_cache and self.redis_cache:
+            try:
+                # Cache for 1 hour (3600 seconds) for market data
+                ttl = 3600 if interval in ["1d", "1wk", "1mo"] else 300  # Longer TTL for daily data
+                self.redis_cache.set("market_data", f"{symbol}_{period}_{interval}", market_data, "market_data", quality_score=85.0)
+                logger.debug(f"Cached enhanced market data for {symbol}")
+            except Exception as e:
+                logger.warning(f"Redis cache write failed for market data {symbol}: {e}")
+        
+        return market_data
+    
+    def get_enhanced_sentiment_data(self, symbol: str, use_redis_cache: bool = True) -> Dict[str, SentimentData]:
+        """
+        Get enhanced sentiment data with Redis caching for improved performance.
+        Falls back to regular sentiment data if Redis is unavailable.
+        """
+        if not symbol:
+            return {}
+            
+        cache_key = f"enhanced_sentiment:{symbol}"
+        
+        # Try to get from Redis cache first
+        if use_redis_cache and self.redis_cache:
+            try:
+                cached_data = self.redis_cache.get(cache_key, "sentiment")
+                if cached_data:
+                    logger.debug(f"Cache hit for enhanced sentiment: {symbol}")
+                    return cached_data
+            except Exception as e:
+                logger.warning(f"Redis cache read failed for sentiment {symbol}: {e}")
+        
+        # Get sentiment data using regular method
+        sentiment_data = self.get_sentiment_data(symbol)
+        
+        # Cache in Redis if available and successful
+        if sentiment_data and use_redis_cache and self.redis_cache:
+            try:
+                # Cache for 15 minutes (900 seconds) for sentiment data
+                self.redis_cache.set("sentiment", symbol, sentiment_data, "sentiment", quality_score=80.0)
+                logger.debug(f"Cached enhanced sentiment for {symbol}")
+            except Exception as e:
+                logger.warning(f"Redis cache write failed for sentiment {symbol}: {e}")
+        
+        return sentiment_data
+    
+    def get_cache_statistics(self) -> Dict[str, Any]:
+        """
+        Get comprehensive cache statistics including Redis, SmartCache, and performance metrics.
+        """
+        stats = {
+            "timestamp": datetime.now().isoformat(),
+            "smart_cache": {
+                "size": len(self.cache.cache),
+                "hit_rate": 0.0,
+                "miss_rate": 0.0,
+                "evictions": 0
+            },
+            "redis_cache": {
+                "available": self.redis_cache is not None,
+                "connected": False,
+                "size": 0,
+                "memory_usage": 0
+            },
+            "performance_tracker": {
+                "sources_tracked": len(self.performance_tracker.metrics),
+                "total_requests": 0,
+                "total_errors": 0
+            }
+        }
+        
+        # Add SmartCache statistics
+        try:
+            # SmartCache doesn't track hits/misses internally, so we provide basic info
+            stats["smart_cache"]["size"] = len(self.cache.cache)
+            stats["smart_cache"]["hit_rate"] = 0.0  # Not tracked by SmartCache
+            stats["smart_cache"]["miss_rate"] = 0.0  # Not tracked by SmartCache
+        except Exception as e:
+            logger.warning(f"Failed to get SmartCache statistics: {e}")
+        
+        # Add Redis cache statistics
+        if self.redis_cache:
+            try:
+                redis_stats = self.redis_cache.get_cache_stats()
+                if redis_stats and "analytics" in redis_stats:
+                    analytics = redis_stats["analytics"]
+                    stats["redis_cache"].update({
+                        "connected": True,
+                        "hit_rate": analytics.get("hit_rate", 0.0),
+                        "total_requests": analytics.get("total_requests", 0),
+                        "hits": analytics.get("hits", 0),
+                        "misses": analytics.get("misses", 0),
+                        "memory_cache_items": redis_stats.get("memory_cache_items", 0),
+                        "compression_savings": analytics.get("compression_savings_bytes", 0)
+                    })
+            except Exception as e:
+                logger.warning(f"Failed to get Redis cache statistics: {e}")
+        
+        # Add performance tracker statistics
+        try:
+            total_requests = 0
+            total_errors = 0
+            for source_metrics in self.performance_tracker.metrics.values():
+                total_requests += source_metrics.get("success_count", 0) + source_metrics.get("error_count", 0)
+                total_errors += source_metrics.get("error_count", 0)
+            
+            stats["performance_tracker"]["total_requests"] = total_requests
+            stats["performance_tracker"]["total_errors"] = total_errors
+            if total_requests > 0:
+                stats["performance_tracker"]["error_rate"] = total_errors / total_requests
+        except Exception as e:
+            logger.warning(f"Failed to get performance tracker statistics: {e}")
+        
+        return stats
+    
+    def warm_up_popular_tickers(self, symbols: Optional[List[str]] = None):
+        """
+        Warm up cache with popular ticker data for improved performance.
+        If no symbols provided, uses a default list of popular tickers.
+        """
+        if symbols is None:
+            # Default popular tickers
+            symbols = [
+                "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA", "NFLX",
+                "AMD", "INTC", "QCOM", "CRM", "ADBE", "PYPL", "ZM", "SPOT",
+                "SPY", "QQQ", "IWM", "VTI", "BTC-USD", "ETH-USD"
+            ]
+        
+        if not symbols:
+            logger.warning("No symbols provided for cache warming")
+            return
+        
+        logger.info(f"Starting cache warm-up for {len(symbols)} symbols")
+        
+        # Use cache warming service if available
+        if self.cache_warming_service:
+            try:
+                # Use the private _warm_up_at_market_open method as it's the most appropriate
+                self.cache_warming_service._warm_up_at_market_open()
+                logger.info("Cache warming completed via cache warming service")
+                return
+            except Exception as e:
+                logger.warning(f"Cache warming service failed, falling back to manual warming: {e}")
+        
+        # Manual cache warming
+        warmed_count = 0
+        for symbol in symbols:
+            try:
+                # Warm up quote data
+                quote = self.get_enhanced_quote(symbol, use_redis_cache=True)
+                if quote:
+                    warmed_count += 1
+                
+                # Warm up basic market data
+                market_data = self.get_enhanced_market_data(symbol, period="1y", interval="1d", use_redis_cache=True)
+                
+                # Warm up sentiment data (but don't count failures heavily)
+                try:
+                    self.get_enhanced_sentiment_data(symbol, use_redis_cache=True)
+                except Exception:
+                    pass  # Sentiment data might not be available for all symbols
+                
+            except Exception as e:
+                logger.warning(f"Failed to warm cache for {symbol}: {e}")
+        
+        logger.info(f"Cache warm-up completed: {warmed_count}/{len(symbols)} symbols processed")
+    
+    def clear_enhanced_cache(self):
+        """
+        Clear enhanced cache layers including Redis and SmartCache.
+        """
+        cleared_items = 0
+        
+        # Clear Redis cache
+        if self.redis_cache:
+            try:
+                self.redis_cache.clear_cache()
+                logger.info("Cleared Redis cache")
+                cleared_items += 1  # Count successful clear operation
+            except Exception as e:
+                logger.error(f"Failed to clear Redis cache: {e}")
+        
+        # Clear SmartCache
+        try:
+            self.cache.cache.clear()  # Clear the internal cache dictionary
+            logger.info("Cleared SmartCache")
+        except Exception as e:
+            logger.error(f"Failed to clear SmartCache: {e}")
+        
+        # Clear persistent cache if available
+        if self.persistent_cache:
+            try:
+                # Note: This would clear the entire persistent cache database
+                # In practice, you might want to be more selective
+                logger.info("Persistent cache clear would require database-specific operations")
+            except Exception as e:
+                logger.error(f"Failed to clear persistent cache: {e}")
+        
+        logger.info(f"Enhanced cache clear completed. Total items cleared: {cleared_items}")
+
 # ----------------------------------------------------------------------------
 # New delegation methods to ConsolidatedDataFeed for compatibility during consolidation
 # ----------------------------------------------------------------------------
@@ -2937,144 +3207,10 @@ def get_finviz_insider_trading() -> Optional[pd.DataFrame]:
     """Get FinViz insider trading data (unified interface)"""
     return get_orchestrator().get_finviz_insider_trading()
 
-def get_enhanced_quote(self, symbol: str, use_redis_cache: bool = True) -> Optional[Quote]:
-        """Get quote with enhanced Redis caching for popular ticker data"""
-        # First try Redis cache if enabled
-        if use_redis_cache and self.redis_cache:
-            cache_key = f"enhanced_quote_{symbol}"
-            cached_data = self.redis_cache.get("enhanced_quotes", cache_key, "ticker_data")
-            if cached_data:
-                logger.debug(f"Redis cache hit for enhanced quote: {symbol}")
-                return cached_data
+# ----------------------------------------------------------------------------
+# Enhanced unified interface functions (Backward Compatibility)
+# ----------------------------------------------------------------------------
 
-        # Fall back to regular quote with enhanced caching
-        quote = self.get_quote(symbol)
-
-        # Cache in Redis if successful and enabled
-        if quote and use_redis_cache and self.redis_cache:
-            cache_key = f"enhanced_quote_{symbol}"
-            self.redis_cache.set("enhanced_quotes", cache_key, quote, "ticker_data", quote.quality_score or 100.0)
-            logger.debug(f"Cached enhanced quote in Redis: {symbol}")
-
-        return quote
-
-    def get_enhanced_market_data(self, symbol: str, period: str = "1y", interval: str = "1d",
-                               use_redis_cache: bool = True) -> Optional[MarketData]:
-        """Get market data with enhanced Redis caching for popular ticker data"""
-        # First try Redis cache if enabled
-        if use_redis_cache and self.redis_cache:
-            cache_key = f"enhanced_market_data_{symbol}_{period}_{interval}"
-            cached_data = self.redis_cache.get("enhanced_market_data", cache_key, "market_data")
-            if cached_data:
-                logger.debug(f"Redis cache hit for enhanced market data: {symbol}")
-                return cached_data
-
-        # Fall back to regular market data with enhanced caching
-        market_data = self.get_market_data(symbol, period, interval)
-
-        # Cache in Redis if successful and enabled
-        if market_data and use_redis_cache and self.redis_cache:
-            cache_key = f"enhanced_market_data_{symbol}_{period}_{interval}"
-            self.redis_cache.set("enhanced_market_data", cache_key, market_data, "market_data", market_data.quality_score)
-            logger.debug(f"Cached enhanced market data in Redis: {symbol}")
-
-        return market_data
-
-    def get_enhanced_sentiment_data(self, symbol: str, use_redis_cache: bool = True) -> Dict[str, SentimentData]:
-        """Get sentiment data with enhanced Redis caching for popular ticker data"""
-        # First try Redis cache if enabled
-        if use_redis_cache and self.redis_cache:
-            cache_key = f"enhanced_sentiment_{symbol}"
-            cached_data = self.redis_cache.get("enhanced_sentiment", cache_key, "sentiment")
-            if cached_data:
-                logger.debug(f"Redis cache hit for enhanced sentiment: {symbol}")
-                return cached_data
-
-        # Fall back to regular sentiment data with enhanced caching
-        sentiment_data = self.get_sentiment_data(symbol)
-
-        # Cache in Redis if successful and enabled
-        if sentiment_data and use_redis_cache and self.redis_cache:
-            cache_key = f"enhanced_sentiment_{symbol}"
-            # Calculate average quality score
-            quality_scores = [data.quality_score or 0 for data in sentiment_data.values()]
-            avg_quality = sum(quality_scores) / len(quality_scores) if quality_scores else 100.0
-
-            self.redis_cache.set("enhanced_sentiment", cache_key, sentiment_data, "sentiment", avg_quality)
-            logger.debug(f"Cached enhanced sentiment in Redis: {symbol}")
-
-        return sentiment_data
-
-    def get_cache_statistics(self) -> Dict[str, Any]:
-        """Get comprehensive cache statistics including Redis metrics"""
-        stats = {
-            'memory_cache_size': len(self.cache.cache),
-            'memory_cache_ttl_settings': self.cache.ttl_settings,
-            'persistent_cache_available': self.persistent_cache is not None,
-            'redis_cache_available': self.redis_cache is not None,
-        }
-
-        # Add Redis statistics if available
-        if self.redis_cache:
-            try:
-                redis_stats = self.redis_cache.get_cache_stats()
-                stats.update(redis_stats)
-            except Exception as e:
-                logger.debug(f"Failed to get Redis stats: {e}")
-                stats['redis_error'] = str(e)
-
-        return stats
-
-    def warm_up_popular_tickers(self, symbols: Optional[List[str]] = None):
-        """Warm up cache with popular ticker data"""
-        if not symbols:
-            # Default popular symbols
-            symbols = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX']
-
-        logger.info(f"Warming up cache for {len(symbols)} popular tickers")
-
-        for symbol in symbols:
-            try:
-                # Warm up quotes
-                quote = self.get_enhanced_quote(symbol)
-                if quote:
-                    logger.debug(f"Warmed up quote cache for {symbol}")
-
-                # Warm up market data (lightweight)
-                market_data = self.get_enhanced_market_data(symbol, period="1mo", interval="1d")
-                if market_data is not None:
-                    logger.debug(f"Warmed up market data cache for {symbol}")
-
-                # Warm up sentiment data
-                sentiment = self.get_enhanced_sentiment_data(symbol)
-                if sentiment:
-                    logger.debug(f"Warmed up sentiment cache for {symbol}")
-
-            except Exception as e:
-                logger.warning(f"Failed to warm up cache for {symbol}: {e}")
-
-        # Warm up Redis cache if available
-        if self.redis_cache:
-            try:
-                self.redis_cache.warm_cache(symbols)
-            except Exception as e:
-                logger.warning(f"Failed to warm up Redis cache: {e}")
-
-        logger.info("Cache warm-up completed")
-
-    def clear_enhanced_cache(self):
-        """Clear enhanced cache layers"""
-        # Clear Redis cache
-        if self.redis_cache:
-            try:
-                self.redis_cache.clear_cache()
-                logger.info("Redis enhanced cache cleared")
-            except Exception as e:
-                logger.error(f"Failed to clear Redis cache: {e}")
-
-        # Clear memory cache (existing SmartCache)
-        self.cache = SmartCache(self.cache.ttl_settings)
-        logger.info("Memory enhanced cache cleared")
 def get_finviz_earnings() -> Optional[Dict[str, pd.DataFrame]]:
     """Get FinViz earnings data (unified interface)"""
     return get_orchestrator().get_finviz_earnings()
@@ -3111,16 +3247,3 @@ def warm_up_popular_tickers(symbols: Optional[List[str]] = None):
 def clear_enhanced_cache():
     """Clear enhanced cache layers (unified interface)"""
     return get_orchestrator().clear_enhanced_cache()
-def track_symbol_access(self, symbol: str):
-        """Track symbol access for cache warming optimization"""
-        if self.cache_warming_service:
-            self.cache_warming_service.track_access(symbol)
-def get_cache_performance_report() -> Dict[str, Any]:
-    """Get comprehensive cache performance report (unified interface)"""
-    return get_orchestrator().get_cache_performance_report()
-def get_invalidation_stats() -> Dict[str, Any]:
-    """Get cache invalidation statistics (unified interface)"""
-    orchestrator = get_orchestrator()
-    if orchestrator.cache_invalidation_service:
-        return orchestrator.cache_invalidation_service.get_invalidation_stats()
-    return {"error": "Cache invalidation service not available"}

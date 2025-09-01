@@ -10,6 +10,14 @@ import plotly.express as px
 
 # Add parent dir to sys.path for backend import
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+# Import environment configuration
+try:
+    from env_config import load_config
+    config = load_config()
+except Exception:
+    config = {}
+
 # Defer importing the main pipeline runner until the Streamlit UI is actively running
 # This prevents importing and triggering Streamlit script-runner context when the
 # backend CLI (python main.py) imports the dashboard module.
@@ -24,8 +32,15 @@ except Exception:
 # === CONFIG ===
 PLAYBOOKS_DIR = "playbooks/"
 SIGNALS_DIR = "signals/"
-QDRANT_URL = "http://localhost:6333/collections"
-QWEN3_URL = "http://localhost:8000/v1/models"
+
+# Load service URLs from environment configuration
+QDRANT_URL = config.get('QDRANT_URL', 'http://localhost:6333')
+QDRANT_COLLECTIONS_URL = f"{QDRANT_URL}/collections"
+QDRANT_API_KEY = config.get('QDRANT_API_KEY')
+
+# LLM service URLs from config
+OPENAI_API_BASE = config.get('OPENAI_API_BASE', 'https://api.openai.com')
+EMBEDDING_API_BASE = config.get('EMBEDDING_API_BASE', OPENAI_API_BASE)
 
 # === UTILS ===
 def list_playbooks():
@@ -73,17 +88,45 @@ def get_latest_file_info(directory):
     return latest, mod_time
 
 def check_service(url, api_key=None):
+    """Check service health with proper authentication for different service types."""
+    
+    # Special handling for different service types
+    if 'qdrant' in url.lower() or ':6333' in url:
+        # Use QdrantClient for Qdrant instead of raw HTTP
+        try:
+            from qdrant_client import QdrantClient
+            client = QdrantClient(
+                url=url.replace('/collections', '').replace('/health', ''),
+                api_key=api_key or config.get('QDRANT_API_KEY')
+            )
+            collections = client.get_collections()
+            print(f"[DEBUG] Qdrant health check via client: SUCCESS, {len(collections.collections)} collections")
+            return True
+        except Exception as e:
+            print(f"[DEBUG] Qdrant health check error: {e}")
+            return False
+    
+    # Regular HTTP health check for other services
     headers = {}
     if api_key:
-        headers["api-key"] = api_key
+        # Try both header formats
+        if 'api-key' in url or 'twelvedata' in url:
+            # For APIs that use query parameters (like TwelveData)
+            if '?' in url:
+                url += f"&apikey={api_key}"
+            else:
+                url += f"?apikey={api_key}"
+        else:
+            # For APIs that use headers
+            headers["Authorization"] = f"Bearer {api_key}"
+    
     try:
-        resp = requests.get(url, timeout=2, headers=headers)
+        resp = requests.get(url, timeout=5, headers=headers)
         print(f"[DEBUG] {url} status_code: {resp.status_code}, response: {resp.text[:200]}")
-        if resp.status_code == 200:
-            return True
+        return resp.status_code == 200
     except Exception as e:
         print(f"[DEBUG] check_service error for {url}: {e}")
-    return False
+        return False
 
 def auto_generate_market_summary():
     # Try to use latest playbook or signals for a summary, else fallback

@@ -106,7 +106,10 @@ class TestOptimizedPromptChain(unittest.TestCase):
             
             # Test with proper parameters
             optimized_signals = get_signals_from_scrapers_optimized("test prompt", "chart_data")
-            self.assertIsInstance(optimized_signals, list)
+            self.assertIsInstance(optimized_signals, dict)
+            # Check that optimization metadata was added
+            self.assertIn('_market_condition', optimized_signals)
+            self.assertIn('_optimization_metadata', optimized_signals)
     
     def test_scenario_tree_optimization(self):
         """Test scenario tree adjustment optimization"""
@@ -117,8 +120,14 @@ class TestOptimizedPromptChain(unittest.TestCase):
             
             # Convert signals to dict format
             signals_dict = {"signals": self.mock_signals}
-            optimized_tree = adjust_scenario_tree_optimized(signals_dict, "similar_scenarios")
-            self.assertIsInstance(optimized_tree, dict)
+            content, metadata = adjust_scenario_tree_optimized(signals_dict, "similar_scenarios")
+            
+            # Test the tuple return format
+            self.assertIsInstance(content, str)
+            self.assertIsInstance(metadata, dict)
+            self.assertGreater(len(content), 0)
+            self.assertIn('prompt_metadata', metadata)
+            self.assertIn('market_condition', metadata)
     
     def test_playbook_generation_optimization(self):
         """Test optimized playbook generation"""
@@ -131,12 +140,13 @@ class TestOptimizedPromptChain(unittest.TestCase):
             signals_dict = {"signals": self.mock_signals}
             scenario_tree_str = json.dumps(self.mock_scenario_tree)
             
-            playbook = generate_final_playbook_optimized(
+            playbook, metadata = generate_final_playbook_optimized(
                 signals_dict, 
                 scenario_tree_str, 
                 "gpt-4"
             )
             self.assertIsInstance(playbook, str)
+            self.assertIsInstance(metadata, dict)
             self.assertGreater(len(playbook), 0)
 
 class TestOptimizedAgent(unittest.TestCase):
@@ -162,7 +172,7 @@ class TestOptimizedAgent(unittest.TestCase):
             mock_signals.return_value = []
             
             with patch('oracle_engine.prompt_chain_optimized.generate_final_playbook_optimized') as mock_playbook:
-                mock_playbook.return_value = "Test playbook output"
+                mock_playbook.return_value = ("Test playbook output", {"mock": "metadata"})
                 
                 playbook, metadata = self.agent.oracle_agent_pipeline_optimized(
                     test_prompt, None, enable_experiments=False
@@ -269,7 +279,7 @@ class PerformanceBenchmark:
                 mock_signals.return_value = []
                 
                 with patch('oracle_engine.prompt_chain_optimized.generate_final_playbook_optimized') as mock_playbook:
-                    mock_playbook.return_value = f"Test output {i}"
+                    mock_playbook.return_value = (f"Test output {i}", {"mock": "metadata"})
                     
                     playbook, metadata = agent.oracle_agent_pipeline_optimized(
                         f"Test prompt {i}", None, enable_experiments=False

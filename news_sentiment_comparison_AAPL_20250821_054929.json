@@ -1,0 +1,168 @@
+{
+  "symbol": "AAPL",
+  "timestamp": "2025-08-21T05:49:29.768680",
+  "current_sources": [
+    {
+      "name": "Current-reddit",
+      "description": "Oracle-X reddit source",
+      "articles_count": 3,
+      "sentiment_score": 0.9218999999999999,
+      "confidence": 0.56,
+      "sample_headlines": [
+        "Think I\u2019m gonna sell half of my SOXX for some BATT Brand new to this, have been lurking here and keeping up with yahoo finance, chatgpt, friends who k...",
+        "$100k to run a covered calls strategy - looking for advice I\u2019ll have a little over $100k to start by end of this year and would like to deploy it on a...",
+        "The risk of selling weekly ATM covered calls on AAPL inside a Roth The idea is to sell weekly at-the-money covered calls on Apple. The premiums look a..."
+      ],
+      "processing_time": 2.86102294921875e-06,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-twitter",
+      "description": "Oracle-X twitter source",
+      "articles_count": 20,
+      "sentiment_score": 0.40058,
+      "confidence": 0.8600757894,
+      "sample_headlines": [
+        "Another setup hit \u2014 $WLGS ripped off entry.\n\n+54% locked in from clean execution.\n\n[URL]",
+        "\ud83e\udd6f\u25b6\nHe's a finance professor @AlemMerhawit.I made $100,000 in two weeks by buying the stocks he recom...",
+        "Daily Market Snapshot: August 21, 2025\n$SPX  $NDAQ $DIA $SIVR $GLD $BLK $XLE $SCHW $VTI $JPM $BAC $G...",
+        "\ud83d\ude80 S&amp;P 500 Top Gainers Today (8/21)\n \n\ud83d\udee1 $PANW +14.8%\n\ud83d\udca1 $NVDA +8.5%\n\ud83d\ude97 $TSLA +7.3%\n\ud83e\uddec $MRNA +9.3%\n \n...",
+        "@novembergain @lwsresearch GLNG has done better than AAPL or TSLA YTD, it's paying dividend and soon..."
+      ],
+      "processing_time": 1.9073486328125e-06,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-yahoo_news",
+      "description": "Oracle-X yahoo_news source",
+      "articles_count": 36,
+      "sentiment_score": -0.04217222222222223,
+      "confidence": 0.95,
+      "sample_headlines": [
+        " News",
+        " Life",
+        " Entertainment",
+        "  Finance",
+        " Sports"
+      ],
+      "processing_time": 0.0,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-Advanced",
+      "description": "Oracle-X Advanced Sentiment (aggregated)",
+      "articles_count": 63,
+      "sentiment_score": 0.20807042416531804,
+      "confidence": 0.3919399394342634,
+      "sample_headlines": [],
+      "processing_time": 4.249706029891968,
+      "quality_score": 85.0,
+      "error": null
+    }
+  ],
+  "gnews_results": [
+    {
+      "name": "GNews-Keyword",
+      "description": "GNews keyword search for AAPL",
+      "articles_count": 30,
+      "sentiment_score": 0.15731666666666666,
+      "confidence": 0.95,
+      "sample_headlines": [
+        "Jim Cramer Says Reports Of Apple Inc. (AAPL)\u2019s \u201cDeath\u201d Are Overblown - Yahoo Finance",
+        "Apple's AI Supercycle Is Just Getting Started (NASDAQ:AAPL) - Seeking Alpha",
+        "U.S. Tariffs on India Could Backfire, Putting Apple (AAPL) and Tech Giants at Risk - TipRanks",
+        "Bank of America Reiterates Buy on Apple (AAPL), Citing Services as Key Growth Driver - MSN",
+        "AAPL Stock Jumps $6.39 After Hours \u2013 Trading Like SPX Now? - The Tradable"
+      ],
+      "processing_time": 9.779230117797852,
+      "quality_score": 96.49999999999999,
+      "error": null
+    },
+    {
+      "name": "GNews-Keyword",
+      "description": "GNews keyword search for $AAPL",
+      "articles_count": 30,
+      "sentiment_score": 0.21872333333333333,
+      "confidence": 0.95,
+      "sample_headlines": [
+        "Jim Cramer Says Reports Of Apple Inc. (AAPL)\u2019s \u201cDeath\u201d Are Overblown - Yahoo Finance",
+        "Apple's AI Supercycle Is Just Getting Started (NASDAQ:AAPL) - Seeking Alpha",
+        "U.S. Tariffs on India Could Backfire, Putting Apple (AAPL) and Tech Giants at Risk - TipRanks",
+        "Bank of America Reiterates Buy on Apple (AAPL), Citing Services as Key Growth Driver - MSN",
+        "AAPL Stock Jumps $6.39 After Hours \u2013 Trading Like SPX Now? - The Tradable"
+      ],
+      "processing_time": 9.604460954666138,
+      "quality_score": 96.49999999999999,
+      "error": null
+    },
+    {
+      "name": "GNews-BUSINESS",
+      "description": "GNews BUSINESS topic news",
+      "articles_count": 30,
+      "sentiment_score": -0.04138666666666667,
+      "confidence": 0.9,
+      "sample_headlines": [
+        "Trump housing regulator accuses Fed governor Cook of mortgage fraud - Axios",
+        "Palantir shorts reap billions amid selloff - report (PLTR:NASDAQ) - Seeking Alpha",
+        "Target CEO steps down as company faces weak sales and customer boycott - The Guardian",
+        "Walmart will report earnings before the bell. Here's what to expect - CNBC",
+        "Minutes of the Federal Open Market Committee, July 29\u201330, 2025 - Federal Reserve Board (.gov)"
+      ],
+      "processing_time": 8.320030927658081,
+      "quality_score": 94.0,
+      "error": null
+    },
+    {
+      "name": "GNews-TECHNOLOGY",
+      "description": "GNews TECHNOLOGY topic news",
+      "articles_count": 6,
+      "sentiment_score": 0.002983333333333338,
+      "confidence": 0.24,
+      "sample_headlines": [
+        "Every Piece of Pixel Hardware Announced at Made by Google 2025 - CNET",
+        "Microsoft reportedly fixing SSD failures caused by Windows updates - BleepingComputer",
+        "Humans intervened every 9 minutes in AAA test of driver assists - Ars Technica",
+        "PlayStation 5 price changes in the U.S. - PlayStation.Blog",
+        "Google brings improved Gemini features to its new Pixel Buds - TechCrunch"
+      ],
+      "processing_time": 1.6977100372314453,
+      "quality_score": 22.400000000000002,
+      "error": null
+    },
+    {
+      "name": "GNews-FINANCE",
+      "description": "GNews FINANCE topic news",
+      "articles_count": 30,
+      "sentiment_score": -0.03751,
+      "confidence": 0.9,
+      "sample_headlines": [
+        "Dow Set to Open Down Ahead of Fed's Jackson Hole Summit - Barron's",
+        "Palantir (PLTR) Stock Under Fire as Citron Warns Valuation Still Too High - Yahoo Finance",
+        "NZD/USD weakens below 0.5850 on dovish RBNZ cut - FXStreet",
+        "Trump Considers Firing Fed Official After Accusation of Mortgage Fraud - The Wall Street Journal",
+        "Forex Today: US Dollar edges higher as focus shifts to PMI data - FXStreet"
+      ],
+      "processing_time": 10.205559968948364,
+      "quality_score": 94.0,
+      "error": null
+    }
+  ],
+  "performance_metrics": {
+    "total_current_articles": 122,
+    "total_gnews_articles": 126,
+    "avg_current_quality": 77.5,
+    "avg_gnews_quality": 80.67999999999999,
+    "avg_current_processing_time": 1.0624276995658875,
+    "avg_gnews_processing_time": 7.921398401260376,
+    "current_sources_count": 4,
+    "gnews_sources_count": 5
+  },
+  "recommendations": [
+    "\u2705 GNews shows higher average quality scores",
+    "\u26a0\ufe0f GNews is significantly slower than current sources",
+    "\u2705 GNews provides good article volume per topic"
+  ]
+}

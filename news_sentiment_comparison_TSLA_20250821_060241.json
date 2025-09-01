@@ -1,0 +1,168 @@
+{
+  "symbol": "TSLA",
+  "timestamp": "2025-08-21T06:02:41.658527",
+  "current_sources": [
+    {
+      "name": "Current-reddit",
+      "description": "Oracle-X reddit source",
+      "articles_count": 4,
+      "sentiment_score": 0.45052499999999995,
+      "confidence": 0.58,
+      "sample_headlines": [
+        "Eli Lilly $LLY Insiders bought the dip Insiders are also buying: $NUV, $IONQ, $AIFU, $TSLA, $OVLY, $UBFO",
+        "$TSLA: Tesla Pivot Point, Declining Auto EV vs. Batteries, RoboTaxi & Robots **TSLA $335.16**  \nShares Outstanding: 3.2 billion  \nMarket Capitalizatio...",
+        "Options Questions Safe Haven periodic megathread | August 18 2025 We *call* this the weekly Safe Haven thread, but it might stay up for more than a we..."
+      ],
+      "processing_time": 9.5367431640625e-07,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-twitter",
+      "description": "Oracle-X twitter source",
+      "articles_count": 20,
+      "sentiment_score": 0.12274499999999999,
+      "confidence": 0.880434995525,
+      "sample_headlines": [
+        "\u0643\u064a\u0641  \u0648\u0636\u0639 \u0633\u0647\u0645\u0643 \u0627\u0644\u064a\u0648\u0645 \u2753\n\n$SPX $BTC $SPY $LCID $HOLO $NVDA $TSLA $MSTR $CRWV $INTC $LLY $KOSS $CSCO $BB...",
+        "\u0645\u0646 \u0645\u0639\u0647 \u0633\u0647\u0645 \n$ODFL\n  $CFLT \n $FTV\n$CHTR \n $TSN \n $DOW\n$IT\n  $CPRT\n $DEO\n\u0627\u0631\u0633\u0644\u0649 \u0627\u0644\u062d\u064a\u0646 \u0648\u0627\u0628\u0634\u0631 \ud83d\udcaf\u2705\u2705\u2705\n\n$TSLA...",
+        "$THAR\n\n\u0642\u0645\u062a\u0647 \u0639\u0646\u062f : 5.41\n\n\u0627\u0630\u0627 \u062a\u062c\u0627\u0648\u0632\u0647\u0627 \u064a\u062d\u0642\u0642 : 6\n\n\u062a\u0628\u064a \u062a\u0639\u0631\u0641 \u0648\u0634 \u0633\u0627\u0644\u0641\u0629 \u0627\u0644\u0633\u0647\u0645 \u0648\u0645\u0633\u0627\u0631\u0629 \u0631\u0627\u0633\u0644\u0646\u064a \u0627\u0644\u062d\u064a\u0646 \u0648\u0628\u0641\u064a\u062f\u0643 \u0644\u0648\u062c...",
+        "\ud83d\udea8\uc18d\ubcf4: \ud14c\uc2ac\ub77c \uc911\uad6d, \ucc28\ub7c9 \ub0b4 \uc74c\uc131 \ube44\uc11c\ub85c \ub525\uc2dc\ud06c(DeepSeek) \ud1b5\ud569 \uc900\ube44 \uc911! $TSLA",
+        "\ud83d\udea8BREAKING: TESLA CHINA GEARS UP TO INTEGRATE DEEPSEEK AS VOICE ASSISTANT IN ITS VEHICLES! $TSLA"
+      ],
+      "processing_time": 9.5367431640625e-07,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-yahoo_news",
+      "description": "Oracle-X yahoo_news source",
+      "articles_count": 40,
+      "sentiment_score": -0.041817499999999994,
+      "confidence": 0.95,
+      "sample_headlines": [
+        " News",
+        " Life",
+        " Entertainment",
+        "  Finance",
+        " Sports"
+      ],
+      "processing_time": 9.5367431640625e-07,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-Advanced",
+      "description": "Oracle-X Advanced Sentiment (aggregated)",
+      "articles_count": 62,
+      "sentiment_score": 0.030907734831993026,
+      "confidence": 0.3167627116737058,
+      "sample_headlines": [],
+      "processing_time": 2.4614789485931396,
+      "quality_score": 85.0,
+      "error": null
+    }
+  ],
+  "gnews_results": [
+    {
+      "name": "GNews-Keyword",
+      "description": "GNews keyword search for TSLA",
+      "articles_count": 30,
+      "sentiment_score": 0.2152133333333333,
+      "confidence": 0.95,
+      "sample_headlines": [
+        "Keystone Global Partners LLC Buys New Holdings in Tesla, Inc. $TSLA - MarketBeat",
+        "Tesla (TSLA) Expands Model Y Lineup in China Amid Intensifying EV Competition - Yahoo Finance",
+        "Tesla Launched A New Model Y But Musk Says It 'Might Not Ever' Come To U.S. For This Reason - Investor's Business Daily",
+        "Tesla Stock (TSLA) Near $245: Margin Pressure and Policy Risks - tradingnews.com",
+        "Tesla (TSLA) Expands Model Y Lineup in China Amid Intensifying EV Competition - MSN"
+      ],
+      "processing_time": 9.17986512184143,
+      "quality_score": 96.49999999999999,
+      "error": null
+    },
+    {
+      "name": "GNews-Keyword",
+      "description": "GNews keyword search for $TSLA",
+      "articles_count": 30,
+      "sentiment_score": 0.25649333333333335,
+      "confidence": 0.95,
+      "sample_headlines": [
+        "Keystone Global Partners LLC Buys New Holdings in Tesla, Inc. $TSLA - MarketBeat",
+        "Tesla (TSLA) Expands Model Y Lineup in China Amid Intensifying EV Competition - Yahoo Finance",
+        "Tesla Stock (TSLA) Near $245: Margin Pressure and Policy Risks - tradingnews.com",
+        "Tesla (TSLA) Expands Model Y Lineup in China Amid Intensifying EV Competition - MSN",
+        "Tesla, Inc. ($TSLA) Stock: Model Y L Launch in China, Robotaxi Push, and Musk\u2019s Political Shift - CoinCentral"
+      ],
+      "processing_time": 9.133064270019531,
+      "quality_score": 96.49999999999999,
+      "error": null
+    },
+    {
+      "name": "GNews-BUSINESS",
+      "description": "GNews BUSINESS topic news",
+      "articles_count": 30,
+      "sentiment_score": -0.04828666666666667,
+      "confidence": 0.9,
+      "sample_headlines": [
+        "Trump team makes mortgage fraud its newest revenge tool - Axios",
+        "Palantir shorts reap billions amid selloff - report (PLTR:NASDAQ) - Seeking Alpha",
+        "Target CEO to step down as sales remain sluggish - ABC News",
+        "Walmart will report earnings before the bell. Here's what to expect - CNBC",
+        "Minutes of the Federal Open Market Committee, July 29\u201330, 2025 - Federal Reserve Board (.gov)"
+      ],
+      "processing_time": 6.605001926422119,
+      "quality_score": 94.0,
+      "error": null
+    },
+    {
+      "name": "GNews-TECHNOLOGY",
+      "description": "GNews TECHNOLOGY topic news",
+      "articles_count": 6,
+      "sentiment_score": 0.002983333333333338,
+      "confidence": 0.24,
+      "sample_headlines": [
+        "Every Piece of Pixel Hardware Announced at Made by Google 2025 - CNET",
+        "Humans intervened every 9 minutes in AAA test of driver assists - Ars Technica",
+        "Microsoft reportedly fixing SSD failures caused by Windows updates - BleepingComputer",
+        "PlayStation 5 price changes in the U.S. - PlayStation.Blog",
+        "Google brings improved Gemini features to its new Pixel Buds - TechCrunch"
+      ],
+      "processing_time": 1.4849216938018799,
+      "quality_score": 22.400000000000002,
+      "error": null
+    },
+    {
+      "name": "GNews-FINANCE",
+      "description": "GNews FINANCE topic news",
+      "articles_count": 30,
+      "sentiment_score": -0.02413666666666667,
+      "confidence": 0.9,
+      "sample_headlines": [
+        "Dow Set to Open Down Ahead of Fed's Jackson Hole Summit - Barron's",
+        "Palantir (PLTR) Stock Under Fire as Citron Warns Valuation Still Too High - Yahoo Finance",
+        "Forex Today: US Dollar edges higher as focus shifts to PMI data - FXStreet",
+        "NZD/JPY Technical: Further Kiwi weakness, torpedoed by an ultra-dovish RBNZ - marketpulse.com",
+        "Trump Considers Firing Fed Official After Accusation of Mortgage Fraud - The Wall Street Journal"
+      ],
+      "processing_time": 9.289418935775757,
+      "quality_score": 94.0,
+      "error": null
+    }
+  ],
+  "performance_metrics": {
+    "total_current_articles": 126,
+    "total_gnews_articles": 126,
+    "avg_current_quality": 77.5,
+    "avg_gnews_quality": 80.67999999999999,
+    "avg_current_processing_time": 0.6153704524040222,
+    "avg_gnews_processing_time": 7.138454389572144,
+    "current_sources_count": 4,
+    "gnews_sources_count": 5
+  },
+  "recommendations": [
+    "\u2705 GNews shows higher average quality scores",
+    "\u26a0\ufe0f GNews is significantly slower than current sources",
+    "\u2705 GNews provides good article volume per topic"
+  ]
+}

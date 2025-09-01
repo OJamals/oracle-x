@@ -1,0 +1,168 @@
+{
+  "symbol": "NVDA",
+  "timestamp": "2025-08-21T06:03:31.316066",
+  "current_sources": [
+    {
+      "name": "Current-reddit",
+      "description": "Oracle-X reddit source",
+      "articles_count": 10,
+      "sentiment_score": 0.49032,
+      "confidence": 0.7,
+      "sample_headlines": [
+        "18 year old investment checklist thoughts? hey everyone, i\u2019m 18 and just starting to invest for real. wanted to throw my portfolio out here and see if...",
+        "NVIDIA corp portfolio holdings - thoughts on WRD, CoreWeave and Arm? NVDA is a major player in autonomous driving, the investment in WRD make me the m...",
+        "Portfolio Check - I have some ques. Here\u2019s my current portfolio (all USD):\n\t\u2022\tNVIDIA (NVDA) \u2013 $604.5 (+29%)\n\t\u2022\tUber (UBER) \u2013 $92.7 (+26%)\n\t\u2022\tMicrosoft..."
+      ],
+      "processing_time": 1.9073486328125e-06,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-twitter",
+      "description": "Oracle-X twitter source",
+      "articles_count": 20,
+      "sentiment_score": 0.05693499999999999,
+      "confidence": 0.774248612725,
+      "sample_headlines": [
+        "$AEMD\n\n\u0642\u0645\u0629 \u0627\u0644\u0633\u0647\u0645 : 1.78\n\n\u0646\u0642\u0637\u0629 \u062f\u0639\u0645 \u0627\u0648\u0644\u0649 : 1.11\n\n\u062a\u0628\u064a \u062a\u0639\u0631\u0641 \u0648\u0634 \u0633\u0627\u0644\u0641\u0629 \u0627\u0644\u0633\u0647\u0645 \u0648\u0645\u0633\u0627\u0631\u0629 \u0631\u0627\u0633\u0644\u0646\u064a \u0627\u0644\u062d\u064a\u0646 \u0648 \u0628\u0641\u064a\u062f\u0643 \u0644...",
+        "$UTRX $SOL #Culiacan #\u0e1b\u0e19\u0e20\u0e01\u0e14EP2 #BBNaija $ETH $SPY $BTC $NVDA #shailenzo $MSFT $CLSK $PYPL #NUFC $GME...",
+        "hello future billionaires look what I have found about @billions_ntwk\n\nbillion network is cutting ed...",
+        "\u0645\u0646 \u0645\u0639\u0647 \u0633\u0647\u0645 \n\n$LCID  $NVDA  $HIMS  $RIOT  $FSLR  $CAVA  $AMC  $CRM  $SNOW  $IONQ  $AI  $MARA  $JOBY  ...",
+        "The economics of #AI\n\n101 guide investment vs return on #AI playing out by @praetoriancap\n\n$NVDA $AA..."
+      ],
+      "processing_time": 9.5367431640625e-07,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-yahoo_news",
+      "description": "Oracle-X yahoo_news source",
+      "articles_count": 40,
+      "sentiment_score": -0.041817499999999994,
+      "confidence": 0.95,
+      "sample_headlines": [
+        " News",
+        " Life",
+        " Entertainment",
+        "  Finance",
+        " Sports"
+      ],
+      "processing_time": 7.152557373046875e-07,
+      "quality_score": 75.0,
+      "error": null
+    },
+    {
+      "name": "Current-Advanced",
+      "description": "Oracle-X Advanced Sentiment (aggregated)",
+      "articles_count": 63,
+      "sentiment_score": 0.06480467187197507,
+      "confidence": 0.3739899771714589,
+      "sample_headlines": [],
+      "processing_time": 1.8175301551818848,
+      "quality_score": 85.0,
+      "error": null
+    }
+  ],
+  "gnews_results": [
+    {
+      "name": "GNews-Keyword",
+      "description": "GNews keyword search for NVDA",
+      "articles_count": 30,
+      "sentiment_score": 0.07603333333333334,
+      "confidence": 0.95,
+      "sample_headlines": [
+        "Analyst Joseph Moore Lifts Nvidia (NVDA) Price Target Before Earnings Report - Yahoo Finance",
+        "Nvidia Breaks Key Level As AI Trade Loses Luster, Earnings Loom. Is Nvidia A Buy Or Sell? - Investor's Business Daily",
+        "NVIDIA's Record $37.1B Volume Can't Lift Falling Stock as Analysts Clash on AI Demand and Geopolitical Risks - AInvest",
+        "NVDA: Nvidia Resumes Slide as Earnings Date Nears. Here\u2019s What to Watch for in the Update - TradingView",
+        "Why HSBC Is Cautious on Nvidia Stock (NVDA) Ahead of Q2 Results - TipRanks"
+      ],
+      "processing_time": 9.579085111618042,
+      "quality_score": 96.49999999999999,
+      "error": null
+    },
+    {
+      "name": "GNews-Keyword",
+      "description": "GNews keyword search for $NVDA",
+      "articles_count": 30,
+      "sentiment_score": 0.14089000000000002,
+      "confidence": 0.95,
+      "sample_headlines": [
+        "Analyst Joseph Moore Lifts Nvidia (NVDA) Price Target Before Earnings Report - Yahoo Finance",
+        "Arrow Financial Corp Sells 77,859 Shares of NVIDIA Corporation $NVDA - MarketBeat",
+        "Why HSBC Is Cautious on Nvidia Stock (NVDA) Ahead of Q2 Results - TipRanks",
+        "Nvidia stock keeps rising after fresh record as analyst sees AI 'golden wave' [Video] - AOL.com",
+        "NVDA: Nvidia Resumes Slide as Earnings Date Nears. Here\u2019s What to Watch for in the Update - TradingView"
+      ],
+      "processing_time": 9.183471918106079,
+      "quality_score": 96.49999999999999,
+      "error": null
+    },
+    {
+      "name": "GNews-BUSINESS",
+      "description": "GNews BUSINESS topic news",
+      "articles_count": 30,
+      "sentiment_score": -0.04828666666666667,
+      "confidence": 0.9,
+      "sample_headlines": [
+        "Trump team makes mortgage fraud its newest revenge tool - Axios",
+        "Palantir shorts reap billions amid selloff - report (PLTR:NASDAQ) - Seeking Alpha",
+        "Target CEO to step down as sales remain sluggish - ABC News",
+        "Walmart will report earnings before the bell. Here's what to expect - CNBC",
+        "Minutes of the Federal Open Market Committee, July 29\u201330, 2025 - Federal Reserve Board (.gov)"
+      ],
+      "processing_time": 6.673775911331177,
+      "quality_score": 94.0,
+      "error": null
+    },
+    {
+      "name": "GNews-TECHNOLOGY",
+      "description": "GNews TECHNOLOGY topic news",
+      "articles_count": 6,
+      "sentiment_score": -0.07646666666666667,
+      "confidence": 0.24,
+      "sample_headlines": [
+        "Every Piece of Pixel Hardware Announced at Made by Google 2025 - CNET",
+        "Humans intervened every 9 minutes in AAA test of driver assists - Ars Technica",
+        "Microsoft reportedly fixing SSD failures caused by Windows updates - BleepingComputer",
+        "PlayStation 5 price changes in the U.S. - PlayStation.Blog",
+        "Meet Call of Duty Black Ops 7's Star-Studded Cast - GameSpot"
+      ],
+      "processing_time": 1.5631449222564697,
+      "quality_score": 22.400000000000002,
+      "error": null
+    },
+    {
+      "name": "GNews-FINANCE",
+      "description": "GNews FINANCE topic news",
+      "articles_count": 30,
+      "sentiment_score": -0.02413666666666667,
+      "confidence": 0.9,
+      "sample_headlines": [
+        "Dow Set to Open Down Ahead of Fed's Jackson Hole Summit - Barron's",
+        "Palantir (PLTR) Stock Under Fire as Citron Warns Valuation Still Too High - Yahoo Finance",
+        "Forex Today: US Dollar edges higher as focus shifts to PMI data - FXStreet",
+        "Trump Considers Firing Fed Official After Accusation of Mortgage Fraud - The Wall Street Journal",
+        "NZD/JPY Technical: Further Kiwi weakness, torpedoed by an ultra-dovish RBNZ - marketpulse.com"
+      ],
+      "processing_time": 9.309055089950562,
+      "quality_score": 94.0,
+      "error": null
+    }
+  ],
+  "performance_metrics": {
+    "total_current_articles": 133,
+    "total_gnews_articles": 126,
+    "avg_current_quality": 77.5,
+    "avg_gnews_quality": 80.67999999999999,
+    "avg_current_processing_time": 0.4543834328651428,
+    "avg_gnews_processing_time": 7.261706590652466,
+    "current_sources_count": 4,
+    "gnews_sources_count": 5
+  },
+  "recommendations": [
+    "\u2705 GNews shows higher average quality scores",
+    "\u26a0\ufe0f GNews is significantly slower than current sources",
+    "\u2705 GNews provides good article volume per topic"
+  ]
+}

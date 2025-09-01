@@ -731,14 +731,16 @@ class EnsemblePredictionEngine:
             if features_df.empty:
                 logger.warning(f"No features available for {symbol}")
                 return None
-            # Convert all numeric columns to float to prevent Decimal division issues
+            # Convert all numeric/object columns to float to prevent Decimal division issues
             for col in features_df.columns:
-                if features_df[col].dtype in [float64, int64, object]:
-                    try:
+                try:
+                    dtype = features_df[col].dtype
+                    # Handle numeric and object columns robustly
+                    if (np.issubdtype(dtype, np.number)) or (dtype == object):
                         features_df[col] = features_df[col].astype(float)
-                    except (ValueError, TypeError):
-                        # Keep as is if conversion fails
-                        pass
+                except Exception:
+                    # Keep as is if conversion fails
+                    pass
             
             # Get latest feature row
             latest_features = features_df.iloc[-1:].copy()
@@ -761,25 +763,48 @@ class EnsemblePredictionEngine:
                     model.is_trained and 
                     model_key in self.model_weights):
                     
+                
                     try:
                         pred, uncertainty = model.predict(X)
-                        weight = self.model_weights[model_key]
-                        
-                        predictions.append(pred[0] * weight)
-                        uncertainties.append(uncertainty[0] * weight)
-                        model_contributions[model_key] = pred[0]
-                        
+                        weight = float(self.model_weights.get(model_key, 0.0))
+
+                        # Guard against None/NaN predictions
+                        pred_val = None
+                        unc_val = None
+                        if pred is not None:
+                            try:
+                                pred_val = float(np.asarray(pred).ravel()[0])
+                            except Exception:
+                                pred_val = None
+                        if uncertainty is not None:
+                            try:
+                                unc_val = float(np.asarray(uncertainty).ravel()[0])
+                            except Exception:
+                                unc_val = None
+
+                        if pred_val is None:
+                            # Skip this model if prediction is invalid
+                            continue
+
+                        # Use 0.0 uncertainty if invalid
+                        if unc_val is None or np.isnan(unc_val):
+                            unc_val = 0.0
+
+                        predictions.append(pred_val * weight)
+                        uncertainties.append(unc_val * weight)
+                        model_contributions[model_key] = pred_val
+
                         # Accumulate feature importance
-                        model_importance = model.get_feature_importance()
+                        model_importance = getattr(model, 'get_feature_importance', lambda: {})()
                         for feature, importance in model_importance.items():
                             if feature in feature_importance:
                                 feature_importance[feature] += importance * weight
                             else:
                                 feature_importance[feature] = importance * weight
-                    
                     except Exception as e:
-                        logger.warning(f"Prediction failed for {model_key}: {e}")
-            
+                        logger.error(f"Model {model_key} prediction failed: {e}")
+                        continue
+        
             if not predictions:
                 logger.warning(f"No model predictions available for {symbol}")
                 return None

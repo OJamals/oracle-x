@@ -44,6 +44,8 @@ EMBEDDING_MODEL = os.environ.get('EMBEDDING_MODEL', 'text-embedding-3-small')
 # Base URLs
 OPENAI_API_BASE = os.environ.get('OPENAI_API_BASE')
 EMBEDDING_API_BASE = os.environ.get('EMBEDDING_API_BASE') or OPENAI_API_BASE
+QDRANT_URL = os.environ.get('QDRANT_URL', 'http://localhost:6333')
+QDRANT_API_KEY = os.environ.get('QDRANT_API_KEY')
 
 # Fallback models (comma separated env or sensible defaults). These are attempted
 # if the preferred model is unsupported by the provider.
@@ -93,10 +95,18 @@ def load_config() -> dict:
         dict: Configuration dictionary with all environment variables and paths
     """
     return {
+        'OPENAI_API_KEY': os.environ.get('OPENAI_API_KEY'),
         'OPENAI_MODEL': OPENAI_MODEL,
         'EMBEDDING_MODEL': EMBEDDING_MODEL,
         'OPENAI_API_BASE': OPENAI_API_BASE,
         'EMBEDDING_API_BASE': EMBEDDING_API_BASE,
+        'QDRANT_URL': QDRANT_URL,
+        'QDRANT_API_KEY': QDRANT_API_KEY,
+        'TWELVEDATA_API_KEY': os.environ.get('TWELVEDATA_API_KEY'),
+        'REDDIT_CLIENT_ID': os.environ.get('REDDIT_CLIENT_ID'),
+        'REDDIT_CLIENT_SECRET': os.environ.get('REDDIT_CLIENT_SECRET'),
+        'REDDIT_USER_AGENT': os.environ.get('REDDIT_USER_AGENT'),
+        'RSS_FEEDS': os.environ.get('RSS_FEEDS', 'https://feeds.reuters.com/reuters/businessNews'),
         'FALLBACK_MODELS': FALLBACK_MODELS,
         'ACCOUNTS_DB_PATH': ACCOUNTS_DB_PATH,
         'MODEL_MONITORING_DB_PATH': MODEL_MONITORING_DB_PATH,

@@ -14,6 +14,8 @@ def clean_signals_for_llm(signals: dict, max_items: int = 5) -> dict:
             return ""
         text = re.sub(r'\s+', ' ', text).strip()
         text = re.sub(r'[^\x20-\x7E]', '', text)  # Remove non-ASCII
+        # After removing non-ASCII, collapse whitespace again to remove any double spaces left behind
+        text = re.sub(r'\s+', ' ', text).strip()
         if len(text) > max_len:
             return text[:max_len] + '...'
         return text

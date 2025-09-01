@@ -58,6 +58,13 @@ except ImportError:
     logger.warning("OptionsValuationEngine import failed - using stub")
     OptionsValuationEngine = None
 
+# Import ML OptionsPredictionModel for ML scoring path
+try:
+    from data_feeds.options_prediction_model import OptionsPredictionModel
+except Exception as e:
+    logger.warning(f"Failed to import OptionsPredictionModel: {e}")
+    OptionsPredictionModel = None
+
 
 # ===================================================================
 # SHARED DATA STRUCTURES AND ENUMS
@@ -201,18 +208,18 @@ class PipelineConfig:
     ])
     
     # Time preferences
-    min_days_to_expiry: int = 7
-    max_days_to_expiry: int = 90
+    min_days_to_expiry: int = 3
+    max_days_to_expiry: int = 120
     
     # Liquidity requirements
-    min_volume: int = 100
-    min_open_interest: int = 500
-    max_spread_ratio: float = 0.05
+    min_volume: int = 50
+    min_open_interest: int = 200
+    max_spread_ratio: float = 0.10
     
     # Processing
     max_workers: int = 4
     cache_ttl: int = 300  # 5 minutes
-    max_options_per_symbol: int = 40  # Performance guard
+    max_options_per_symbol: int = 80  # Performance guard (relaxed)
     per_symbol_timeout: int = 10  # Seconds
     orchestrator_init_timeout: int = 10  # Seconds
     safe_mode: bool = False  # If True, use stub orchestrator / lightweight path
@@ -457,7 +464,13 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
             
             sentiment_engine = AdvancedSentimentEngine()
             ensemble_engine = EnsemblePredictionEngine(self.orchestrator, sentiment_engine)
-            self.prediction_model = OptionsPredictionModel(ensemble_engine, self.orchestrator)
+            # IMPORTANT: OptionsPredictionModel expects orchestrator first, then optional engines via kwargs
+            # Incorrect ordering previously caused attribute errors like 'EnsemblePredictionEngine' has no get_market_data
+            self.prediction_model = OptionsPredictionModel(
+                self.orchestrator,
+                valuation_engine=self.valuation_engine,
+                ensemble_engine=ensemble_engine,
+            )
             logger.info("ML prediction model initialized")
         except Exception as e:
             logger.warning(f"ML model initialization failed: {e}. Using fallback scoring.")
@@ -489,10 +502,12 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
             if not options_chain:
                 logger.warning(f"No options chain available for {symbol}")
                 return []
+            logger.debug(f"{symbol}: fetched {len(options_chain)} raw options from chain")
             
             # Step 3: Filter options and analyze
             filtered_options = self._filter_options(options_chain)
             if not filtered_options:
+                logger.debug(f"{symbol}: 0 options after filtering")
                 return []
             
             # Performance guard: limit number of options per symbol
@@ -500,6 +515,7 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
                 underlying = filtered_options[0].underlying_price or 0
                 filtered_options.sort(key=lambda c: abs((c.strike or 0) - underlying))
                 filtered_options = filtered_options[:self.config.max_options_per_symbol]
+                logger.debug(f"{symbol}: capped filtered options to {len(filtered_options)} (max={self.config.max_options_per_symbol})")
             
             logger.info(f"Analyzing {len(filtered_options)} options for {symbol}")
             
@@ -641,33 +657,61 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
     def _filter_options(self, options: List[OptionContract]) -> List[OptionContract]:
         """Filter options based on configuration criteria"""
         filtered = []
+        total = len(options)
+        reasons = {
+            'no_market_price': 0,
+            'too_soon_expiry': 0,
+            'too_far_expiry': 0,
+            'low_volume': 0,
+            'low_open_interest': 0,
+            'wide_spread': 0,
+        }
         
         for option in options:
             # Check if option has market price
             if option.market_price is None:
+                reasons['no_market_price'] += 1
+                logger.debug(f"Filter drop [{option.symbol} {option.expiry.date()} {option.strike}] reason=no_market_price bid={option.bid} ask={option.ask} last={option.last}")
                 continue
                 
             # Check days to expiry
             days_to_expiry = option.time_to_expiry * 365
             if days_to_expiry < self.config.min_days_to_expiry:
+                reasons['too_soon_expiry'] += 1
+                logger.debug(f"Filter drop [{option.symbol} {option.expiry.date()} {option.strike}] reason=too_soon_expiry days={days_to_expiry:.1f} min={self.config.min_days_to_expiry}")
                 continue
             if days_to_expiry > self.config.max_days_to_expiry:
+                reasons['too_far_expiry'] += 1
+                logger.debug(f"Filter drop [{option.symbol} {option.expiry.date()} {option.strike}] reason=too_far_expiry days={days_to_expiry:.1f} max={self.config.max_days_to_expiry}")
                 continue
             
             # Check liquidity
-            if option.volume and option.volume < self.config.min_volume:
+            if option.volume is not None and option.volume < self.config.min_volume:
+                reasons['low_volume'] += 1
+                logger.debug(f"Filter drop [{option.symbol} {option.expiry.date()} {option.strike}] reason=low_volume vol={option.volume} min={self.config.min_volume}")
                 continue
-            if option.open_interest and option.open_interest < self.config.min_open_interest:
+            if option.open_interest is not None and option.open_interest < self.config.min_open_interest:
+                reasons['low_open_interest'] += 1
+                logger.debug(f"Filter drop [{option.symbol} {option.expiry.date()} {option.strike}] reason=low_open_interest oi={option.open_interest} min={self.config.min_open_interest}")
                 continue
             
             # Check spread
             if option.bid and option.ask:
                 spread_ratio = (option.ask - option.bid) / option.ask
                 if spread_ratio > self.config.max_spread_ratio:
+                    reasons['wide_spread'] += 1
+                    logger.debug(f"Filter drop [{option.symbol} {option.expiry.date()} {option.strike}] reason=wide_spread spread_ratio={spread_ratio:.3f} max={self.config.max_spread_ratio}")
                     continue
             
             filtered.append(option)
         
+        logger.debug(
+            "Filter summary: total=%d kept=%d dropped=%d reasons=%s",
+            total,
+            len(filtered),
+            total - len(filtered),
+            json.dumps(reasons)
+        )
         return filtered
     
     def _analyze_single_option(self, symbol: str, contract: OptionContract, market_data: pd.DataFrame) -> Optional[OptionRecommendation]:
@@ -684,6 +728,9 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
                 return None
             
             # Skip if not undervalued enough
+            logger.debug(
+                f"Valuation [{symbol} {contract.expiry.date()} {contract.strike} {contract.option_type.name}] mispricing_ratio={getattr(valuation, 'mispricing_ratio', None)} conf={getattr(valuation, 'confidence_score', None)} opp_score={valuation.opportunity_score:.2f}"
+            )
             if valuation.opportunity_score < self.config.min_opportunity_score:
                 return None
             
@@ -697,11 +744,15 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
                     confidence_mapping = {'high': 0.8, 'medium': 0.6, 'low': 0.4}
                     ml_confidence = confidence_mapping.get(prediction.confidence.value, 0.5)
                     expected_return = prediction.expected_return
+                    logger.debug(f"ML [{symbol}] conf={ml_confidence:.2f} expected_return={expected_return:.3f}")
                 except Exception as e:
                     logger.debug(f"ML prediction failed: {e}")
             
             # Step 3: Calculate metrics and create recommendation
             opportunity_score = self._calculate_opportunity_score(valuation, ml_confidence, expected_return)
+            logger.debug(
+                f"Composite [{symbol} {contract.expiry.date()} {contract.strike}] opp_score={opportunity_score:.2f} (min={self.config.min_opportunity_score})"
+            )
             
             if opportunity_score < self.config.min_opportunity_score:
                 return None
@@ -843,7 +894,7 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
             # Default symbol universe for scanning
             symbols = [
                 "AAPL", "MSFT", "GOOGL", "AMZN", "TSLA", "META", "NVDA", "NFLX",
-                "AMD", "CRM", "ORCL", "ADBE", "INTC", "UBER", "PYPL", "ZOOM",
+                "AMD", "CRM", "ORCL", "ADBE", "INTC", "UBER", "PYPL", "ZM",
                 "SQ", "SHOP", "ROKU", "PLTR", "COIN", "HOOD", "DKNG", "RIVN"
             ]
         
@@ -1046,7 +1097,7 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
                     'current_price': current_price or entry_price,
                     'underlying_price': underlying_price,
                     'pnl_percent': pnl_percent,
-                    'pnl_dollar': (current_price or entry_price - entry_price) * quantity,
+                    'pnl_dollar': ((current_price or entry_price) - entry_price) * quantity,
                     'action': action,
                     'timestamp': datetime.now()
                 }
@@ -1143,11 +1194,11 @@ def create_pipeline(config: Optional[Dict[str, Any]] = None) -> OracleOptionsPip
             min_opportunity_score=config.get('min_opportunity_score', 70.0),
             min_confidence=config.get('min_confidence', 0.6),
             preferred_strategies=strategies,
-            min_days_to_expiry=config.get('min_days_to_expiry', 7),
-            max_days_to_expiry=config.get('max_days_to_expiry', 90),
-            min_volume=config.get('min_volume', 100),
-            min_open_interest=config.get('min_open_interest', 500),
-            max_spread_ratio=config.get('max_spread_ratio', 0.05),
+            min_days_to_expiry=config.get('min_days_to_expiry', 3),
+            max_days_to_expiry=config.get('max_days_to_expiry', 120),
+            min_volume=config.get('min_volume', 50),
+            min_open_interest=config.get('min_open_interest', 200),
+            max_spread_ratio=config.get('max_spread_ratio', 0.10),
             max_workers=config.get('max_workers', 4),
             cache_ttl=config.get('cache_ttl', 300),
             use_advanced_sentiment=config.get('use_advanced_sentiment', True),

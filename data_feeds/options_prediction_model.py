@@ -1128,7 +1128,8 @@ class OptionsPredictionModel:
             score += 0.05
         
         # Sentiment contribution
-        score += signals.sentiment.overall_sentiment * 0.1
+        sentiment_score = signals.sentiment.overall_sentiment if signals.sentiment.overall_sentiment is not None else 0.0
+        score += sentiment_score * 0.1
         
         # Options flow contribution
         if signals.options_flow.put_call_ratio < 0.8:  # Bullish flow
@@ -1137,7 +1138,8 @@ class OptionsPredictionModel:
             score -= 0.05
         
         # Valuation contribution
-        score += signals.valuation_score * 0.1
+        valuation_score = signals.valuation_score if signals.valuation_score is not None else 0.0
+        score += valuation_score * 0.1
         
         # Clamp between 0 and 1
         probability = max(0.0, min(1.0, score))
@@ -1160,6 +1162,8 @@ class OptionsPredictionModel:
         
         # Technical momentum adjustment
         momentum_factor = signals.technical.momentum_score
+        if momentum_factor is None:
+            momentum_factor = 0.0
         
         # Combine factors
         expected_return = expected_move * direction_factor * (1 + momentum_factor)
@@ -1186,6 +1190,11 @@ class OptionsPredictionModel:
                                    expected_return: float,
                                    confidence: float) -> float:
         """Calculate overall opportunity score (0-100)"""
+        # Guard against None values
+        probability = probability if probability is not None else 0.5
+        expected_return = expected_return if expected_return is not None else 0.0
+        confidence = confidence if confidence is not None else 0.5
+        
         # Edge over random (50%)
         edge = abs(probability - 0.5) * 2  # 0 to 1
         
@@ -1209,7 +1218,8 @@ class OptionsPredictionModel:
         except Exception:
             val = 0.0
 
-        base = self._calculate_opportunity_score(prediction_prob, signals.technical.momentum_score if hasattr(signals, 'technical') else 0.0, signals.quality_score if hasattr(signals, 'quality_score') else 0.5)
+        momentum_score = signals.technical.momentum_score if hasattr(signals, 'technical') and signals.technical.momentum_score is not None else 0.0
+        base = self._calculate_opportunity_score(prediction_prob, momentum_score, signals.quality_score if hasattr(signals, 'quality_score') else 0.5)
         # incorporate valuation as small boost
         return base + (val * 10)
 
@@ -1301,6 +1311,10 @@ class OptionsPredictionModel:
                                probability: float,
                                expected_return: float) -> Dict[str, float]:
         """Calculate comprehensive risk metrics"""
+        # Guard against None values
+        probability = probability if probability is not None else 0.5
+        expected_return = expected_return if expected_return is not None else 0.0
+        
         # Maximum loss (premium paid)
         premium = float(contract.last or contract.ask or 0)
         max_loss = premium

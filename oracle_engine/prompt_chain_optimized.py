@@ -287,8 +287,8 @@ DO NOT include any text before or after the JSON. Output only the JSON object.
         'template_used': template_id
     }
     
-    # Return only the generated playbook JSON string for compatibility with callers/tests.
-    return content
+    # Return the tuple as declared in the function signature
+    return content, optimization_metadata
 
 def analyze_playbook_quality(playbook_json: str) -> Dict[str, Any]:
     """

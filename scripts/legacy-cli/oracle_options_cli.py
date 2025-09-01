@@ -7,6 +7,7 @@ Supports analyzing individual tickers, scanning markets, and monitoring position
 """
 
 import argparse
+import logging
 import json
 import sys
 import os
@@ -15,8 +16,11 @@ from typing import Dict, List, Any, Optional
 import warnings
 from tabulate import tabulate
 
-# Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add CLI directory and project root to sys.path for imports
+this_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(this_dir, os.pardir, os.pardir))
+sys.path.insert(0, this_dir)
+sys.path.insert(0, project_root)
 
 from oracle_options_pipeline import (
     create_pipeline,
@@ -84,6 +88,9 @@ def print_recommendation(rec: Dict[str, Any], verbose: bool = False):
 def cmd_analyze(args):
     """Analyze a single ticker"""
     print(f"\n🔍 Analyzing {args.symbol}...")
+    # Enable detailed debug logs from pipeline if verbose
+    if args.verbose:
+        logging.getLogger('oracle_options_pipeline').setLevel(logging.DEBUG)
     
     # Create pipeline with config
     config = {
@@ -124,6 +131,9 @@ def cmd_analyze(args):
 def cmd_scan(args):
     """Scan market for opportunities"""
     print(f"\n🌐 Scanning market for opportunities...")
+    # Enable detailed debug logs from pipeline if verbose
+    if args.verbose:
+        logging.getLogger('oracle_options_pipeline').setLevel(logging.DEBUG)
     
     # Parse symbols
     symbols = None
@@ -136,7 +146,9 @@ def cmd_scan(args):
     # Create pipeline
     config = {
         'risk_tolerance': args.risk,
-        'min_opportunity_score': args.min_score
+        'min_opportunity_score': args.min_score,
+        'min_days_to_expiry': args.min_days,
+        'max_days_to_expiry': args.max_days
     }
     
     pipeline = create_pipeline(config)
@@ -307,6 +319,8 @@ Examples:
     scan_parser.add_argument('--max-symbols', type=int, default=20, help='Maximum symbols to scan')
     scan_parser.add_argument('--top', type=int, default=10, help='Number of top opportunities to show')
     scan_parser.add_argument('--min-score', type=float, default=70, help='Minimum opportunity score')
+    scan_parser.add_argument('--min-days', type=int, default=3, help='Minimum days to expiry')
+    scan_parser.add_argument('--max-days', type=int, default=120, help='Maximum days to expiry')
     scan_parser.add_argument('--risk', type=str, default='moderate',
                             choices=['conservative', 'moderate', 'aggressive'],
                             help='Risk tolerance level')
