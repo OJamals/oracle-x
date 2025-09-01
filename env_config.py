@@ -36,7 +36,7 @@ PROMPT_OPTIMIZATION_DB_PATH = os.environ.get('PROMPT_OPTIMIZATION_DB_PATH', 'dat
 CACHE_DB_PATH = os.environ.get('CACHE_DB_PATH', 'data/databases/cache.db')
 
 # Primary (non‑embedding) model used for chat/completions (user preferred)
-OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-5-mini')
+OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o')
 
 # Embedding model
 EMBEDDING_MODEL = os.environ.get('EMBEDDING_MODEL', 'qwen3-embedding')
