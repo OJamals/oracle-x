@@ -5,8 +5,6 @@ Simple Critical Test Generator
 Creates basic test stubs for critical modules to address technical debt.
 """
 
-import os
-import sys
 from pathlib import Path
 
 

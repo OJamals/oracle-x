@@ -146,7 +146,7 @@ if current_position > 0:
 else:
     final_value = capital
 
-print(f'✓ Backtest simulation complete')
+print('✓ Backtest simulation complete')
 print(f'  - Initial capital: ${config.initial_capital:,.2f}')
 print(f'  - Final value: ${final_value:,.2f}')
 print(f'  - Return: {((final_value / config.initial_capital) - 1) * 100:.2f}%')
@@ -154,7 +154,7 @@ print(f'  - Signals generated: {len(signals)}')
 print(f'  - Positions taken: {len(positions)}')
 
 if positions:
-    print(f'  - Sample positions:')
+    print('  - Sample positions:')
     for pos in positions[:3]:  # Show first 3 positions
         print(f'    • {pos}')
 
@@ -169,7 +169,7 @@ try:
     
     if sentiment_data and 'reddit' in sentiment_data:
         reddit_info = sentiment_data['reddit']
-        print(f'✓ Real sentiment data integration test')
+        print('✓ Real sentiment data integration test')
         print(f'  - Symbol: {reddit_info.symbol}')
         print(f'  - Sentiment score: {reddit_info.sentiment_score:.3f}')
         print(f'  - Confidence: {reddit_info.confidence:.3f}')
@@ -185,5 +185,5 @@ try:
 except Exception as e:
     print(f'⚠️  Sentiment integration test skipped: {e}')
 
-print(f'\n✅ PHASE 4 BACKTESTING INTEGRATION COMPLETE')
-print(f'🎯 Sentiment-enhanced backtesting framework ready for deployment!')
+print('\n✅ PHASE 4 BACKTESTING INTEGRATION COMPLETE')
+print('🎯 Sentiment-enhanced backtesting framework ready for deployment!')

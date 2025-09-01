@@ -36,10 +36,10 @@ PROMPT_OPTIMIZATION_DB_PATH = os.environ.get('PROMPT_OPTIMIZATION_DB_PATH', 'dat
 CACHE_DB_PATH = os.environ.get('CACHE_DB_PATH', 'data/databases/cache.db')
 
 # Primary (non‑embedding) model used for chat/completions (user preferred)
-OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-4o')
+OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-5-mini')
 
 # Embedding model
-EMBEDDING_MODEL = os.environ.get('EMBEDDING_MODEL', 'text-embedding-3-small')
+EMBEDDING_MODEL = os.environ.get('EMBEDDING_MODEL', 'qwen3-embedding')
 
 # Base URLs
 OPENAI_API_BASE = os.environ.get('OPENAI_API_BASE')
@@ -50,7 +50,6 @@ QDRANT_API_KEY = os.environ.get('QDRANT_API_KEY')
 # Fallback models (comma separated env or sensible defaults). These are attempted
 # if the preferred model is unsupported by the provider.
 _DEFAULT_FALLBACK_MODELS: List[str] = [
-    'gpt-4o-mini',
     'gpt-4o',
     'o4-mini',
     'o3-mini'

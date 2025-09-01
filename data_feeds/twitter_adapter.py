@@ -15,9 +15,8 @@ from data_feeds.data_feed_orchestrator import SentimentData
 from .twitter_feed import TwitterSentimentFeed
 
 # Import advanced sentiment analysis engine
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'agent_bundle'))
 try:
-    from advanced_sentiment import get_sentiment_engine, analyze_symbol_sentiment, SentimentSummary
+    from data_feeds.advanced_sentiment import get_sentiment_engine, analyze_symbol_sentiment, SentimentSummary
     ADVANCED_SENTIMENT_AVAILABLE = True
     _get_sentiment_engine = get_sentiment_engine
     _analyze_symbol_sentiment = analyze_symbol_sentiment

@@ -14,8 +14,7 @@ Features:
 """
 
 import os
-import json
-from typing import Dict, Any, Optional, Union, List
+from typing import Dict, Any, Optional, List
 from pathlib import Path
 from dataclasses import dataclass, field
 from enum import Enum
@@ -47,8 +46,8 @@ class DatabaseConfig:
 @dataclass
 class ModelConfig:
     """Model configuration settings"""
-    openai_model: str = "gpt-4o"
-    embedding_model: str = "text-embedding-3-small"
+    openai_model: str = "gpt-5-mini"
+    embedding_model: str = "qwen3-embedding"
     fallback_models: List[str] = field(default_factory=lambda: ["gpt-4", "gpt-3.5-turbo"])
     openai_api_base: Optional[str] = None
     embedding_api_base: Optional[str] = None
@@ -219,26 +218,26 @@ class ConfigurationManager:
 
         # Summary
         summary = results['summary']
-        print(f"\n📊 SUMMARY:")
+        print("\n📊 SUMMARY:")
         print(f"   Total API Keys: {summary['total']}")
         print(f"   Valid Keys: {summary['valid']}")
         print(f"   Missing Keys: {summary['missing']}")
 
         # Valid keys
         if results['valid']:
-            print(f"\n✅ VALID API KEYS:")
+            print("\n✅ VALID API KEYS:")
             for key_info in results['valid']:
                 print(f"   ✓ {key_info['name']}")
 
         # Missing keys
         if results['missing']:
-            print(f"\n❌ MISSING REQUIRED API KEYS:")
+            print("\n❌ MISSING REQUIRED API KEYS:")
             for key_info in results['missing']:
                 print(f"   ✗ {key_info['name']}")
 
         # Warnings
         if results['warnings']:
-            print(f"\n⚠️  WARNINGS:")
+            print("\n⚠️  WARNINGS:")
             for warning in results['warnings']:
                 severity_icon = "🔴" if warning['severity'] == 'high' else "🟡"
                 print(f"   {severity_icon} {warning['message']}")

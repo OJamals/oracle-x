@@ -5,14 +5,14 @@ Provides comprehensive validation rules, statistical validation, and cross-field
 
 import re
 from datetime import datetime, timedelta
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Dict, Any, List, Optional, Tuple, Set, Callable
+from decimal import Decimal
+from typing import Dict, Any, List, Optional, Callable
 from enum import Enum, auto
 import statistics
 from dataclasses import dataclass, field
-from pydantic import BaseModel, validator, Field
-import numpy as np
-from scipy import stats
+
+
+
 
 from core.types import MarketData, OptionContract, DataSource
 
@@ -261,20 +261,20 @@ class AdvancedValidators:
     # Range validation methods
     def _validate_price_positive(self, data: Any, result: ValidationResult):
         price_fields = ['open', 'high', 'low', 'close', 'bid', 'ask', 'last', 'strike', 'underlying_price']
-        for field in price_fields:
-            if hasattr(data, field) and getattr(data, field) is not None:
-                price = getattr(data, field)
+        for price_field in price_fields:
+            if hasattr(data, price_field) and getattr(data, price_field) is not None:
+                price = getattr(data, price_field)
                 if price <= Decimal('0'):
-                    result.errors.append(f"{field} must be positive: {price}")
+                    result.errors.append(f"{price_field} must be positive: {price}")
                     result.is_valid = False
     
     def _validate_volume_non_negative(self, data: Any, result: ValidationResult):
         volume_fields = ['volume', 'open_interest']
-        for field in volume_fields:
-            if hasattr(data, field) and getattr(data, field) is not None:
-                volume = getattr(data, field)
+        for volume_field in volume_fields:
+            if hasattr(data, volume_field) and getattr(data, volume_field) is not None:
+                volume = getattr(data, volume_field)
                 if volume < 0:
-                    result.errors.append(f"{field} must be non-negative: {volume}")
+                    result.errors.append(f"{volume_field} must be non-negative: {volume}")
                     result.is_valid = False
     
     def _validate_iv_range(self, data: Any, result: ValidationResult):

@@ -5,14 +5,14 @@ Provides comprehensive data quality scoring, anomaly detection, and quality metr
 
 import re
 import statistics
-from datetime import datetime, timedelta
-from decimal import Decimal
-from typing import Dict, List, Optional, Tuple, Any, Set
+from datetime import datetime
+
+from typing import Dict, List, Optional, Any
 from enum import Enum, auto
 from dataclasses import dataclass, field
-import numpy as np
-from scipy import stats
-import pandas as pd
+
+
+
 
 from core.types import MarketData, OptionContract, DataSource
 from core.validation.advanced_validators import ValidationResult

@@ -8,8 +8,6 @@ import os
 import sys
 import logging
 from datetime import datetime
-from decimal import Decimal
-import pandas as pd
 
 # Add project root to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -42,7 +40,7 @@ class TwelveDataFreeTierValidation:
             print("1. Testing direct adapter quote...")
             quote = self.adapter.get_quote(self.test_symbol)
             if quote:
-                print(f"   ✅ Quote retrieved successfully")
+                print("   ✅ Quote retrieved successfully")
                 print(f"   Symbol: {quote.symbol}")
                 print(f"   Price: {quote.price}")
                 print(f"   Change: {quote.change}")
@@ -60,7 +58,7 @@ class TwelveDataFreeTierValidation:
             print("\n2. Testing orchestrator quote...")
             orch_quote = self.orchestrator.get_quote(self.test_symbol, preferred_sources=[DataSource.TWELVE_DATA])
             if orch_quote:
-                print(f"   ✅ Orchestrator quote retrieved successfully")
+                print("   ✅ Orchestrator quote retrieved successfully")
                 print(f"   Price: {orch_quote.price}")
                 print(f"   Source: {orch_quote.source}")
                 print(f"   Quality Score: {orch_quote.quality_score}")
@@ -93,14 +91,14 @@ class TwelveDataFreeTierValidation:
                 print(f"\n1. Testing {description} ({period}, {interval})...")
                 market_data = self.adapter.get_market_data(self.test_symbol, period=period, interval=interval)
                 if market_data and market_data.data is not None and not market_data.data.empty:
-                    print(f"   ✅ {description} retrieved successfully")
+                    print("   ✅ Market data retrieved successfully")
                     print(f"   Data shape: {market_data.data.shape}")
-                    print(f"   First few rows:")
+                    print("   First few rows:")
                     print(market_data.data.head(2))
                     print(f"   Source: {market_data.source}")
                     print(f"   Quality Score: {market_data.quality_score}")
                 else:
-                    print(f"   ⚠️  {description} retrieval returned no data")
+                    print("   ⚠️  Market data retrieval returned no data")
                     
             # Test through orchestrator
             print("\n2. Testing orchestrator market data...")
@@ -111,7 +109,7 @@ class TwelveDataFreeTierValidation:
                 preferred_sources=[DataSource.TWELVE_DATA]
             )
             if orch_data and orch_data.data is not None and not orch_data.data.empty:
-                print(f"   ✅ Orchestrator market data retrieved successfully")
+                print("   ✅ Orchestrator market data retrieved successfully")
                 print(f"   Data shape: {orch_data.data.shape}")
                 print(f"   Source: {orch_data.source}")
             else:
@@ -161,8 +159,8 @@ class TwelveDataFreeTierValidation:
             for endpoint in endpoints:
                 print(f"   ⚠️  {endpoint} - REQUIRES PAID PLAN")
                 
-        print(f"\n💡 Recommendation: Current implementation correctly focuses on free tier endpoints only.")
-        print(f"   No changes needed to remove premium endpoints as they're not implemented.")
+        print("\n💡 Recommendation: Current implementation correctly focuses on free tier endpoints only.")
+        print("   No changes needed to remove premium endpoints as they're not implemented.")
         
         return True
 

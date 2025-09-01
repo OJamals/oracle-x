@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from qdrant_client import QdrantClient
 from qdrant_client.http import models as qmodels
 from openai import OpenAI
-from functools import lru_cache
+
 from typing import List, Dict
 
 # Load environment variables from .env if present
@@ -175,3 +175,6 @@ def query_similar(text: str, top_k: int = 3):
     except Exception as e:
         print(f"[ERROR] Qdrant search failed: {e}")
         return []
+
+# Initialize collection on module import
+ensure_collection()

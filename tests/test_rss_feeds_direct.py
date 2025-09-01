@@ -39,7 +39,7 @@ def test_rss_feed(name, url):
             print(f"Total Entries: {len(feed.entries)}")
             
             if feed.entries:
-                print(f"\nFirst 3 Articles:")
+                print("\nFirst 3 Articles:")
                 for i, entry in enumerate(feed.entries[:3]):
                     title = entry.get('title', 'N/A') or 'N/A'
                     print(f"\n  Article {i+1}:")
@@ -51,7 +51,7 @@ def test_rss_feed(name, url):
                     text = f"{entry.get('title', '')} {entry.get('description', '') or entry.get('summary', '')}".lower()
                     apple_terms = ['apple', 'aapl', 'iphone', 'ipad', 'tim cook']
                     if any(term in text for term in apple_terms):
-                        print(f"    🍎 APPLE MENTION FOUND!")
+                        print("    🍎 APPLE MENTION FOUND!")
             else:
                 print("  No articles found in feed")
         else:
@@ -61,7 +61,7 @@ def test_rss_feed(name, url):
         print(f"❌ Error: {str(e)}")
 
 def main():
-    print(f"🔍 RSS Feed Direct Test")
+    print("🔍 RSS Feed Direct Test")
     print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Testing {len(RSS_FEEDS)} RSS feeds...")
     

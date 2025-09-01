@@ -1,0 +1,212 @@
+{
+  "version": "1.0",
+  "generated_at": "2025-09-01T12:48:35.083197",
+  "model_selection": {
+    "primary_model": "finbert_tone",
+    "source_specific_models": {
+      "twitter": {
+        "recommended_model": "finbert_tone",
+        "expected_accuracy": 0.6961979961395264,
+        "confidence_boost": 1.1
+      },
+      "news": {
+        "recommended_model": "finbert_tone",
+        "expected_accuracy": 0.2190614914894104,
+        "confidence_boost": 0.9
+      },
+      "reddit": {
+        "recommended_model": "finbert_tone",
+        "expected_accuracy": 0.15310221314430236,
+        "confidence_boost": 0.9
+      },
+      "mixed": {
+        "recommended_model": "finbert_tone",
+        "expected_accuracy": 0.32093654791514076,
+        "confidence_boost": 1.0
+      }
+    },
+    "ensemble_weights": {
+      "finbert_tone": 0.16666666666666666,
+      "finbert_pretrain": 0.16666666666666666,
+      "finbert_news": 0.16666666666666666,
+      "finbert_earnings": 0.16666666666666666,
+      "finbert_prosus": 0.16666666666666666,
+      "fintwitbert_sentiment": 0.16666666666666666
+    }
+  },
+  "calibration": {
+    "enabled": true,
+    "corrections": {
+      "finbert_tone": {
+        "twitter": {
+          "calibration_factor": 0.7279575729994676,
+          "original_confidence": 0.9563716650009155,
+          "actual_accuracy": 0.6961979961395264,
+          "calibration_error": 0.26017366886138915
+        },
+        "news": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9885799646377563,
+          "actual_accuracy": 0.2190614914894104,
+          "calibration_error": 0.769518473148346
+        },
+        "reddit": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9065628796815872,
+          "actual_accuracy": 0.15310221314430236,
+          "calibration_error": 0.7534606665372848
+        },
+        "mixed": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9779877583185832,
+          "actual_accuracy": 0.32093654791514076,
+          "calibration_error": 0.6570512104034425
+        }
+      },
+      "finbert_pretrain": {
+        "twitter": {
+          "calibration_factor": 0.7279575729994676,
+          "original_confidence": 0.9563716650009155,
+          "actual_accuracy": 0.6961979961395264,
+          "calibration_error": 0.26017366886138915
+        },
+        "news": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9885799646377563,
+          "actual_accuracy": 0.2190614914894104,
+          "calibration_error": 0.769518473148346
+        },
+        "reddit": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9065628796815872,
+          "actual_accuracy": 0.15310221314430236,
+          "calibration_error": 0.7534606665372848
+        },
+        "mixed": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9779877583185832,
+          "actual_accuracy": 0.32093654791514076,
+          "calibration_error": 0.6570512104034425
+        }
+      },
+      "finbert_news": {
+        "twitter": {
+          "calibration_factor": 0.7279575729994676,
+          "original_confidence": 0.9563716650009155,
+          "actual_accuracy": 0.6961979961395264,
+          "calibration_error": 0.26017366886138915
+        },
+        "news": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9885799646377563,
+          "actual_accuracy": 0.2190614914894104,
+          "calibration_error": 0.769518473148346
+        },
+        "reddit": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9065628796815872,
+          "actual_accuracy": 0.15310221314430236,
+          "calibration_error": 0.7534606665372848
+        },
+        "mixed": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9779877583185832,
+          "actual_accuracy": 0.32093654791514076,
+          "calibration_error": 0.6570512104034425
+        }
+      },
+      "finbert_earnings": {
+        "twitter": {
+          "calibration_factor": 0.7279575729994676,
+          "original_confidence": 0.9563716650009155,
+          "actual_accuracy": 0.6961979961395264,
+          "calibration_error": 0.26017366886138915
+        },
+        "news": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9885799646377563,
+          "actual_accuracy": 0.2190614914894104,
+          "calibration_error": 0.769518473148346
+        },
+        "reddit": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9065628796815872,
+          "actual_accuracy": 0.15310221314430236,
+          "calibration_error": 0.7534606665372848
+        },
+        "mixed": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9779877583185832,
+          "actual_accuracy": 0.32093654791514076,
+          "calibration_error": 0.6570512104034425
+        }
+      },
+      "finbert_prosus": {
+        "twitter": {
+          "calibration_factor": 0.7279575729994676,
+          "original_confidence": 0.9563716650009155,
+          "actual_accuracy": 0.6961979961395264,
+          "calibration_error": 0.26017366886138915
+        },
+        "news": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9885799646377563,
+          "actual_accuracy": 0.2190614914894104,
+          "calibration_error": 0.769518473148346
+        },
+        "reddit": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9065628796815872,
+          "actual_accuracy": 0.15310221314430236,
+          "calibration_error": 0.7534606665372848
+        },
+        "mixed": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9779877583185832,
+          "actual_accuracy": 0.32093654791514076,
+          "calibration_error": 0.6570512104034425
+        }
+      },
+      "fintwitbert_sentiment": {
+        "twitter": {
+          "calibration_factor": 0.7279575729994676,
+          "original_confidence": 0.9563716650009155,
+          "actual_accuracy": 0.6961979961395264,
+          "calibration_error": 0.26017366886138915
+        },
+        "news": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9885799646377563,
+          "actual_accuracy": 0.2190614914894104,
+          "calibration_error": 0.769518473148346
+        },
+        "reddit": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9065628796815872,
+          "actual_accuracy": 0.15310221314430236,
+          "calibration_error": 0.7534606665372848
+        },
+        "mixed": {
+          "calibration_factor": 0.5,
+          "original_confidence": 0.9779877583185832,
+          "actual_accuracy": 0.32093654791514076,
+          "calibration_error": 0.6570512104034425
+        }
+      }
+    },
+    "confidence_boosting": true
+  },
+  "performance_thresholds": {
+    "min_accuracy": 0.3,
+    "min_confidence": 0.5,
+    "max_calibration_error": 0.2
+  },
+  "fallback_strategy": {
+    "enable_model_switching": true,
+    "fallback_models": [
+      "finbert_tone",
+      "fintwitbert_sentiment"
+    ],
+    "performance_monitoring": true
+  }
+}

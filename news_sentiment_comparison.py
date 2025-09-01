@@ -8,7 +8,7 @@ import os
 import sys
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, asdict
 
@@ -25,7 +25,7 @@ except ImportError:
 
 # Import Oracle-X components
 try:
-    from data_feeds.data_feed_orchestrator import DataFeedOrchestrator, SentimentData
+    from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
     from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 except ImportError as e:
     print(f"Import error: {e}")
@@ -364,7 +364,7 @@ def print_comparison_results(result: ComparisonResult):
     print(f"\n🕒 Analysis completed at: {result.timestamp}")
     
     # Performance Overview
-    print(f"\n📈 PERFORMANCE OVERVIEW")
+    print("\n📈 PERFORMANCE OVERVIEW")
     print("-" * 40)
     metrics = result.performance_metrics
     print(f"Current Sources: {metrics['current_sources_count']} sources, {metrics['total_current_articles']} articles")
@@ -373,7 +373,7 @@ def print_comparison_results(result: ComparisonResult):
     print(f"Processing Time: Current={metrics['avg_current_processing_time']:.2f}s, GNews={metrics['avg_gnews_processing_time']:.2f}s")
     
     # Current Sources Detail
-    print(f"\n🔄 CURRENT ORACLE-X SOURCES")
+    print("\n🔄 CURRENT ORACLE-X SOURCES")
     print("-" * 40)
     for source in result.current_sources:
         status = "❌ ERROR" if source.error else "✅ OK"
@@ -387,7 +387,7 @@ def print_comparison_results(result: ComparisonResult):
         print()
     
     # GNews Sources Detail
-    print(f"\n🆕 GNEWS SOURCES")
+    print("\n🆕 GNEWS SOURCES")
     print("-" * 40)
     for source in result.gnews_results:
         status = "❌ ERROR" if source.error else "✅ OK"
@@ -401,7 +401,7 @@ def print_comparison_results(result: ComparisonResult):
         print()
     
     # Recommendations
-    print(f"\n💡 RECOMMENDATIONS")
+    print("\n💡 RECOMMENDATIONS")
     print("-" * 40)
     for rec in result.recommendations:
         print(f"  {rec}")
@@ -449,7 +449,7 @@ def main():
         
         # Wait between symbols
         if symbol != test_symbols[-1]:
-            print(f"\n⏱️  Waiting 10 seconds before next symbol...")
+            print("\n⏱️  Waiting 10 seconds before next symbol...")
             time.sleep(10)
     
     print(f"\n{'✅ COMPARISON COMPLETE':^80}")

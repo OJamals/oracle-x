@@ -7,8 +7,6 @@ Systematically tests all components as requested by user
 import sys
 import os
 import logging
-import time
-from typing import Dict, Any, List, Tuple
 
 # Add the project root to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -27,7 +25,7 @@ def test_pipeline_initialization():
     print("=" * 60)
 
     try:
-        from oracle_engine.agent_optimized import get_optimized_agent, OracleAgentOptimized
+        from oracle_engine.agent_optimized import get_optimized_agent
         print("✓ Successfully imported OracleAgentOptimized")
 
         # Test factory function
@@ -119,7 +117,7 @@ def test_self_learning_integration(agent):
         system_prompt, user_prompt, metadata = engine.generate_optimized_prompt(
             test_signals, market_condition
         )
-        print(f"✓ Prompt generation successful")
+        print("✓ Prompt generation successful")
         print(f"  - Template used: {metadata.get('template_id', 'Unknown')}")
         print(f"  - Estimated tokens: {metadata.get('estimated_tokens', 0)}")
 
@@ -161,7 +159,7 @@ def test_ab_testing_framework(agent):
 
         # Check if experiment is tracked
         if experiment_id in engine.active_experiments:
-            print(f"✓ Experiment tracked in active experiments")
+            print("✓ Experiment tracked in active experiments")
         else:
             print("❌ Experiment not tracked in active experiments")
             return False
@@ -241,7 +239,7 @@ def test_performance_tracking(agent):
         # Check if performance was recorded
         if agent.performance_history:
             last_record = agent.performance_history[-1]
-            print(f"✓ Performance recorded successfully")
+            print("✓ Performance recorded successfully")
             print(f"  - Success: {last_record['success']}")
             print(f"  - Duration: {last_record['total_duration']}")
             print(f"  - Template: {last_record.get('template_used', 'None')}")
@@ -281,7 +279,7 @@ def test_genetic_algorithms(agent):
             # This might be expected if there are no top performers yet
             return True
         else:
-            print(f"✓ Learning cycle completed")
+            print("✓ Learning cycle completed")
             print(f"  - Successful: {result.get('evolution_successful', False)}")
             print(f"  - Evolved templates: {result.get('evolved_templates', [])}")
 

@@ -7,24 +7,19 @@ to identify high-probability options trading opportunities.
 """
 
 import logging
-import time
-import json
-import pickle
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta
+from dataclasses import dataclass, asdict
+from datetime import datetime
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any, Union
+from typing import Dict, List, Optional, Tuple, Any
 from functools import lru_cache
 
 import numpy as np
 import pandas as pd
-from scipy import stats
 from scipy.stats import norm
-from sklearn.preprocessing import StandardScaler, RobustScaler
-from sklearn.model_selection import TimeSeriesSplit, cross_val_score
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor, GradientBoostingClassifier
+from sklearn.preprocessing import RobustScaler
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
 
 try:
@@ -42,7 +37,7 @@ except ImportError:
 
 # Import existing components
 from data_feeds.options_valuation_engine import (
-    OptionsValuationEngine, OptionContract, ValuationResult, OptionType
+    OptionsValuationEngine, OptionContract, OptionType
 )
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine

@@ -8,16 +8,16 @@ import logging
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any, Union, Callable
-from dataclasses import dataclass, field
+from typing import Dict, List, Optional, Any
+from dataclasses import dataclass
 from enum import Enum
 import warnings
 warnings.filterwarnings('ignore')
 
 import yfinance as yf
-from concurrent.futures import ThreadPoolExecutor, as_completed
+
 import pickle
-import json
+
 from pathlib import Path
 
 logger = logging.getLogger(__name__)

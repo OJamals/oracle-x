@@ -12,7 +12,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from oracle_engine.ensemble_ml_engine import (
-    EnsemblePredictionEngine, 
     PredictionType, 
     create_prediction_engine
 )
@@ -78,7 +77,7 @@ def demonstrate_working_ml_engine():
                 print(f"   ❌ {pred_type.value}: Error - {e}")
     
     # Test data integration
-    print(f"\n📊 Data Integration Test")
+    print("\n📊 Data Integration Test")
     print("-" * 25)
     
     test_symbol = 'AAPL'
@@ -105,7 +104,7 @@ def demonstrate_working_ml_engine():
         print(f"❌ Data integration error: {e}")
     
     # Test engine features
-    print(f"\n🔧 Engine Features Test")
+    print("\n🔧 Engine Features Test")
     print("-" * 22)
     
     try:
@@ -129,7 +128,7 @@ def demonstrate_working_ml_engine():
         print(f"❌ Engine features error: {e}")
     
     # Real-world scenario
-    print(f"\n🎯 Real-World Scenario: Portfolio Analysis")
+    print("\n🎯 Real-World Scenario: Portfolio Analysis")
     print("-" * 45)
     
     portfolio = ['AAPL', 'MSFT', 'TSLA']
@@ -171,33 +170,33 @@ def demonstrate_working_ml_engine():
             print(f"📊 {symbol}: Error - {e}")
     
     # Final summary
-    print(f"\n📋 Summary & Results")
+    print("\n📋 Summary & Results")
     print("=" * 25)
-    print(f"✅ ML Engine is fully operational!")
+    print("✅ ML Engine is fully operational!")
     print(f"✅ Prediction success rate: {successful_predictions}/{total_attempts} "
           f"({(successful_predictions/total_attempts)*100:.1f}%)")
-    print(f"✅ Data integration: Working")
-    print(f"✅ Engine features: All functional")
+    print("✅ Data integration: Working")
+    print("✅ Engine features: All functional")
     print(f"✅ Portfolio analysis: {len(analysis_results)}/{len(portfolio)} symbols analyzed")
     
-    print(f"\n💡 Key Insights:")
-    print(f"   - Engine uses robust fallback prediction system")
-    print(f"   - All core functionality is working correctly")
-    print(f"   - Ready for production trading scenarios")
-    print(f"   - Can be enhanced with trained ML models")
+    print("\n💡 Key Insights:")
+    print("   - Engine uses robust fallback prediction system")
+    print("   - All core functionality is working correctly")
+    print("   - Ready for production trading scenarios")
+    print("   - Can be enhanced with trained ML models")
     
     if analysis_results:
         buy_signals = sum(1 for r in analysis_results.values() if r['signal'] == 'BUY')
         print(f"   - Portfolio signals: {buy_signals} BUY, "
               f"{len(analysis_results)-buy_signals} HOLD/SELL")
     
-    print(f"\n🎉 ML Engine demonstration completed successfully!")
+    print("\n🎉 ML Engine demonstration completed successfully!")
     return True
 
 def technical_details():
     """Show technical details about how the engine works"""
     
-    print(f"\n🔬 Technical Details")
+    print("\n🔬 Technical Details")
     print("=" * 25)
     
     try:
@@ -205,23 +204,23 @@ def technical_details():
         sentiment_engine = AdvancedSentimentEngine()
         ml_engine = create_prediction_engine(data_orchestrator, sentiment_engine)
         
-        print(f"🏗️  Architecture:")
-        print(f"   - Data sources: Yahoo Finance, FinBERT sentiment")
+        print("🏗️  Architecture:")
+        print("   - Data sources: Yahoo Finance, FinBERT sentiment")
         print(f"   - Prediction types: {[pt.value for pt in PredictionType]}")
         print(f"   - Horizons: {ml_engine.prediction_horizons} days")
         print(f"   - Models available: {len(ml_engine.models)}")
         
-        print(f"\n⚙️  Current Operation Mode:")
-        print(f"   - Full ML models: Available but not trained")
-        print(f"   - Fallback system: Active and functional")
-        print(f"   - Technical analysis: Trend-based predictions")
-        print(f"   - Sentiment integration: Real-time analysis")
+        print("\n⚙️  Current Operation Mode:")
+        print("   - Full ML models: Available but not trained")
+        print("   - Fallback system: Active and functional")
+        print("   - Technical analysis: Trend-based predictions")
+        print("   - Sentiment integration: Real-time analysis")
         
-        print(f"\n🛡️  Robustness Features:")
-        print(f"   - Error handling: Comprehensive")
-        print(f"   - Data validation: Quality checks")
-        print(f"   - Prediction caching: Performance optimization")
-        print(f"   - Configuration save/load: State persistence")
+        print("\n🛡️  Robustness Features:")
+        print("   - Error handling: Comprehensive")
+        print("   - Data validation: Quality checks")
+        print("   - Prediction caching: Performance optimization")
+        print("   - Configuration save/load: State persistence")
         
         return True
         
@@ -238,27 +237,27 @@ def main():
         
         # Show technical details
         if demo_success:
-            tech_success = technical_details()
+            technical_details()
         
         # Final status
-        print(f"\n" + "=" * 60)
-        print(f"🏁 FINAL STATUS")
-        print(f"=" * 60)
+        print("\n" + "=" * 60)
+        print("🏁 FINAL STATUS")
+        print("=" * 60)
         
         if demo_success:
-            print(f"🎉 SUCCESS: ML Engine is working correctly!")
-            print(f"✅ All systems operational")
-            print(f"✅ Ready for trading applications")
-            print(f"✅ Fallback predictions provide reliable baseline")
-            print(f"💡 Can be enhanced with model training for improved accuracy")
+            print("🎉 SUCCESS: ML Engine is working correctly!")
+            print("✅ All systems operational")
+            print("✅ Ready for trading applications")
+            print("✅ Fallback predictions provide reliable baseline")
+            print("💡 Can be enhanced with model training for improved accuracy")
         else:
-            print(f"❌ Issues detected in ML Engine")
-            print(f"🔧 Requires troubleshooting")
+            print("❌ Issues detected in ML Engine")
+            print("🔧 Requires troubleshooting")
         
         return 0 if demo_success else 1
         
     except KeyboardInterrupt:
-        print(f"\n⏹️  Demonstration interrupted")
+        print("\n⏹️  Demonstration interrupted")
         return 130
     except Exception as e:
         print(f"\n💥 Demonstration failed: {e}")

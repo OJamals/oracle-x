@@ -70,7 +70,7 @@ try:
                     if hasattr(sentiment_data, 'raw_data') and sentiment_data.raw_data:
                         sample_texts = sentiment_data.raw_data.get('sample_texts', [])
                         if sample_texts:
-                            print(f"  📝 Sample Headlines:")
+                            print("  📝 Sample Headlines:")
                             for i, text in enumerate(sample_texts[:3], 1):
                                 print(f"    {i}. {text[:80]}...")
                         
@@ -105,22 +105,22 @@ try:
             print(f"Total news articles processed: {total_sample_size}")
             
             # Show feeds that provided data
-            print(f"\n📊 RSS Feeds providing sentiment data:")
-            print(f"  📰 Benzinga: http://feeds.benzinga.com/benzinga")
-            print(f"  📺 CNBC Business: https://www.cnbc.com/id/10001147/device/rss/rss.html")
-            print(f"  📰 Financial Times: https://www.ft.com/rss/home")
-            print(f"  💼 Fortune: https://fortune.com/feed/fortune-feeds/?id=3230629")
-            print(f"  📈 MarketWatch: https://feeds.marketwatch.com/marketwatch/topstories/")
-            print(f"  🔍 Seeking Alpha: https://seekingalpha.com/feed.xml")
+            print("\n📊 RSS Feeds providing sentiment data:")
+            print("  📰 Benzinga: http://feeds.benzinga.com/benzinga")
+            print("  📺 CNBC Business: https://www.cnbc.com/id/10001147/device/rss/rss.html")
+            print("  📰 Financial Times: https://www.ft.com/rss/home")
+            print("  💼 Fortune: https://fortune.com/feed/fortune-feeds/?id=3230629")
+            print("  📈 MarketWatch: https://feeds.marketwatch.com/marketwatch/topstories/")
+            print("  🔍 Seeking Alpha: https://seekingalpha.com/feed.xml")
         
         if successful >= total * 0.75:  # 75% success rate threshold
-            print(f"\n✅ RSS ADAPTER INTEGRATION SUCCESS!")
-            print(f"   📰 All 6 news RSS feeds integrated and working")
+            print("\n✅ RSS ADAPTER INTEGRATION SUCCESS!")
+            print("   📰 All 6 news RSS feeds integrated and working")
             print(f"   🎯 {successful}/{total} symbols processed successfully")
-            print(f"   🚀 Ready for production use in DataFeedOrchestrator")
+            print("   🚀 Ready for production use in DataFeedOrchestrator")
             return True
         else:
-            print(f"\n❌ RSS ADAPTER INTEGRATION FAILED!")
+            print("\n❌ RSS ADAPTER INTEGRATION FAILED!")
             print(f"   📰 Insufficient success rate: {(successful/total)*100:.1f}%")
             return False
 

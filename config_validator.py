@@ -9,8 +9,7 @@ error messages for missing or invalid configurations.
 
 import os
 import sys
-import warnings
-from typing import Dict, List, Optional, Any, Union
+from typing import Dict, List, Any
 from dataclasses import dataclass
 from enum import Enum
 
@@ -48,8 +47,8 @@ class ConfigValidator:
     RECOMMENDED_CONFIGS = {
         'OPENAI_MODEL': {
             'description': 'Preferred OpenAI model',
-            'default': 'gpt-4o-mini',
-            'validation': lambda x: x in ['gpt-4o-mini', 'gpt-4o', 'o4-mini', 'o3-mini'],
+            'default': 'gpt-5-mini',
+            'validation': lambda x: x in ['gpt-4.1', 'gpt-4o', 'o4-mini', 'o3-mini'],
             'error_msg': 'Should be a supported OpenAI model'
         },
         'QDRANT_URL': {
@@ -69,7 +68,7 @@ class ConfigValidator:
     OPTIONAL_CONFIGS = {
         'OPENAI_API_BASE': {
             'description': 'Custom OpenAI API base URL',
-            'default': 'https://api.openai.com/v1',
+            'default': 'https://api.githubcopilot.com',
             'validation': lambda x: x.startswith(('http://', 'https://')),
             'error_msg': 'Must be a valid URL'
         },

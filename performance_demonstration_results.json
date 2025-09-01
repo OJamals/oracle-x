@@ -1,0 +1,97 @@
+{
+  "vectorized": {
+    "traditional_time": 0.004113197326660156,
+    "vectorized_time": 2.3415350914001465,
+    "speedup": 0.001756624251230258,
+    "options_count": 1000
+  },
+  "pandas": {
+    "traditional_time": 0.0036780834197998047,
+    "optimized_time": 0.0032110214233398438,
+    "speedup": 1.1454558954558955,
+    "rows_processed": 10000
+  },
+  "caching": {
+    "first_run_time": 0.0029168128967285156,
+    "second_run_time": 0.00022602081298828125,
+    "speedup": 12.905063291139241,
+    "cache_stats": {
+      "memory_cache": {
+        "enabled": true,
+        "size": 4,
+        "max_size": 1000,
+        "hit_rate": 1.0,
+        "total_requests": 4,
+        "hits": 4,
+        "misses": 0
+      },
+      "redis_cache": {
+        "enabled": true,
+        "available": true,
+        "connection_pool_size": 0,
+        "hit_rate": 0,
+        "total_requests": 0,
+        "hits": 0,
+        "misses": 0
+      },
+      "disk_cache": {
+        "enabled": true,
+        "total_entries": 4,
+        "valid_entries": 4,
+        "expired_entries": 0,
+        "hit_rate": 0,
+        "db_size_mb": 0.0234375
+      },
+      "overall": {
+        "multi_level_enabled": true,
+        "total_cache_hits": 4,
+        "total_cache_requests": 4,
+        "overall_hit_rate": 1.0,
+        "cache_layers": 3
+      },
+      "timestamp": 1756741762
+    }
+  },
+  "algorithm_selection": [
+    {
+      "data_type": "Numeric array",
+      "selected_algorithm": "vectorized_options",
+      "confidence": 0.75,
+      "characteristics": {
+        "size": 500,
+        "data_type": "numeric",
+        "sparsity": 0.0
+      }
+    },
+    {
+      "data_type": "DataFrame",
+      "selected_algorithm": "vectorized_options",
+      "confidence": 0.85,
+      "characteristics": {
+        "size": 500,
+        "data_type": "numeric",
+        "sparsity": 0.0
+      }
+    },
+    {
+      "data_type": "List",
+      "selected_algorithm": "vectorized_options",
+      "confidence": 0.75,
+      "characteristics": {
+        "size": 500,
+        "data_type": "numeric",
+        "sparsity": 0.0
+      }
+    },
+    {
+      "data_type": "Dictionary",
+      "selected_algorithm": "vectorized_options",
+      "confidence": 0.5499999999999999,
+      "characteristics": {
+        "size": 1,
+        "data_type": "unknown",
+        "sparsity": 0.0
+      }
+    }
+  ]
+}

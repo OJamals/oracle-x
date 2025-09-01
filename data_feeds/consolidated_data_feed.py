@@ -25,6 +25,14 @@ from functools import wraps
 import threading
 from collections import defaultdict
 
+# Optimized HTTP client import with fallback
+try:
+    from core.http_client import optimized_get
+except ImportError:
+    def optimized_get(url, **kwargs):
+        """Fallback to standard requests if optimized client unavailable"""
+        return requests.get(url, **kwargs)
+
 # Load environment variables
 load_dotenv()
 
@@ -345,7 +353,7 @@ class FMPAdapter(SourceAdapter):
     def _make_request(self, endpoint: str) -> Optional[Dict]:
         try:
             url = f"{self.base_url}/{endpoint}?apikey={self.api_key}"
-            response = requests.get(url, timeout=10)
+            response = optimized_get(url, timeout=10)
             if response.status_code == 200:
                 return response.json()
         except Exception as e:

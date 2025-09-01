@@ -5,8 +5,8 @@ Demonstrates implementation of TradingStrategy base class with realistic trading
 
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any
+from datetime import datetime
+from typing import Dict, List, Optional
 import logging
 
 from .comprehensive_backtest import TradingStrategy

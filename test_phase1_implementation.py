@@ -5,7 +5,6 @@ Tests core types, caching, rate limiting, and performance monitoring.
 """
 
 import time
-import json
 from datetime import datetime, timezone
 from decimal import Decimal
 import logging
@@ -15,7 +14,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Import our Phase 1 components
-from core.types import MarketData, OptionContract, DataSource, validate_market_data, calculate_data_quality
+from core.types import OptionContract, DataSource, validate_market_data, calculate_data_quality
 from core.cache.redis_manager import get_cache_manager, cache_decorator
 from core.cache.sqlite_manager import get_sqlite_cache_manager, get_unified_cache_manager
 from core.rate_limiter import get_rate_limiter, rate_limit_decorator, RateLimitExceededError

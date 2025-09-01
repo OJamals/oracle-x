@@ -9,7 +9,7 @@ import sys
 import requests
 import json
 import time
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Tuple
 
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -57,7 +57,7 @@ class APIIntegrationTester:
             collections = client.get_collections()
             collection_names = [c.name for c in collections.collections]
             
-            print(f"  ✅ Qdrant client connection successful")
+            print("  ✅ Qdrant client connection successful")
             print(f"  Found {len(collection_names)} collections: {collection_names}")
             
             # Test basic health via HTTP with proper Bearer token format
@@ -155,11 +155,11 @@ class APIIntegrationTester:
                 try:
                     health_response = requests.get(health_url, timeout=5)
                     if health_response.status_code == 200:
-                        print(f"  ✅ Local embedding service health check passed")
+                        print("  ✅ Local embedding service health check passed")
                     else:
                         print(f"  ⚠️  Health endpoint returned {health_response.status_code}")
                 except:
-                    print(f"  ⚠️  No health endpoint available")
+                    print("  ⚠️  No health endpoint available")
                 
                 # Try models endpoint
                 models_url = f"{embedding_base}/v1/models"
@@ -232,7 +232,7 @@ class APIIntegrationTester:
             
             if response.status_code == 200:
                 usage_data = response.json()
-                print(f"  ✅ TwelveData API accessible")
+                print("  ✅ TwelveData API accessible")
                 print(f"  API Usage Data: {usage_data}")
                 
                 # Also test a simple stock price endpoint to verify functionality
@@ -356,7 +356,7 @@ class APIIntegrationTester:
                 }
         
         print("\n" + "=" * 60)
-        print(f"📊 TEST SUMMARY")
+        print("📊 TEST SUMMARY")
         print(f"  ✅ Passed: {passed}")
         print(f"  ❌ Failed: {failed}")
         print(f"  📈 Success Rate: {(passed/(passed+failed)*100):.1f}%")
@@ -386,7 +386,7 @@ class APIIntegrationTester:
         failed = len(self.results) - passed
         success_rate = (passed/len(self.results)*100) if self.results else 0
         
-        report.append(f"## 📊 Summary")
+        report.append("## 📊 Summary")
         report.append(f"- **Total Tests**: {len(self.results)}")
         report.append(f"- **Passed**: {passed} ✅")
         report.append(f"- **Failed**: {failed} ❌")

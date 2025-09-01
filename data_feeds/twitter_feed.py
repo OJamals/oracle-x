@@ -42,6 +42,8 @@ except ImportError:
     LANGDETECT_AVAILABLE = False
     logger.warning("langdetect not available, language detection disabled")
 
+from data_feeds.advanced_sentiment import analyze_text_sentiment
+
 
 class TwitterSentimentFeed:
     """
@@ -118,21 +120,47 @@ class TwitterSentimentFeed:
         
         return list(tickers)
     
-    def _get_sentiment(self, text: str) -> Dict[str, Any]:
-        """Get comprehensive sentiment analysis."""
-        sentiment = dict(self.analyzer.polarity_scores(text))
+    def _get_sentiment(self, text: str, tickers: Optional[List[str]] = None) -> Dict[str, Any]:
+        """Get comprehensive sentiment analysis using advanced sentiment engine."""
+        # Determine symbol for sentiment analysis - use first ticker if available, otherwise "unknown"
+        symbol = "unknown"
+        if tickers and len(tickers) > 0:
+            symbol = tickers[0]
         
+        # Use advanced sentiment analysis with source="twitter" for model selection
+        sentiment_result = analyze_text_sentiment(text, symbol, source="twitter")
+        
+        # Create VADER-like sentiment dict for backward compatibility
+        ensemble_score = sentiment_result.ensemble_score
+        if ensemble_score >= 0:
+            pos = ensemble_score
+            neu = 1 - ensemble_score
+            neg = 0.0
+        else:
+            pos = 0.0
+            neu = 1 + ensemble_score  # ensemble_score is negative, so 1 + neg value
+            neg = -ensemble_score
+        
+        sentiment_dict = {
+            'compound': ensemble_score,
+            'positive': pos,
+            'neutral': neu,
+            'negative': neg,
+            'ensemble_score': ensemble_score,
+            'confidence': sentiment_result.confidence
+        }
+        
+        # Include TextBlob if available (maintain existing behavior)
         if TEXTBLOB_AVAILABLE and TextBlob is not None:
             try:
                 tb = TextBlob(text)
-                sentiment["textblob_polarity"] = tb.sentiment.polarity
-                sentiment["textblob_subjectivity"] = tb.sentiment.subjectivity
+                sentiment_dict["textblob_polarity"] = tb.sentiment.polarity
+                sentiment_dict["textblob_subjectivity"] = tb.sentiment.subjectivity
             except Exception:
-                # Use a special marker value instead of None
-                sentiment["textblob_polarity"] = 0.0
-                sentiment["textblob_subjectivity"] = 0.0
+                sentiment_dict["textblob_polarity"] = 0.0
+                sentiment_dict["textblob_subjectivity"] = 0.0
         
-        return sentiment
+        return sentiment_dict
     
     def _get_language(self, text: str) -> str:
         """Detect text language with fallback."""
@@ -208,7 +236,7 @@ class TwitterSentimentFeed:
                 
                 # Extract data
                 tickers = self._extract_tickers(text)
-                sentiment = self._get_sentiment(text)
+                sentiment = self._get_sentiment(text, tickers)
                 language = self._get_language(clean_text)
                 
                 # Get engagement metrics

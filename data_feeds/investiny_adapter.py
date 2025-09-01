@@ -15,8 +15,20 @@ from __future__ import annotations
 
 import datetime as _dt
 from typing import Any, Dict, List, Optional, Tuple
+import os
 
 import pandas as pd
+
+# Async I/O utilities import with fallback
+AsyncHTTPClient = None
+ASYNC_IO_AVAILABLE = False
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.async_io_utils import AsyncHTTPClient
+    ASYNC_IO_AVAILABLE = True
+except ImportError:
+    pass
 
 # Mute noisy loggers by default (user can override at app level)
 import logging as _logging

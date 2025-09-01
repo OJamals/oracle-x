@@ -18,6 +18,14 @@ from dataclasses import dataclass
 import logging
 from dotenv import load_dotenv
 
+# Optimized HTTP client import with fallback
+try:
+    from core.http_client import optimized_get
+except ImportError:
+    def optimized_get(url, **kwargs):
+        """Fallback to standard requests if optimized client unavailable"""
+        return requests.get(url, **kwargs)
+
 # Load environment variables
 load_dotenv()
 
@@ -104,7 +112,7 @@ class EnhancedFMPAdapter:
             separator = "&" if "?" in endpoint else "?"
             url = f"{url}{separator}apikey={self.api_key}"
             
-            response = requests.get(url, timeout=15)
+            response = optimized_get(url, timeout=15)
             
             if response.status_code == 200:
                 data = response.json()

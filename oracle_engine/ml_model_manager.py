@@ -16,6 +16,15 @@ from typing import Dict, List, Optional, Tuple, Any
 import pandas as pd
 import numpy as np
 
+# Memory-efficient processing import with fallback
+try:
+    from core.memory_processor import LazyDataLoader, MemoryConfig
+    MEMORY_PROCESSOR_AVAILABLE = True
+except ImportError:
+    MEMORY_PROCESSOR_AVAILABLE = False
+    LazyDataLoader = None
+    MemoryConfig = None
+
 # Local imports
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
 from oracle_engine.ml_prediction_engine import PredictionType
@@ -76,12 +85,22 @@ class ModelMetrics:
 
 
 class ModelVersionManager:
-    """Manage model versions and rollback capabilities"""
+    """Manage model versions and rollback capabilities with lazy loading"""
     
     def __init__(self, models_dir: str = "models"):
         self.models_dir = Path(models_dir)
         self.models_dir.mkdir(exist_ok=True)
         self.version_history: Dict[str, List[str]] = {}
+        
+        # Initialize lazy loader for memory efficiency
+        if MEMORY_PROCESSOR_AVAILABLE and LazyDataLoader and MemoryConfig:
+            self.lazy_loader = LazyDataLoader(MemoryConfig(
+                lazy_load_threshold=50000,  # Models larger than 50KB use lazy loading
+                cache_compression=True,
+                enable_gc_optimization=True
+            ))
+        else:
+            self.lazy_loader = None
         
     def save_model(self, model: Any, model_name: str, version: Optional[str] = None) -> str:
         """Save model with version control"""
@@ -114,7 +133,7 @@ class ModelVersionManager:
             raise
     
     def load_model(self, model_name: str, version: Optional[str] = None) -> Optional[Any]:
-        """Load model by name and version"""
+        """Load model by name and version with lazy loading support"""
         if version is None:
             # Load latest version
             if model_name not in self.version_history or not self.version_history[model_name]:
@@ -122,7 +141,25 @@ class ModelVersionManager:
             version = self.version_history[model_name][-1]
         
         model_path = self.models_dir / f"{model_name}_v{version}.pkl"
+        cache_key = f"{model_name}_v{version}"
         
+        # Use lazy loading if available and model file exists
+        if (self.lazy_loader and model_path.exists() and 
+            model_path.stat().st_size > 50000):  # Only for larger models
+            
+            def model_loader():
+                with open(model_path, 'rb') as f:
+                    return pickle.load(f)
+            
+            try:
+                with self.lazy_loader.lazy_load(cache_key, model_loader):
+                    model = self.lazy_loader._cache[cache_key][1]  # Get from cache
+                    logger.info(f"Lazy loaded model {model_name} version {version}")
+                    return model
+            except Exception as e:
+                logger.warning(f"Lazy loading failed, falling back to direct load: {e}")
+        
+        # Standard loading
         try:
             if model_path.exists():
                 with open(model_path, 'rb') as f:

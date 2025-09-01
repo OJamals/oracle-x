@@ -5,13 +5,11 @@ This will thoroughly evaluate their capabilities, limitations, and available end
 CORRECTED VERSION with proper API usage.
 """
 
-import os
-import sys
 import time
 import json
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -265,7 +263,6 @@ def test_quantsumore_comprehensive():
         # Test 4: Fundamental analysis (if available)
         logger.info("Testing fundamental analysis...")
         try:
-            from quantsumore.analysis.fundamental import financial_ratios
             # This may not work due to the Yahoo Finance disruption
             results['fundamental_analysis'] = False  # Assume unavailable due to notice
             logger.info("Fundamental analysis unavailable due to Yahoo Finance disruption")
@@ -526,7 +523,7 @@ def generate_comprehensive_report(all_results: Dict[str, Any]):
                 print(f"   Priority endpoints: {', '.join(working_endpoints[:3])}...")
             else:
                 print(f"\n⚠️  {source_name.upper()}: NOT RECOMMENDED")
-                print(f"   Reason: No working endpoints found")
+                print("   Reason: No working endpoints found")
         else:
             print(f"\n❌ {source_name.upper()}: NOT AVAILABLE")
             print(f"   Reason: {status}")

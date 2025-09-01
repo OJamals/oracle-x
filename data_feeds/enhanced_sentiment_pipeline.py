@@ -15,6 +15,7 @@ import os
 import threading
 import queue
 import random
+import statistics
 
 # Import enhanced adapters
 from data_feeds.twitter_adapter import EnhancedTwitterAdapter
@@ -63,6 +64,8 @@ try:
     YAHOO_NEWS_AVAILABLE = True
 except ImportError:
     YAHOO_NEWS_AVAILABLE = False
+
+from data_feeds.advanced_sentiment import AdvancedSentimentEngine, analyze_symbol_sentiment
 
 logger = logging.getLogger(__name__)
 
@@ -334,7 +337,7 @@ class OptimizedSentimentPipeline:
             ) / total_requests
 
     def _aggregate_sentiment_results(self, symbol: str, sentiment_results: Dict[str, SentimentData]) -> Dict[str, Any]:
-        """Aggregate sentiment results with confidence weighting and performance metrics"""
+        """Aggregate sentiment results with enhanced confidence weighting and quality metrics"""
         if not sentiment_results:
             return self._create_empty_sentiment_response(symbol)
 
@@ -342,6 +345,7 @@ class OptimizedSentimentPipeline:
         sentiments = []
         confidences = []
         source_breakdown = {}
+        analysis_methods = set()
 
         for source_name, sentiment_data in sentiment_results.items():
             if sentiment_data is None:
@@ -360,23 +364,44 @@ class OptimizedSentimentPipeline:
                 'source': sentiment_data.source,
                 'analysis_method': sentiment_data.raw_data.get('analysis_method', 'unknown') if sentiment_data.raw_data else 'unknown'
             }
+            
+            # Track analysis methods for quality assessment
+            if sentiment_data.raw_data and 'analysis_method' in sentiment_data.raw_data:
+                analysis_methods.add(sentiment_data.raw_data['analysis_method'])
 
-        # Calculate confidence-weighted overall sentiment
+        # Calculate confidence-weighted overall sentiment with outlier rejection
         if sum(confidences) > 0:
-            overall_sentiment = sum(s * c for s, c in zip(sentiments, confidences)) / sum(confidences)
-            average_confidence = sum(confidences) / len(confidences)
+            # Apply outlier rejection - remove scores that deviate significantly from weighted mean
+            weighted_mean = sum(s * c for s, c in zip(sentiments, confidences)) / sum(confidences)
+            std_dev = statistics.stdev(sentiments) if len(sentiments) > 1 else 0.0
+            
+            filtered_sentiments = []
+            filtered_confidences = []
+            
+            for s, c in zip(sentiments, confidences):
+                if abs(s - weighted_mean) <= 2 * std_dev or std_dev == 0.0:  # Keep within 2 std dev
+                    filtered_sentiments.append(s)
+                    filtered_confidences.append(c)
+            
+            if filtered_sentiments:
+                overall_sentiment = sum(s * c for s, c in zip(filtered_sentiments, filtered_confidences)) / sum(filtered_confidences)
+                average_confidence = sum(filtered_confidences) / len(filtered_confidences)
+            else:
+                # Fallback if all filtered out
+                overall_sentiment = weighted_mean
+                average_confidence = sum(confidences) / len(confidences)
         else:
             overall_sentiment = sum(sentiments) / len(sentiments) if sentiments else 0.0
             average_confidence = 0.5
 
-        # Determine trending direction with stricter thresholds for performance
-        trending_direction = self._determine_trending_direction(overall_sentiment, average_confidence)
+        # Determine trending direction with enhanced thresholds
+        trending_direction = self._determine_enhanced_trending_direction(overall_sentiment, average_confidence, sentiments)
 
-        # Calculate quality score based on source diversity and confidence
-        quality_score = self._calculate_quality_score(sentiment_results, average_confidence)
+        # Calculate enhanced quality score with multiple factors
+        quality_score = self._calculate_enhanced_quality_score(sentiment_results, average_confidence, len(analysis_methods))
 
-        # Count sentiment directions
-        sentiment_distribution = self._calculate_sentiment_distribution(sentiments)
+        # Count sentiment directions with confidence filtering
+        sentiment_distribution = self._calculate_enhanced_sentiment_distribution(sentiments, confidences)
 
         return {
             'symbol': symbol,
@@ -388,7 +413,97 @@ class OptimizedSentimentPipeline:
             'source_breakdown': source_breakdown,
             'sentiment_distribution': sentiment_distribution,
             'timestamp': datetime.now().isoformat(),
-            'performance_stats': self.performance_stats.copy()
+            'performance_stats': self.performance_stats.copy(),
+            'analysis_methods_count': len(analysis_methods)
+        }
+
+    def _determine_enhanced_trending_direction(self, overall_sentiment: float, average_confidence: float, sentiments: List[float]) -> str:
+        """Determine trending direction with enhanced confidence-based thresholds"""
+        if average_confidence < 0.4:
+            return "uncertain"
+        
+        # Calculate sentiment dispersion
+        if len(sentiments) >= 2:
+            dispersion = statistics.stdev(sentiments)
+        else:
+            dispersion = 0.0
+        
+        # Adjust thresholds based on confidence and dispersion
+        confidence_factor = min(1.0, average_confidence * 1.5)
+        dispersion_penalty = min(0.3, dispersion * 0.5)
+        
+        bullish_threshold = 0.15 * confidence_factor - dispersion_penalty
+        bearish_threshold = -0.15 * confidence_factor + dispersion_penalty
+        
+        if overall_sentiment > max(0.05, bullish_threshold) and average_confidence > 0.5:
+            return "bullish"
+        elif overall_sentiment < min(-0.05, bearish_threshold) and average_confidence > 0.5:
+            return "bearish"
+        elif abs(overall_sentiment) < 0.08:
+            return "neutral"
+        else:
+            return "uncertain"
+
+    def _calculate_enhanced_quality_score(self, sentiment_results: Dict[str, SentimentData], average_confidence: float, analysis_methods_count: int) -> float:
+        """Calculate enhanced quality score with multiple quality factors"""
+        source_count = len(sentiment_results)
+        
+        # Base confidence score (35% weight)
+        confidence_score = min(35.0, average_confidence * 35.0)
+        
+        # Source diversity bonus (25% weight) - more sources = higher score
+        source_diversity_bonus = min(25.0, source_count * 5.0)
+        
+        # Analysis method diversity bonus (15% weight) - multiple analysis methods = higher quality
+        method_diversity_bonus = min(15.0, analysis_methods_count * 7.5)
+        
+        # Sample size bonus (15% weight) - larger samples = better quality
+        total_sample_size = sum(sd.sample_size or 0 for sd in sentiment_results.values())
+        sample_size_bonus = min(15.0, total_sample_size / 20.0)  # Max 15 points for 300+ samples
+        
+        # Confidence consistency bonus (10% weight) - low dispersion = higher quality
+        confidences = [sd.confidence for sd in sentiment_results.values() if sd is not None]
+        if len(confidences) >= 2:
+            confidence_dispersion = statistics.stdev(confidences)
+            consistency_bonus = max(0.0, 10.0 * (1.0 - min(1.0, confidence_dispersion * 2.0)))
+        else:
+            consistency_bonus = 5.0  # Neutral bonus for single source
+        
+        total_score = (
+            confidence_score + 
+            source_diversity_bonus + 
+            method_diversity_bonus + 
+            sample_size_bonus + 
+            consistency_bonus
+        )
+        
+        return min(100.0, max(0.0, total_score))
+
+    def _calculate_enhanced_sentiment_distribution(self, sentiments: List[float], confidences: List[float]) -> Dict[str, int]:
+        """Calculate sentiment distribution with confidence weighting"""
+        if not sentiments:
+            return {'bullish_sources': 0, 'bearish_sources': 0, 'neutral_sources': 0}
+        
+        bullish_count = 0
+        bearish_count = 0
+        neutral_count = 0
+        
+        for sentiment, confidence in zip(sentiments, confidences):
+            # Apply confidence threshold - only count confident sources
+            if confidence < 0.4:
+                continue
+                
+            if sentiment > 0.15:
+                bullish_count += 1
+            elif sentiment < -0.15:
+                bearish_count += 1
+            else:
+                neutral_count += 1
+        
+        return {
+            'bullish_sources': bullish_count,
+            'bearish_sources': bearish_count,
+            'neutral_sources': neutral_count
         }
 
     def _create_empty_sentiment_response(self, symbol: str) -> Dict[str, Any]:
@@ -407,38 +522,8 @@ class OptimizedSentimentPipeline:
                 'neutral_sources': 0
             },
             'timestamp': datetime.now().isoformat(),
-            'performance_stats': self.performance_stats.copy()
-        }
-
-    def _determine_trending_direction(self, overall_sentiment: float, average_confidence: float) -> str:
-        """Determine trending direction with optimized thresholds"""
-        if overall_sentiment > 0.15 and average_confidence > 0.5:
-            return "bullish"
-        elif overall_sentiment < -0.15 and average_confidence > 0.5:
-            return "bearish"
-        elif abs(overall_sentiment) < 0.05:
-            return "neutral"
-        else:
-            return "uncertain"
-
-    def _calculate_quality_score(self, sentiment_results: Dict[str, SentimentData], average_confidence: float) -> float:
-        """Calculate quality score based on source diversity and confidence"""
-        source_diversity_bonus = min(20, len(sentiment_results) * 3)  # Max 20 points for source diversity
-        confidence_score = average_confidence * 60  # Max 60 points for confidence
-        sample_size_bonus = min(20, sum(sd.sample_size or 0 for sd in sentiment_results.values()) / 10)  # Max 20 points for sample size
-
-        return source_diversity_bonus + confidence_score + sample_size_bonus
-
-    def _calculate_sentiment_distribution(self, sentiments: List[float]) -> Dict[str, int]:
-        """Calculate sentiment distribution for analysis"""
-        bullish_sources = sum(1 for s in sentiments if s > 0.1)
-        bearish_sources = sum(1 for s in sentiments if s < -0.1)
-        neutral_sources = len(sentiments) - bullish_sources - bearish_sources
-
-        return {
-            'bullish_sources': bullish_sources,
-            'bearish_sources': bearish_sources,
-            'neutral_sources': neutral_sources
+            'performance_stats': self.performance_stats.copy(),
+            'analysis_methods_count': 0
         }
 
     def get_health_status(self) -> Dict[str, Any]:

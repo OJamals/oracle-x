@@ -1,7 +1,27 @@
 import os
 import requests
 from typing import Dict, Any, Optional
+
+# Async I/O utilities import with fallback
+AsyncHTTPClient = None
+ASYNC_IO_AVAILABLE = False
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.async_io_utils import AsyncHTTPClient
+    ASYNC_IO_AVAILABLE = True
+except ImportError:
+    pass
+
 from .api_key_validator import execute_with_fallback
+
+# Optimized HTTP client import with fallback
+try:
+    from core.http_client import optimized_get
+except ImportError:
+    def optimized_get(url, **kwargs):
+        """Fallback to standard requests if optimized client unavailable"""
+        return requests.get(url, **kwargs)
 
 # Try to import configuration manager
 try:
@@ -27,7 +47,7 @@ def fetch_finnhub_quote(symbol: str) -> Dict[str, Any]:
             raise ValueError("FINNHUB_API_KEY not configured")
 
         url = f"https://finnhub.io/api/v1/quote?symbol={symbol}&token={api_key}"
-        resp = requests.get(url, timeout=10)  # Increased timeout
+        resp = optimized_get(url, timeout=10)  # Increased timeout
         resp.raise_for_status()
         return resp.json()
 
@@ -73,7 +93,7 @@ def fetch_finnhub_news(symbol: str) -> list:
         start_date = end_date - timedelta(days=7)
 
         url = f"https://finnhub.io/api/v1/company-news?symbol={symbol}&from={start_date.strftime('%Y-%m-%d')}&to={end_date.strftime('%Y-%m-%d')}&token={api_key}"
-        resp = requests.get(url, timeout=10)  # Increased timeout
+        resp = optimized_get(url, timeout=10)  # Increased timeout
         resp.raise_for_status()
         return resp.json()
 

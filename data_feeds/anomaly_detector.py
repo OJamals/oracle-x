@@ -58,9 +58,9 @@ def detect_price_volume_anomalies(signal: Union[pd.Series, pd.DataFrame, List[Di
       List[int]: indices where |z| > threshold
     """
     s = _as_numeric_series(signal)
-    if len(s) < 5:
+    if len(s) < 3:  # Reduced from 5 to 3 to handle series with NaN values
         return []
-    std = s.std()
+    std = s.std(ddof=0)  # Use population standard deviation for more sensitive anomaly detection
     if std == 0 or np.isnan(std):
         return []
     z = ((s - s.mean()) / std).abs()

@@ -19,6 +19,8 @@ except Exception:  # pragma: no cover
 import praw  # type: ignore
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+# Import advanced sentiment analysis
+from data_feeds.advanced_sentiment import analyze_text_sentiment
 # Simple in-memory cache to avoid repeated Reddit API calls
 _reddit_cache = {}
 _cache_timestamp = None
@@ -132,7 +134,15 @@ def fetch_reddit_sentiment(subreddit: str = "stocks", limit: int = 100) -> Dict[
                 if not matches:
                     continue
                 try:
-                    sent = analyzer.polarity_scores(text)
+                    # Use advanced sentiment analysis with source="reddit"
+                    symbol = matches[0] if matches else "unknown"
+                    sentiment_result = analyze_text_sentiment(text, symbol, source="reddit")
+                    sent = {
+                        "compound": sentiment_result.ensemble_score,
+                        "pos": max(0.0, sentiment_result.ensemble_score) if sentiment_result.ensemble_score > 0 else 0.0,
+                        "neu": 1 - abs(sentiment_result.ensemble_score),
+                        "neg": max(0.0, -sentiment_result.ensemble_score) if sentiment_result.ensemble_score < 0 else 0.0
+                    }
                 except Exception:
                     continue
                 pid_raw = getattr(post, 'id', None) or (hash(title) ^ hash(body))

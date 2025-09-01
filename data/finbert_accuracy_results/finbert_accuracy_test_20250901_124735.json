@@ -1,0 +1,823 @@
+{
+  "timestamp": "2025-09-01T12:47:01.547253",
+  "models_tested": [
+    "finbert_tone",
+    "finbert_pretrain",
+    "finbert_news",
+    "finbert_earnings",
+    "finbert_prosus",
+    "fintwitbert_sentiment"
+  ],
+  "datasets_tested": [
+    "twitter",
+    "news",
+    "reddit",
+    "mixed"
+  ],
+  "model_performance": {
+    "finbert_tone": {
+      "twitter": {
+        "model_name": "finbert_tone",
+        "accuracy": 0.6961979961395264,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "calibration_error": 0.26017366886138915,
+        "avg_confidence": 0.9563716650009155,
+        "processing_time": 0.10054879188537598,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "twitter": 0.6961979961395264
+        },
+        "confidence_calibration_curve": [
+          [
+            0.7998819351196289,
+            0.40011806488037105
+          ],
+          [
+            0.889430046081543,
+            0.610569953918457
+          ],
+          [
+            0.9843005836009979,
+            0.7439114928245545
+          ]
+        ]
+      },
+      "news": {
+        "model_name": "finbert_tone",
+        "accuracy": 0.2190614914894104,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.769518473148346,
+        "avg_confidence": 0.9885799646377563,
+        "processing_time": 0.10603909492492676,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "news": 0.2190614914894104
+        },
+        "confidence_calibration_curve": [
+          [
+            0.9836856637682233,
+            0.22723070212772914
+          ]
+        ]
+      },
+      "reddit": {
+        "model_name": "finbert_tone",
+        "accuracy": 0.15310221314430236,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.7534606665372848,
+        "avg_confidence": 0.9065628796815872,
+        "processing_time": 0.11143040657043457,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "reddit": 0.15310221314430236
+        },
+        "confidence_calibration_curve": [
+          [
+            0.4577869474887848,
+            0.5
+          ],
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9883112396512713,
+            0.07586030449186053
+          ]
+        ]
+      },
+      "mixed": {
+        "model_name": "finbert_tone",
+        "accuracy": 0.32093654791514076,
+        "precision": 0.42857142857142855,
+        "recall": 0.3333333333333333,
+        "f1_score": 0.375,
+        "calibration_error": 0.6570512104034425,
+        "avg_confidence": 0.9779877583185832,
+        "processing_time": 0.0850897471110026,
+        "sample_size": 15,
+        "source_specific_accuracy": {
+          "twitter": 0.7628096437454224,
+          "news": 0.09999999999999998,
+          "reddit": 0.1
+        },
+        "confidence_calibration_curve": [
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9981957457282327,
+            0.35582256533882833
+          ]
+        ]
+      }
+    },
+    "finbert_pretrain": {
+      "twitter": {
+        "model_name": "finbert_pretrain",
+        "accuracy": 0.6961979961395264,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "calibration_error": 0.26017366886138915,
+        "avg_confidence": 0.9563716650009155,
+        "processing_time": 0.047612762451171874,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "twitter": 0.6961979961395264
+        },
+        "confidence_calibration_curve": [
+          [
+            0.7998819351196289,
+            0.40011806488037105
+          ],
+          [
+            0.889430046081543,
+            0.610569953918457
+          ],
+          [
+            0.9843005836009979,
+            0.7439114928245545
+          ]
+        ]
+      },
+      "news": {
+        "model_name": "finbert_pretrain",
+        "accuracy": 0.2190614914894104,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.769518473148346,
+        "avg_confidence": 0.9885799646377563,
+        "processing_time": 0.12784979343414307,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "news": 0.2190614914894104
+        },
+        "confidence_calibration_curve": [
+          [
+            0.9836856637682233,
+            0.22723070212772914
+          ]
+        ]
+      },
+      "reddit": {
+        "model_name": "finbert_pretrain",
+        "accuracy": 0.15310221314430236,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.7534606665372848,
+        "avg_confidence": 0.9065628796815872,
+        "processing_time": 0.11410067081451417,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "reddit": 0.15310221314430236
+        },
+        "confidence_calibration_curve": [
+          [
+            0.4577869474887848,
+            0.5
+          ],
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9883112396512713,
+            0.07586030449186053
+          ]
+        ]
+      },
+      "mixed": {
+        "model_name": "finbert_pretrain",
+        "accuracy": 0.32093654791514076,
+        "precision": 0.42857142857142855,
+        "recall": 0.3333333333333333,
+        "f1_score": 0.375,
+        "calibration_error": 0.6570512104034425,
+        "avg_confidence": 0.9779877583185832,
+        "processing_time": 0.0925745964050293,
+        "sample_size": 15,
+        "source_specific_accuracy": {
+          "twitter": 0.7628096437454224,
+          "news": 0.09999999999999998,
+          "reddit": 0.1
+        },
+        "confidence_calibration_curve": [
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9981957457282327,
+            0.35582256533882833
+          ]
+        ]
+      }
+    },
+    "finbert_news": {
+      "twitter": {
+        "model_name": "finbert_news",
+        "accuracy": 0.6961979961395264,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "calibration_error": 0.26017366886138915,
+        "avg_confidence": 0.9563716650009155,
+        "processing_time": 0.04758439064025879,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "twitter": 0.6961979961395264
+        },
+        "confidence_calibration_curve": [
+          [
+            0.7998819351196289,
+            0.40011806488037105
+          ],
+          [
+            0.889430046081543,
+            0.610569953918457
+          ],
+          [
+            0.9843005836009979,
+            0.7439114928245545
+          ]
+        ]
+      },
+      "news": {
+        "model_name": "finbert_news",
+        "accuracy": 0.2190614914894104,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.769518473148346,
+        "avg_confidence": 0.9885799646377563,
+        "processing_time": 0.12122137546539306,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "news": 0.2190614914894104
+        },
+        "confidence_calibration_curve": [
+          [
+            0.9836856637682233,
+            0.22723070212772914
+          ]
+        ]
+      },
+      "reddit": {
+        "model_name": "finbert_news",
+        "accuracy": 0.15310221314430236,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.7534606665372848,
+        "avg_confidence": 0.9065628796815872,
+        "processing_time": 0.1157045841217041,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "reddit": 0.15310221314430236
+        },
+        "confidence_calibration_curve": [
+          [
+            0.4577869474887848,
+            0.5
+          ],
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9883112396512713,
+            0.07586030449186053
+          ]
+        ]
+      },
+      "mixed": {
+        "model_name": "finbert_news",
+        "accuracy": 0.32093654791514076,
+        "precision": 0.42857142857142855,
+        "recall": 0.3333333333333333,
+        "f1_score": 0.375,
+        "calibration_error": 0.6570512104034425,
+        "avg_confidence": 0.9779877583185832,
+        "processing_time": 0.10568780899047851,
+        "sample_size": 15,
+        "source_specific_accuracy": {
+          "twitter": 0.7628096437454224,
+          "news": 0.09999999999999998,
+          "reddit": 0.1
+        },
+        "confidence_calibration_curve": [
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9981957457282327,
+            0.35582256533882833
+          ]
+        ]
+      }
+    },
+    "finbert_earnings": {
+      "twitter": {
+        "model_name": "finbert_earnings",
+        "accuracy": 0.6961979961395264,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "calibration_error": 0.26017366886138915,
+        "avg_confidence": 0.9563716650009155,
+        "processing_time": 0.04298720359802246,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "twitter": 0.6961979961395264
+        },
+        "confidence_calibration_curve": [
+          [
+            0.7998819351196289,
+            0.40011806488037105
+          ],
+          [
+            0.889430046081543,
+            0.610569953918457
+          ],
+          [
+            0.9843005836009979,
+            0.7439114928245545
+          ]
+        ]
+      },
+      "news": {
+        "model_name": "finbert_earnings",
+        "accuracy": 0.2190614914894104,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.769518473148346,
+        "avg_confidence": 0.9885799646377563,
+        "processing_time": 0.10576455593109131,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "news": 0.2190614914894104
+        },
+        "confidence_calibration_curve": [
+          [
+            0.9836856637682233,
+            0.22723070212772914
+          ]
+        ]
+      },
+      "reddit": {
+        "model_name": "finbert_earnings",
+        "accuracy": 0.15310221314430236,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.7534606665372848,
+        "avg_confidence": 0.9065628796815872,
+        "processing_time": 0.10232753753662109,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "reddit": 0.15310221314430236
+        },
+        "confidence_calibration_curve": [
+          [
+            0.4577869474887848,
+            0.5
+          ],
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9883112396512713,
+            0.07586030449186053
+          ]
+        ]
+      },
+      "mixed": {
+        "model_name": "finbert_earnings",
+        "accuracy": 0.32093654791514076,
+        "precision": 0.42857142857142855,
+        "recall": 0.3333333333333333,
+        "f1_score": 0.375,
+        "calibration_error": 0.6570512104034425,
+        "avg_confidence": 0.9779877583185832,
+        "processing_time": 0.09106122652689616,
+        "sample_size": 15,
+        "source_specific_accuracy": {
+          "twitter": 0.7628096437454224,
+          "news": 0.09999999999999998,
+          "reddit": 0.1
+        },
+        "confidence_calibration_curve": [
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9981957457282327,
+            0.35582256533882833
+          ]
+        ]
+      }
+    },
+    "finbert_prosus": {
+      "twitter": {
+        "model_name": "finbert_prosus",
+        "accuracy": 0.6961979961395264,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "calibration_error": 0.26017366886138915,
+        "avg_confidence": 0.9563716650009155,
+        "processing_time": 0.041216158866882326,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "twitter": 0.6961979961395264
+        },
+        "confidence_calibration_curve": [
+          [
+            0.7998819351196289,
+            0.40011806488037105
+          ],
+          [
+            0.889430046081543,
+            0.610569953918457
+          ],
+          [
+            0.9843005836009979,
+            0.7439114928245545
+          ]
+        ]
+      },
+      "news": {
+        "model_name": "finbert_prosus",
+        "accuracy": 0.2190614914894104,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.769518473148346,
+        "avg_confidence": 0.9885799646377563,
+        "processing_time": 0.110677170753479,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "news": 0.2190614914894104
+        },
+        "confidence_calibration_curve": [
+          [
+            0.9836856637682233,
+            0.22723070212772914
+          ]
+        ]
+      },
+      "reddit": {
+        "model_name": "finbert_prosus",
+        "accuracy": 0.15310221314430236,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.7534606665372848,
+        "avg_confidence": 0.9065628796815872,
+        "processing_time": 0.10539033412933349,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "reddit": 0.15310221314430236
+        },
+        "confidence_calibration_curve": [
+          [
+            0.4577869474887848,
+            0.5
+          ],
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9883112396512713,
+            0.07586030449186053
+          ]
+        ]
+      },
+      "mixed": {
+        "model_name": "finbert_prosus",
+        "accuracy": 0.32093654791514076,
+        "precision": 0.42857142857142855,
+        "recall": 0.3333333333333333,
+        "f1_score": 0.375,
+        "calibration_error": 0.6570512104034425,
+        "avg_confidence": 0.9779877583185832,
+        "processing_time": 0.09096748034159342,
+        "sample_size": 15,
+        "source_specific_accuracy": {
+          "twitter": 0.7628096437454224,
+          "news": 0.09999999999999998,
+          "reddit": 0.1
+        },
+        "confidence_calibration_curve": [
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9981957457282327,
+            0.35582256533882833
+          ]
+        ]
+      }
+    },
+    "fintwitbert_sentiment": {
+      "twitter": {
+        "model_name": "fintwitbert_sentiment",
+        "accuracy": 0.6961979961395264,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1_score": 1.0,
+        "calibration_error": 0.26017366886138915,
+        "avg_confidence": 0.9563716650009155,
+        "processing_time": 0.04241878986358642,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "twitter": 0.6961979961395264
+        },
+        "confidence_calibration_curve": [
+          [
+            0.7998819351196289,
+            0.40011806488037105
+          ],
+          [
+            0.889430046081543,
+            0.610569953918457
+          ],
+          [
+            0.9843005836009979,
+            0.7439114928245545
+          ]
+        ]
+      },
+      "news": {
+        "model_name": "fintwitbert_sentiment",
+        "accuracy": 0.2190614914894104,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.769518473148346,
+        "avg_confidence": 0.9885799646377563,
+        "processing_time": 0.11688954830169677,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "news": 0.2190614914894104
+        },
+        "confidence_calibration_curve": [
+          [
+            0.9836856637682233,
+            0.22723070212772914
+          ]
+        ]
+      },
+      "reddit": {
+        "model_name": "fintwitbert_sentiment",
+        "accuracy": 0.15310221314430236,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0,
+        "calibration_error": 0.7534606665372848,
+        "avg_confidence": 0.9065628796815872,
+        "processing_time": 0.10667338371276855,
+        "sample_size": 10,
+        "source_specific_accuracy": {
+          "reddit": 0.15310221314430236
+        },
+        "confidence_calibration_curve": [
+          [
+            0.4577869474887848,
+            0.5
+          ],
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9883112396512713,
+            0.07586030449186053
+          ]
+        ]
+      },
+      "mixed": {
+        "model_name": "fintwitbert_sentiment",
+        "accuracy": 0.32093654791514076,
+        "precision": 0.42857142857142855,
+        "recall": 0.3333333333333333,
+        "f1_score": 0.375,
+        "calibration_error": 0.6570512104034425,
+        "avg_confidence": 0.9779877583185832,
+        "processing_time": 0.09286921819051107,
+        "sample_size": 15,
+        "source_specific_accuracy": {
+          "twitter": 0.7628096437454224,
+          "news": 0.09999999999999998,
+          "reddit": 0.1
+        },
+        "confidence_calibration_curve": [
+          [
+            0.6896631717681885,
+            0.09999999999999998
+          ],
+          [
+            0.9981957457282327,
+            0.35582256533882833
+          ]
+        ]
+      }
+    }
+  },
+  "dataset_performance": {},
+  "recommendations": {
+    "best_overall_model": {
+      "model": "finbert_tone",
+      "average_accuracy": 0.34732456217209495
+    },
+    "best_by_source": {
+      "twitter": {
+        "model": "finbert_tone",
+        "accuracy": 0.6961979961395264
+      },
+      "news": {
+        "model": "finbert_tone",
+        "accuracy": 0.2190614914894104
+      },
+      "reddit": {
+        "model": "finbert_tone",
+        "accuracy": 0.15310221314430236
+      },
+      "mixed": {
+        "model": "finbert_tone",
+        "accuracy": 0.32093654791514076
+      }
+    },
+    "calibration_issues": [
+      {
+        "model": "finbert_tone",
+        "dataset": "twitter",
+        "calibration_error": 0.26017366886138915
+      },
+      {
+        "model": "finbert_tone",
+        "dataset": "news",
+        "calibration_error": 0.769518473148346
+      },
+      {
+        "model": "finbert_tone",
+        "dataset": "reddit",
+        "calibration_error": 0.7534606665372848
+      },
+      {
+        "model": "finbert_tone",
+        "dataset": "mixed",
+        "calibration_error": 0.6570512104034425
+      },
+      {
+        "model": "finbert_pretrain",
+        "dataset": "twitter",
+        "calibration_error": 0.26017366886138915
+      },
+      {
+        "model": "finbert_pretrain",
+        "dataset": "news",
+        "calibration_error": 0.769518473148346
+      },
+      {
+        "model": "finbert_pretrain",
+        "dataset": "reddit",
+        "calibration_error": 0.7534606665372848
+      },
+      {
+        "model": "finbert_pretrain",
+        "dataset": "mixed",
+        "calibration_error": 0.6570512104034425
+      },
+      {
+        "model": "finbert_news",
+        "dataset": "twitter",
+        "calibration_error": 0.26017366886138915
+      },
+      {
+        "model": "finbert_news",
+        "dataset": "news",
+        "calibration_error": 0.769518473148346
+      },
+      {
+        "model": "finbert_news",
+        "dataset": "reddit",
+        "calibration_error": 0.7534606665372848
+      },
+      {
+        "model": "finbert_news",
+        "dataset": "mixed",
+        "calibration_error": 0.6570512104034425
+      },
+      {
+        "model": "finbert_earnings",
+        "dataset": "twitter",
+        "calibration_error": 0.26017366886138915
+      },
+      {
+        "model": "finbert_earnings",
+        "dataset": "news",
+        "calibration_error": 0.769518473148346
+      },
+      {
+        "model": "finbert_earnings",
+        "dataset": "reddit",
+        "calibration_error": 0.7534606665372848
+      },
+      {
+        "model": "finbert_earnings",
+        "dataset": "mixed",
+        "calibration_error": 0.6570512104034425
+      },
+      {
+        "model": "finbert_prosus",
+        "dataset": "twitter",
+        "calibration_error": 0.26017366886138915
+      },
+      {
+        "model": "finbert_prosus",
+        "dataset": "news",
+        "calibration_error": 0.769518473148346
+      },
+      {
+        "model": "finbert_prosus",
+        "dataset": "reddit",
+        "calibration_error": 0.7534606665372848
+      },
+      {
+        "model": "finbert_prosus",
+        "dataset": "mixed",
+        "calibration_error": 0.6570512104034425
+      },
+      {
+        "model": "fintwitbert_sentiment",
+        "dataset": "twitter",
+        "calibration_error": 0.26017366886138915
+      },
+      {
+        "model": "fintwitbert_sentiment",
+        "dataset": "news",
+        "calibration_error": 0.769518473148346
+      },
+      {
+        "model": "fintwitbert_sentiment",
+        "dataset": "reddit",
+        "calibration_error": 0.7534606665372848
+      },
+      {
+        "model": "fintwitbert_sentiment",
+        "dataset": "mixed",
+        "calibration_error": 0.6570512104034425
+      }
+    ],
+    "performance_rankings": [
+      {
+        "rank": 1,
+        "model": "finbert_tone",
+        "score": 0.34732456217209495
+      },
+      {
+        "rank": 2,
+        "model": "finbert_pretrain",
+        "score": 0.34732456217209495
+      },
+      {
+        "rank": 3,
+        "model": "finbert_news",
+        "score": 0.34732456217209495
+      },
+      {
+        "rank": 4,
+        "model": "finbert_earnings",
+        "score": 0.34732456217209495
+      },
+      {
+        "rank": 5,
+        "model": "finbert_prosus",
+        "score": 0.34732456217209495
+      },
+      {
+        "rank": 6,
+        "model": "fintwitbert_sentiment",
+        "score": 0.34732456217209495
+      }
+    ],
+    "optimization_suggestions": []
+  }
+}

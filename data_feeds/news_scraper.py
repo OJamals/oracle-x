@@ -6,6 +6,14 @@ import yaml
 import math
 import os
 
+# Optimized HTTP client import with fallback
+try:
+    from core.http_client import optimized_get
+except ImportError:
+    def optimized_get(url, **kwargs):
+        """Fallback to standard requests if optimized client unavailable"""
+        return requests.get(url, **kwargs)
+
 def fetch_headlines_yahoo_finance() -> list:
     """
     Scrape latest headlines from Yahoo Finance (free, open-source).
@@ -33,7 +41,7 @@ def fetch_headlines_yahoo_finance() -> list:
     for attempt in range(max_retries):
         headers = {"User-Agent": random.choice(user_agents)}
         try:
-            resp = requests.get(url, headers=headers, timeout=7, proxies=proxies)
+            resp = optimized_get(url, headers=headers, timeout=7, proxies=proxies)
             if resp.status_code == 429:
                 print(
                     "[WARN] Yahoo returned 429 Too Many Requests. Retrying with new user-agent..."

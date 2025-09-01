@@ -5,11 +5,11 @@ Provides comprehensive rate limiting across all data sources with circuit breake
 
 import time
 import threading
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Set, Any, Callable
+from datetime import datetime
+from typing import Dict, Optional
 from enum import Enum, auto
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import wraps
 
 from core.types import DataSource
@@ -283,9 +283,7 @@ class RateLimiter:
         
         state_data = self.cache.get_hash_all(key) or {}
         current_state = state_data.get('state', CircuitBreakerState.CLOSED.name)
-        failure_count = int(state_data.get('failure_count', 0))
         last_failure = float(state_data.get('last_failure', 0))
-        success_count = int(state_data.get('success_count', 0))
         
         current_state = CircuitBreakerState[current_state]
         
@@ -441,7 +439,7 @@ def rate_limit_decorator(source: DataSource, call_type: str = "default"):
                 result = func(*args, **kwargs)
                 limiter.record_success(source)
                 return result
-            except Exception as e:
+            except Exception:
                 limiter.record_failure(source)
                 raise
         return wrapper

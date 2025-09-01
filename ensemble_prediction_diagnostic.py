@@ -402,7 +402,8 @@ class EnsemblePredictionDiagnostic:
         print("\n🛡️  Testing Error Handling...")
 
         try:
-            from oracle_engine.ml_model_manager import MLModelManager
+            # from oracle_engine.ml_model_manager import MLModelManager
+            # Import commented out to avoid unused import warning
 
             # Test with invalid parameters
             test_cases = [
@@ -468,11 +469,11 @@ class EnsemblePredictionDiagnostic:
 
             for i in range(num_predictions):
                 start_time = time.time()
-                prediction = self.ml_manager.predict(
+                self.ml_manager.predict(
                     symbol=test_symbol,
                     prediction_type=self.ensemble_engine.PredictionType.PRICE_DIRECTION,
                     horizon_days=5
-                )
+                )  # Make prediction but don't store result
                 prediction_time = time.time() - start_time
                 prediction_times.append(prediction_time)
 
@@ -525,7 +526,7 @@ class EnsemblePredictionDiagnostic:
 
         total = len(self.test_results)
 
-        print(f"\n📈 Test Results Summary:")
+        print("\n📈 Test Results Summary:")
         print(f"   Total Tests: {total}")
         print(f"   ✅ Passed: {passed}")
         print(f"   ❌ Failed: {failed}")
@@ -551,33 +552,33 @@ class EnsemblePredictionDiagnostic:
 
         # Detailed analysis of issues
         if failed > 0 or warned > 0:
-            print(f"\n🔍 Issues Found:")
+            print("\n🔍 Issues Found:")
 
             for result in self.test_results:
                 if result["status"] in ["FAIL", "WARN"]:
                     print(f"   • {result['test']}: {result['message']}")
 
         # Recommendations
-        print(f"\n💡 Recommendations:")
+        print("\n💡 Recommendations:")
 
         if failed > 0:
-            print(f"   1. Address critical failures first")
-            print(f"   2. Check dependency availability")
-            print(f"   3. Verify model initialization process")
-            print(f"   4. Review error handling mechanisms")
+            print("   1. Address critical failures first")
+            print("   2. Check dependency availability")
+            print("   3. Verify model initialization process")
+            print("   4. Review error handling mechanisms")
 
         if warned > 0:
-            print(f"   1. Monitor warning conditions")
-            print(f"   2. Optimize performance where needed")
-            print(f"   3. Consider fallback mechanisms")
+            print("   1. Monitor warning conditions")
+            print("   2. Optimize performance where needed")
+            print("   3. Consider fallback mechanisms")
 
         if passed == total:
-            print(f"   1. Integration appears to be working correctly")
-            print(f"   2. Consider adding monitoring and alerting")
-            print(f"   3. Test with production data loads")
+            print("   1. Integration appears to be working correctly")
+            print("   2. Consider adding monitoring and alerting")
+            print("   3. Test with production data loads")
 
         # Export detailed results
-        print(f"\n📄 Detailed results exported to: ensemble_diagnostic_report.json")
+        print("\n📄 Detailed results exported to: ensemble_diagnostic_report.json")
 
         # Save detailed report
         try:

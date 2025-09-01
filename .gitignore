@@ -80,7 +80,7 @@ pytest.ini.backup
 temp/
 tmp/
 .pytest_cache/
-.coverage
+.coverage*
 htmlcov/
 
 # Debug and diagnostic files

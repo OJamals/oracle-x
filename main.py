@@ -25,11 +25,27 @@ import sys
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, Dict
+from typing import Optional, Dict, Any
 
 import matplotlib.pyplot as plt
 import pandas as pd
 import yfinance as yf
+
+# Memory-efficient processing import with fallback
+try:
+    from core.memory_processor import optimize_dataframe_memory
+    MEMORY_PROCESSOR_AVAILABLE = True
+except ImportError:
+    MEMORY_PROCESSOR_AVAILABLE = False
+    optimize_dataframe_memory = None
+
+# Async I/O utilities import with fallback
+try:
+    from core.async_io_utils import get_async_io_manager
+    ASYNC_IO_AVAILABLE = True
+except ImportError:
+    ASYNC_IO_AVAILABLE = False
+    get_async_io_manager = None
 
 # Core Oracle engine imports
 from oracle_engine.agent import oracle_agent_pipeline
@@ -46,13 +62,8 @@ except Exception:
 
 # Enhanced pipeline imports (optional)
 try:
-    from oracle_options_pipeline import (
-        create_enhanced_pipeline,
-        EnhancedPipelineConfig,
-        SafeMode,
-        ModelComplexity,
-        RiskTolerance as OptionsRiskTolerance
-    )
+    # All enhanced pipeline imports commented out - unused
+    pass
     enhanced_options_available = True
 except Exception:
     enhanced_options_available = False
@@ -86,7 +97,9 @@ class OracleXPipeline:
         self.mode = mode
         self.config = config or {}
         self.orchestrator = None
+        self.async_io_manager = None
         self._init_orchestrator()
+        self._init_async_io()
     
     def _init_orchestrator(self):
         """Initialize data feed orchestrator if available"""
@@ -100,6 +113,55 @@ class OracleXPipeline:
         else:
             print("⚠️  Data feed orchestrator not available")
             self.orchestrator = None
+    
+    def _init_async_io(self):
+        """Initialize async I/O manager if available"""
+        if ASYNC_IO_AVAILABLE and get_async_io_manager is not None:
+            try:
+                # For sync context, we'll initialize on first async use
+                self.async_io_available = True
+                print("✅ Async I/O manager available")
+            except Exception as e:
+                print(f"⚠️  Async I/O manager not available: {e}")
+                self.async_io_available = False
+        else:
+            print("⚠️  Async I/O manager not available")
+            self.async_io_available = False
+
+    async def _get_async_io_manager(self):
+        """Get async I/O manager instance for async operations"""
+        if not self.async_io_available or get_async_io_manager is None:
+            return None
+        try:
+            return await get_async_io_manager()
+        except Exception as e:
+            print(f"⚠️  Failed to get async I/O manager: {e}")
+            return None
+
+    async def _save_pipeline_results_async(self, filename: str, data: Dict[str, Any]) -> bool:
+        """Save pipeline results asynchronously if available, fallback to sync"""
+        io_manager = await self._get_async_io_manager()
+        if io_manager and io_manager.file:
+            try:
+                success = await io_manager.file.write_json(filename, data)
+                if success:
+                    print(f"📁 Results saved asynchronously to: {filename}")
+                    return True
+            except Exception as e:
+                print(f"⚠️  Async save failed, falling back to sync: {e}")
+        
+        # Fallback to sync
+        try:
+            # Ensure playbooks directory exists
+            Path("playbooks").mkdir(exist_ok=True)
+            
+            with open(filename, 'w') as f:
+                json.dump(data, f, indent=2, default=str)
+            print(f"📁 Results saved synchronously to: {filename}")
+            return True
+        except Exception as e:
+            print(f"❌ Failed to save results: {e}")
+            return False
 
     def fetch_price_history(self, ticker: str, days: int = 60) -> Optional[pd.DataFrame]:
         """Fetch historical price data prioritizing orchestrator feeds, fallback to yfinance direct."""
@@ -107,6 +169,9 @@ class OracleXPipeline:
             try:
                 md = self.orchestrator.get_market_data(ticker, period=f"{days}d", interval="1d")
                 if md and isinstance(md.data, pd.DataFrame) and not md.data.empty:
+                    # Optimize memory usage of the DataFrame
+                    if MEMORY_PROCESSOR_AVAILABLE and optimize_dataframe_memory:
+                        return optimize_dataframe_memory(md.data)
                     return md.data
             except Exception as e:
                 print(f"[WARN] Orchestrator market data failed for {ticker}: {e}")
@@ -122,6 +187,9 @@ class OracleXPipeline:
                 progress=False,
             )
             if isinstance(df, pd.DataFrame) and not df.empty:
+                # Optimize memory usage of the DataFrame
+                if MEMORY_PROCESSOR_AVAILABLE and optimize_dataframe_memory:
+                    return optimize_dataframe_memory(df)
                 return df
         except Exception as e:
             print(f"[WARN] Failed to fetch price history for {ticker}: {e}")
@@ -169,9 +237,6 @@ class OracleXPipeline:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"playbooks/standard_playbook_{timestamp}.json"
             
-            # Ensure playbooks directory exists
-            Path("playbooks").mkdir(exist_ok=True)
-            
             # Prepare final output
             final_output = {
                 "timestamp": datetime.now().isoformat(),
@@ -180,15 +245,18 @@ class OracleXPipeline:
                 "playbook": result
             }
             
-            # Save to file
-            with open(filename, 'w') as f:
-                json.dump(final_output, f, indent=2, default=str)
+            # Use async file saving if available
+            import asyncio
+            success = asyncio.run(self._save_pipeline_results_async(filename, final_output))
             
-            print(f"\n📊 Standard Pipeline completed successfully!")
-            print(f"   Execution time: {execution_time:.2f}s")
-            print(f"   Output saved to: {filename}")
-            
-            return filename
+            if success:
+                print("\n📊 Standard Pipeline completed successfully!")
+                print(f"   Execution time: {execution_time:.2f}s")
+                print(f"   Output saved to: {filename}")
+                return filename
+            else:
+                print("❌ Failed to save pipeline results")
+                return None
             
         except Exception as e:
             print(f"❌ Standard pipeline failed: {e}")
@@ -219,9 +287,6 @@ class OracleXPipeline:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"playbooks/enhanced_playbook_{timestamp}.json"
             
-            # Ensure playbooks directory exists
-            Path("playbooks").mkdir(exist_ok=True)
-            
             # Prepare final output
             final_output = {
                 "timestamp": datetime.now().isoformat(),
@@ -230,15 +295,18 @@ class OracleXPipeline:
                 "playbook": result
             }
             
-            # Save to file
-            with open(filename, 'w') as f:
-                json.dump(final_output, f, indent=2, default=str)
+            # Use async file saving if available
+            import asyncio
+            success = asyncio.run(self._save_pipeline_results_async(filename, final_output))
             
-            print(f"\n📊 Enhanced Pipeline completed successfully!")
-            print(f"   Execution time: {execution_time:.2f}s")
-            print(f"   Output saved to: {filename}")
-            
-            return filename
+            if success:
+                print("\n📊 Enhanced Pipeline completed successfully!")
+                print(f"   Execution time: {execution_time:.2f}s")
+                print(f"   Output saved to: {filename}")
+                return filename
+            else:
+                print("❌ Failed to save pipeline results")
+                return None
             
         except Exception as e:
             print(f"❌ Enhanced pipeline failed: {e}")
@@ -260,6 +328,12 @@ class OracleXPipeline:
         
         try:
             # Get optimized agent
+            if not optimization_available:
+                print("⚠️  Optimization not available, falling back to standard pipeline")
+                return self.run_standard_pipeline()
+                
+            # Import here to avoid unbound variable issues
+            from oracle_engine.agent_optimized import get_optimized_agent
             agent = get_optimized_agent()
             
             if not agent.optimization_enabled:
@@ -284,9 +358,6 @@ class OracleXPipeline:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"playbooks/optimized_playbook_{timestamp}.json"
             
-            # Ensure playbooks directory exists
-            Path("playbooks").mkdir(exist_ok=True)
-            
             # Prepare final output
             final_output = {
                 "timestamp": datetime.now().isoformat(),
@@ -295,16 +366,19 @@ class OracleXPipeline:
                 "playbook": playbook
             }
             
-            # Save to file
-            with open(filename, 'w') as f:
-                json.dump(final_output, f, indent=2, default=str)
+            # Use async file saving if available
+            import asyncio
+            success = asyncio.run(self._save_pipeline_results_async(filename, final_output))
             
-            print(f"\n📊 Pipeline completed successfully!")
-            print(f"   Execution time: {execution_time:.2f}s")
-            print(f"   Success: {'✅' if metadata['performance_metrics']['success'] else '❌'}")
-            print(f"   Output saved to: {filename}")
-            
-            return filename
+            if success:
+                print("\n📊 Pipeline completed successfully!")
+                print(f"   Execution time: {execution_time:.2f}s")
+                print(f"   Success: {'✅' if metadata['performance_metrics']['success'] else '❌'}")
+                print(f"   Output saved to: {filename}")
+                return filename
+            else:
+                print("❌ Failed to save pipeline results")
+                return None
             
         except Exception as e:
             print(f"❌ Optimized pipeline failed: {e}")

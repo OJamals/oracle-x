@@ -6,9 +6,21 @@ Professional implementation following Oracle-X patterns and best practices
 
 import time
 import logging
+import os
 from typing import Dict, List, Optional, Any, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+
+# Async I/O utilities import with fallback
+AsyncHTTPClient = None
+ASYNC_IO_AVAILABLE = False
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.async_io_utils import AsyncHTTPClient
+    ASYNC_IO_AVAILABLE = True
+except ImportError:
+    pass
 
 # Install gnews if needed
 try:

@@ -5,8 +5,6 @@ Test script for FinanceToolkit and FinanceDatabase integration
 
 import os
 import sys
-from datetime import datetime, timedelta
-from typing import Dict, Any, List
 import pandas as pd
 from dotenv import load_dotenv
 
@@ -488,7 +486,7 @@ def test_premium_api_endpoints():
                 # Look for market cap in the valuation ratios
                 market_cap_rows = [idx for idx in valuation_ratios.index if 'Market Cap' in str(idx)]
                 if market_cap_rows:
-                    print(f"✅ Market cap data available in ratios")
+                    print("✅ Market cap data available in ratios")
                     for row in market_cap_rows[:2]:  # Show first 2 market cap entries
                         if len(valuation_ratios.columns) > 0:
                             col = valuation_ratios.columns[0]
@@ -499,7 +497,7 @@ def test_premium_api_endpoints():
                 # Look for enterprise value in the valuation ratios  
                 ev_rows = [idx for idx in valuation_ratios.index if 'Enterprise Value' in str(idx)]
                 if ev_rows:
-                    print(f"✅ Enterprise value data available in ratios")
+                    print("✅ Enterprise value data available in ratios")
                     for row in ev_rows[:2]:  # Show first 2 EV entries
                         if len(valuation_ratios.columns) > 0:
                             col = valuation_ratios.columns[0]

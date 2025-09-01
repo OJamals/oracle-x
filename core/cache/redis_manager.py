@@ -4,10 +4,9 @@ Provides optimized Redis caching with connection pooling and comprehensive cache
 """
 
 import json
-import time
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, Any, Dict, List, Union, TypeVar, Type
+from typing import Optional, Any, Dict, List, TypeVar
 import redis
 from redis.connection import ConnectionPool
 import logging

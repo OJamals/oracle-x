@@ -16,23 +16,19 @@ import time
 import json
 import signal
 import warnings
-from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeoutError
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Dict, List, Optional, Tuple, Any, Union, Protocol
+from typing import Dict, List, Optional, Any, Union, Protocol
 from typing_extensions import runtime_checkable
-from functools import lru_cache
 import threading
 
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
-from scipy.optimize import minimize
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.model_selection import cross_val_score, TimeSeriesSplit
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 import talib
 
 # Suppress warnings for cleaner output
@@ -1020,7 +1016,7 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
         updates = []
         
         # Import datetime at the function level to avoid scoping issues
-        from datetime import datetime
+        # datetime already imported at module level
         
         for position in positions:
             try:
@@ -1047,7 +1043,6 @@ class OracleOptionsPipeline(BaseOptionsPipeline):
                     try:
                         # Import the correct classes
                         from data_feeds.options_valuation_engine import OptionContract as ValuationOptionContract, OptionType as ValuationOptionType
-                        from datetime import datetime
                         
                         # Create option contract for valuation
                         from datetime import datetime
@@ -1214,10 +1209,10 @@ def create_pipeline(config: Optional[Dict[str, Any]] = None) -> OracleOptionsPip
 # ===================================================================
 # ENHANCED PIPELINE COMPONENTS (PRESERVED FROM ORIGINAL)
 # ===================================================================
-    """Safe mode operation levels"""
-    FULL = "full"  # All features enabled, may have initialization issues
-    SAFE = "safe"  # Bypass problematic components, use fallbacks
-    MINIMAL = "minimal"  # Only essential features, maximum stability
+    """Safe mode operation levels - preserved for backward compatibility"""
+    # FULL = "full"  # All features enabled, may have initialization issues
+    # SAFE = "safe"  # Bypass problematic components, use fallbacks
+    # MINIMAL = "minimal"  # Only essential features, maximum stability
 
 
 class ModelComplexity(Enum):
@@ -1360,7 +1355,6 @@ class EnhancedFeatureEngine:
             prices = market_data['close'].values
             highs = market_data['high'].values
             lows = market_data['low'].values
-            volumes = market_data['volume'].values if 'volume' in market_data else None
             
             # Technical indicators
             if 'rsi' in self.config.technical_indicators:

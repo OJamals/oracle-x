@@ -6,7 +6,7 @@ Test the new financial calculator with real Oracle-X data.
 import pytest
 import time
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-from data_feeds.financial_calculator import FinancialCalculator, FinancialMetrics
+from data_feeds.financial_calculator import FinancialCalculator
 
 @pytest.mark.integration
 @pytest.mark.network
@@ -84,7 +84,7 @@ def test_financial_integration():
     print(f"   Data Quality Score: {metrics.data_quality_score:.1f}/100")
     
     # Test portfolio-level calculations
-    print(f"\\n📈 Testing Portfolio Calculations...")
+    print("\n📈 Testing Portfolio Calculations...")
     quotes = []
     symbols = ["AAPL", "TSLA", "MSFT"]
     
@@ -98,7 +98,7 @@ def test_financial_integration():
     
     if quotes:
         portfolio_metrics = FinancialCalculator.calculate_portfolio_metrics(quotes)
-        print(f"\\n📊 Portfolio Summary:")
+        print("\n📊 Portfolio Summary:")
         print(f"   Total Symbols: {portfolio_metrics.get('total_symbols', 0)}")
         print(f"   Combined Market Cap: ${portfolio_metrics.get('total_market_cap', 0):,}")
         print(f"   Combined Volume: {portfolio_metrics.get('total_volume', 0):,}")
@@ -107,7 +107,7 @@ def test_financial_integration():
         if portfolio_metrics.get('avg_price_change'):
             print(f"   Average Price Change: {portfolio_metrics['avg_price_change']:.2f}%")
     
-    print(f"\\n✅ Financial calculator integration test completed!")
+    print("\n✅ Financial calculator integration test completed!")
 
 if __name__ == "__main__":
     test_financial_integration()

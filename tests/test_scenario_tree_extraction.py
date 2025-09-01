@@ -8,9 +8,7 @@ Tests the extraction of scenario trees from various LLM output formats.
 import unittest
 import pytest
 import sys
-import os
 from pathlib import Path
-from typing import Dict, Any, Optional
 
 # Add project root to path
 project_root = Path(__file__).parent.parent

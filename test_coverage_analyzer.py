@@ -6,12 +6,10 @@ This script analyzes current test coverage, identifies gaps, and generates
 test stubs for uncovered critical functions and classes.
 """
 
-import os
-import sys
 import ast
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Set, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any
 from dataclasses import dataclass
 import json
 
@@ -260,7 +258,7 @@ try:
         
         template += '''    )
 except ImportError as e:
-    pytest.skip(f"Could not import module: {e}", allow_module_level=True)
+    pytest.skip("Could not import module", allow_module_level=True)
 
 
 class Test{module_name}(unittest.TestCase):

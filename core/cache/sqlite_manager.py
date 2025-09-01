@@ -6,7 +6,7 @@ Provides local SQLite caching for offline operation and fallback scenarios.
 import sqlite3
 import json
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Any, Dict, List, Union
 import logging

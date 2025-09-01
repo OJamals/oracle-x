@@ -5,6 +5,14 @@ import random
 import yaml
 import os
 
+# Optimized HTTP client import with fallback
+try:
+    from core.http_client import optimized_get
+except ImportError:
+    def optimized_get(url, **kwargs):
+        """Fallback to standard requests if optimized client unavailable"""
+        return requests.get(url, **kwargs)
+
 def fetch_ticker_universe(source="finviz", sample_size=20, static_list=None):
     """
     Fetch a diverse list of active tickers from a public source (default: Finviz Screener).
@@ -37,7 +45,7 @@ def _extracted_from_fetch_ticker_universe_11(tickers):
     ]
     headers = {"User-Agent": random.choice(user_agents)}
     try:
-        resp = requests.get(url, headers=headers, timeout=10)
+        resp = optimized_get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         soup = BeautifulSoup(resp.text, "html.parser")
         for row in soup.select("tr.screener-body-table-nw"):  # Finviz table rows

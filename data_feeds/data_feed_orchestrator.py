@@ -21,6 +21,26 @@ import json
 from functools import wraps
 import numpy as np
 from collections import defaultdict, deque
+
+# Async I/O utilities import with fallback
+AsyncHTTPClient = None
+ASYNC_IO_AVAILABLE = False
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.async_io_utils import AsyncHTTPClient
+    ASYNC_IO_AVAILABLE = True
+except ImportError:
+    pass
+
+# Optimized HTTP client import with fallback
+try:
+    from core.http_client import optimized_get
+except ImportError:
+    def optimized_get(url, **kwargs):
+        """Fallback to standard requests if optimized client unavailable"""
+        return requests.get(url, **kwargs)
+
 from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
 from data_feeds.twelvedata_adapter import TwelveDataAdapter, TwelveDataThrottled, TwelveDataError  # Enhanced import
 from data_feeds.finviz_adapter import FinVizAdapter  # New import
@@ -1339,27 +1359,9 @@ class DataFeedOrchestrator:
             logger.error(f"Failed to initialize cache warming service: {e}")
             self.cache_warming_service = None
 
-        # Initialize cache analytics
-        try:
-            self.cache_metrics, self.cache_optimizer, self.cache_monitor = get_cache_analytics()
-            logger.info("Cache analytics initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize cache analytics: {e}")
-            self.cache_metrics = None
-            self.cache_optimizer = None
-            self.cache_monitor = None
+        # Initialize proactive cache warming for frequently accessed data
+        self._init_proactive_cache_warming()
 
-        # Initialize cache invalidation service
-        try:
-            self.cache_invalidation_service = get_cache_invalidation_service(self.redis_cache, self)
-            if self.cache_invalidation_service:
-                logger.info("Cache invalidation service initialized successfully")
-            else:
-                logger.info("Cache invalidation service not enabled")
-        except Exception as e:
-            logger.error(f"Failed to initialize cache invalidation service: {e}")
-            self.cache_invalidation_service = None
-        
         # Initialize data source adapters
         self.adapters = {
             DataSource.YFINANCE: YFinanceAdapter(self.cache, self.rate_limiter, self.performance_tracker),
@@ -1451,6 +1453,217 @@ class DataFeedOrchestrator:
         try:
             from data_feeds import options_store as _opts_store  # type: ignore
             _opts_store.ensure_schema(os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
+        except Exception:
+            pass
+
+    def _init_proactive_cache_warming(self) -> None:
+        """Initialize proactive cache warming for high-demand data patterns"""
+        try:
+            # Define frequently accessed data patterns for proactive caching
+            self.frequent_patterns = {
+                # Market data patterns (highest priority)
+                'market_quotes': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX'],
+                'market_indices': ['^GSPC', '^IXIC', '^DJI', '^VIX'],
+                'sector_etfs': ['XLF', 'XLE', 'XLK', 'XLV', 'XLY', 'XLI', 'XLB', 'XLP', 'XLU', 'XLRE'],
+                
+                # Economic indicators
+                'economic_data': ['GDP', 'CPI', 'UNEMPLOYMENT', 'FEDFUNDS'],
+                
+                # High-frequency sentiment sources
+                'sentiment_sources': ['reddit', 'twitter', 'news', 'finviz'],
+                
+                # Technical indicators (commonly requested)
+                'technical_indicators': ['SMA', 'EMA', 'RSI', 'MACD', 'BBANDS']
+            }
+            
+            # Start background cache warming if enabled
+            if self.persistent_cache and hasattr(self.persistent_cache, 'configure_warming'):
+                warming_config = self.persistent_cache.get_warming_config()
+                if warming_config.get('enable_background_warmer', False):
+                    logger.info("Starting proactive cache warming for high-demand data patterns")
+                    self._start_proactive_warming()
+                    
+        except Exception as e:
+            logger.error(f"Failed to initialize proactive cache warming: {e}")
+
+    def _start_proactive_warming(self) -> None:
+        """Start background thread for proactive cache warming"""
+        import threading
+        
+        def proactive_warmer():
+            while True:
+                try:
+                    self._perform_proactive_warming()
+                    # Sleep for configured interval
+                    warming_config = self.persistent_cache.get_warming_config()
+                    interval = warming_config.get('warming_interval_seconds', 300)
+                    time.sleep(interval)
+                    
+                except Exception as e:
+                    logger.error(f"Proactive warming error: {e}")
+                    time.sleep(60)  # Brief pause on error
+        
+        warming_thread = threading.Thread(target=proactive_warmer, daemon=True)
+        warming_thread.start()
+        logger.info("Proactive cache warming thread started")
+
+    def _perform_proactive_warming(self) -> None:
+        """Perform proactive cache warming based on usage patterns and demand"""
+        if not self.persistent_cache:
+            return
+            
+        try:
+            # Get current cache statistics
+            cache_stats = self.persistent_cache.get_cache_stats()
+            overall_hit_rate = cache_stats['overall'].get('overall_hit_rate', 0)
+            
+            # Only warm if hit rate is below threshold
+            warming_config = self.persistent_cache.get_warming_config()
+            min_threshold = warming_config.get('min_hit_rate_threshold', 0.7)
+            
+            if overall_hit_rate >= min_threshold:
+                logger.debug(f"Cache hit rate {overall_hit_rate:.2%} above threshold {min_threshold:.2%}, skipping warming")
+                return
+                
+            logger.info(f"Cache hit rate {overall_hit_rate:.2%} below threshold, performing proactive warming...")
+            
+            # Warm most frequently accessed market data
+            warmed_count = 0
+            max_items = warming_config.get('max_warming_items', 50)
+            
+            for symbol in self.frequent_patterns['market_quotes'][:max_items//2]:
+                try:
+                    # Check if we have recent data, if not, fetch and cache
+                    cache_key = f"quote_{symbol}"
+                    cached_data = self.persistent_cache.get(cache_key)
+                    
+                    if not cached_data:
+                        # Fetch fresh data and cache it
+                        quote_data = self.get_quote(symbol)
+                        if quote_data:
+                            self.persistent_cache.set(
+                                key=cache_key,
+                                endpoint="quote",
+                                symbol=symbol,
+                                ttl_seconds=300,  # 5 minutes
+                                payload_json=quote_data,
+                                source="proactive_warming"
+                            )
+                            warmed_count += 1
+                            
+                except Exception as e:
+                    logger.debug(f"Failed to warm quote for {symbol}: {e}")
+            
+            # Warm market indices
+            for index in self.frequent_patterns['market_indices'][:max_items//4]:
+                try:
+                    cache_key = f"index_{index}"
+                    cached_data = self.persistent_cache.get(cache_key)
+                    
+                    if not cached_data:
+                        # Fetch index data
+                        index_data = self.get_quote(index)
+                        if index_data:
+                            self.persistent_cache.set(
+                                key=cache_key,
+                                endpoint="index",
+                                symbol=index,
+                                ttl_seconds=600,  # 10 minutes
+                                payload_json=index_data,
+                                source="proactive_warming"
+                            )
+                            warmed_count += 1
+                            
+                except Exception as e:
+                    logger.debug(f"Failed to warm index {index}: {e}")
+            
+            if warmed_count > 0:
+                logger.info(f"Proactively warmed {warmed_count} cache entries")
+                
+        except Exception as e:
+            logger.error(f"Error in proactive cache warming: {e}")
+
+    def enable_cache_warming(self, enable: bool = True, interval_seconds: int = 300) -> None:
+        """Enable or disable proactive cache warming"""
+        if not self.persistent_cache or not hasattr(self.persistent_cache, 'configure_warming'):
+            logger.warning("Cache warming not supported by current cache implementation")
+            return
+            
+        try:
+            self.persistent_cache.configure_warming(
+                enable_background_warmer=enable,
+                warming_interval_seconds=interval_seconds,
+                min_hit_rate_threshold=0.7,
+                max_warming_items=100
+            )
+            
+            if enable:
+                logger.info(f"Cache warming enabled with {interval_seconds}s interval")
+                self._start_proactive_warming()
+            else:
+                logger.info("Cache warming disabled")
+                
+        except Exception as e:
+            logger.error(f"Failed to configure cache warming: {e}")
+
+    def get_cache_warming_status(self) -> Dict[str, Any]:
+        """Get current cache warming status and statistics"""
+        if not self.persistent_cache:
+            return {'status': 'cache_unavailable'}
+            
+        try:
+            config = self.persistent_cache.get_warming_config()
+            stats = self.persistent_cache.get_cache_stats()
+            
+            return {
+                'warming_enabled': config.get('enable_background_warmer', False),
+                'warming_interval_seconds': config.get('warming_interval_seconds', 300),
+                'min_hit_rate_threshold': config.get('min_hit_rate_threshold', 0.7),
+                'max_warming_items': config.get('max_warming_items', 100),
+                'current_hit_rate': stats['overall'].get('overall_hit_rate', 0),
+                'cache_layers': stats['overall'].get('cache_layers', 1),
+                'proactive_patterns': len(getattr(self, 'frequent_patterns', {})),
+                'last_warming_check': datetime.now().isoformat()
+            }
+            
+        except Exception as e:
+            logger.error(f"Failed to get cache warming status: {e}")
+            return {'status': 'error', 'error': str(e)}
+
+        # Initialize cache analytics
+        try:
+            self.cache_metrics, self.cache_optimizer, self.cache_monitor = get_cache_analytics()
+            logger.info("Cache analytics initialized successfully")
+        except Exception as e:
+            logger.error(f"Failed to initialize cache analytics: {e}")
+            self.cache_metrics = None
+            self.cache_optimizer = None
+            self.cache_monitor = None
+
+        # Initialize cache invalidation service
+        try:
+            self.cache_invalidation_service = get_cache_invalidation_service(self.redis_cache, self)
+            if self.cache_invalidation_service:
+                logger.info("Cache invalidation service initialized successfully")
+            else:
+                logger.info("Cache invalidation service not enabled")
+        except Exception as e:
+            logger.error(f"Failed to initialize cache invalidation service: {e}")
+            self.cache_invalidation_service = None
+        
+    async def _init_options_schema_async(self) -> None:
+        """Async version of options schema initialization"""
+        try:
+            from data_feeds import options_store as _opts_store  # type: ignore
+            await _opts_store.ensure_schema_async(os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
+        except Exception:
+            pass
+
+    async def _init_options_schema_async(self) -> None:
+        """Async version of options schema initialization"""
+        try:
+            from data_feeds import options_store as _opts_store  # type: ignore
+            await _opts_store.ensure_schema_async(os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
         except Exception:
             pass
     
@@ -1562,6 +1775,159 @@ class DataFeedOrchestrator:
             logger.info(f"Current fallback status: {fallback_status}")
             
         return best_quote
+
+    async def get_quote_async(self, symbol: str, preferred_sources: Optional[List[DataSource]] = None, max_concurrent: int = 3) -> Optional[Quote]:
+        """Async version of get_quote with concurrent processing for improved performance."""
+        logger.debug(f"get_quote_async called for symbol={symbol}, preferred_sources={preferred_sources}")
+        step_start = time.time()
+        timings: Dict[str, float] = {}
+        step1 = time.time(); timings['init'] = step1 - step_start
+
+        # Convert preferred sources to strings for fallback manager
+        preferred_source_names = None
+        if preferred_sources:
+            preferred_source_names = [s.value for s in preferred_sources]
+            logger.debug(f"Preferred sources provided: {preferred_source_names}")
+
+        # Get optimized source order from fallback manager
+        ordered_source_names = self.fallback_manager.get_fallback_order("quote", preferred_source_names)
+
+        # Convert back to DataSource enums
+        ordered_sources = []
+        for source_name in ordered_source_names:
+            try:
+                source_enum = DataSource(source_name)
+                if source_enum in self.adapters:
+                    ordered_sources.append(source_enum)
+            except ValueError:
+                logger.debug(f"Unknown data source: {source_name}")
+
+        step2 = time.time(); timings['fallback_order'] = step2 - step1
+
+        # Use semaphore for concurrency control
+        semaphore = asyncio.Semaphore(max_concurrent)
+
+        async def fetch_from_source(source: DataSource) -> Tuple[Optional[Quote], str, float]:
+            """Fetch quote from a single source with semaphore control."""
+            async with semaphore:
+                sub_start = time.time()
+                source_name = source.value
+                logger.debug(f"Async fetching quote from source: {source}")
+
+                # Check if source is in fallback mode and if we should retry
+                if self.fallback_manager.is_in_fallback(source_name):
+                    if not self.fallback_manager.can_retry(source_name):
+                        logger.debug(f"Skipping {source_name} - in fallback mode, retry not ready")
+                        return None, source_name, time.time() - sub_start
+                    logger.info(f"Attempting recovery for {source_name}")
+
+                try:
+                    adapter = self.adapters.get(source)
+                    if adapter and hasattr(adapter, 'get_quote_async'):
+                        # Try async method first
+                        quote = await adapter.get_quote_async(symbol)  # type: ignore[attr-defined]
+                    elif adapter and hasattr(adapter, 'get_quote'):
+                        # Fallback to sync method in thread pool
+                        import concurrent.futures
+                        loop = asyncio.get_event_loop()
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            quote = await loop.run_in_executor(executor, adapter.get_quote, symbol)  # type: ignore[attr-defined]
+                    else:
+                        logger.debug(f"Skipping source without quote methods: {source}")
+                        return None, source_name, time.time() - sub_start
+
+                    response_time = time.time() - sub_start
+                    logger.debug(f"Async quote from {source}: {quote}")
+
+                    if quote and getattr(quote, 'quality_score', 0):
+                        # Record success with fallback manager
+                        self.fallback_manager.record_success(source_name, response_time)
+                        return quote, source_name, response_time
+                    else:
+                        logger.debug(f"No valid quote from {source_name}")
+                        return None, source_name, response_time
+
+                except TwelveDataThrottled as e:
+                    logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
+                    should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
+                    if should_fallback:
+                        logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
+                    response_time = time.time() - sub_start
+
+                    # If this was a recovery attempt, record the failure
+                    if self.fallback_manager.is_in_fallback(source_name):
+                        self.fallback_manager.record_retry_attempt(source_name, success=False)
+
+                    return None, source_name, response_time
+
+                except TwelveDataError as e:
+                    logger.warning(f"TwelveData API error for {symbol}: {e}")
+                    should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
+                    if should_fallback:
+                        logger.info(f"Data source {source_name} put in fallback mode due to API error")
+                    response_time = time.time() - sub_start
+
+                    # If this was a recovery attempt, record the failure
+                    if self.fallback_manager.is_in_fallback(source_name):
+                        self.fallback_manager.record_retry_attempt(source_name, success=False)
+
+                    return None, source_name, response_time
+
+                except Exception as e:
+                    logger.error(f"Error fetching quote from {source}: {e}")
+                    should_fallback = self.fallback_manager.record_error(source_name, e, "unknown")
+                    response_time = time.time() - sub_start
+
+                    # If this was a recovery attempt, record the failure
+                    if self.fallback_manager.is_in_fallback(source_name):
+                        self.fallback_manager.record_retry_attempt(source_name, success=False)
+
+                    return None, source_name, response_time
+
+        # Execute concurrent fetches
+        step3 = time.time(); timings['concurrent_setup'] = step3 - step2
+
+        tasks = [fetch_from_source(source) for source in ordered_sources]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        step4 = time.time(); timings['concurrent_fetch'] = step4 - step3
+
+        # Process results
+        best_quote: Optional[Quote] = None
+        best_quality = 0
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Exception in concurrent fetch: {result}")
+                continue
+
+            if not isinstance(result, tuple) or len(result) != 3:
+                logger.error(f"Invalid result format: {result}")
+                continue
+
+            quote, source_name, response_time = result
+            timings[f'fetch_{source_name}'] = response_time
+
+            if quote and hasattr(quote, 'quality_score') and quote.quality_score is not None:
+                quality_score = float(quote.quality_score)
+                if quality_score > best_quality:
+                    best_quote = quote
+                    best_quality = quality_score
+
+                    # If we got excellent quality, we can return early
+                    if quality_score >= 95.0:
+                        logger.debug(f"Excellent quality quote from {source_name}, returning early")
+                        break
+
+        timings['total'] = time.time() - step_start
+        logger.info(f"Async profiling timings for get_quote_async({symbol}): {timings}")
+
+        # Log fallback status if any sources are in fallback mode
+        fallback_status = self.fallback_manager.get_fallback_status()
+        if fallback_status:
+            logger.info(f"Current fallback status: {fallback_status}")
+
+        return best_quote
     
     def get_market_data(self, symbol: str, period: str = "1y", interval: str = "1d", preferred_sources: Optional[List[DataSource]] = None) -> Optional[MarketData]:
         logger.debug(f"get_market_data called for symbol={symbol}, period={period}, interval={interval}, preferred_sources={preferred_sources}")
@@ -1672,6 +2038,160 @@ class DataFeedOrchestrator:
             
         return best_data
 
+    async def get_market_data_async(self, symbol: str, period: str = "1y", interval: str = "1d", preferred_sources: Optional[List[DataSource]] = None, max_concurrent: int = 3) -> Optional[MarketData]:
+        """Async version of get_market_data with concurrent processing for improved performance."""
+        logger.debug(f"get_market_data_async called for symbol={symbol}, period={period}, interval={interval}, preferred_sources={preferred_sources}")
+        step_start = time.time()
+        timings: Dict[str, float] = {}
+        step1 = time.time(); timings['init'] = step1 - step_start
+
+        # Convert preferred sources to strings for fallback manager
+        preferred_source_names = None
+        if preferred_sources:
+            preferred_source_names = [s.value for s in preferred_sources]
+            logger.debug(f"Preferred sources provided: {preferred_source_names}")
+
+        # Get optimized source order from fallback manager
+        ordered_source_names = self.fallback_manager.get_fallback_order("market_data", preferred_source_names)
+
+        # Convert back to DataSource enums
+        ordered_sources = []
+        for source_name in ordered_source_names:
+            try:
+                source_enum = DataSource(source_name)
+                if source_enum in self.adapters:
+                    ordered_sources.append(source_enum)
+            except ValueError:
+                logger.debug(f"Unknown data source: {source_name}")
+
+        step2 = time.time(); timings['fallback_order'] = step2 - step1
+
+        # Use semaphore for concurrency control
+        semaphore = asyncio.Semaphore(max_concurrent)
+
+        async def fetch_from_source(source: DataSource) -> Tuple[Optional[MarketData], str, float]:
+            """Fetch market data from a single source with semaphore control."""
+            async with semaphore:
+                sub_start = time.time()
+                source_name = source.value
+                logger.debug(f"Async fetching market data from source: {source}")
+
+                # Check if source is in fallback mode and if we should retry
+                if self.fallback_manager.is_in_fallback(source_name):
+                    if not self.fallback_manager.can_retry(source_name):
+                        logger.debug(f"Skipping {source_name} - in fallback mode, retry not ready")
+                        return None, source_name, time.time() - sub_start
+                    logger.info(f"Attempting recovery for {source_name}")
+
+                try:
+                    adapter = self.adapters.get(source)
+                    if adapter and hasattr(adapter, 'get_market_data_async'):
+                        # Try async method first
+                        data = await adapter.get_market_data_async(symbol, period, interval)  # type: ignore[attr-defined]
+                    elif adapter and hasattr(adapter, 'get_market_data'):
+                        # Fallback to sync method in thread pool
+                        import concurrent.futures
+                        loop = asyncio.get_event_loop()
+                        with concurrent.futures.ThreadPoolExecutor() as executor:
+                            data = await loop.run_in_executor(executor, adapter.get_market_data, symbol, period, interval)  # type: ignore[attr-defined]
+                    else:
+                        logger.debug(f"Skipping source without market data methods: {source}")
+                        return None, source_name, time.time() - sub_start
+
+                    response_time = time.time() - sub_start
+                    logger.debug(f"Async market data from {source}: {data}")
+
+                    if data and hasattr(data, 'quality_score') and data.quality_score is not None:
+                        # Record success with fallback manager
+                        self.fallback_manager.record_success(source_name, response_time)
+                        quality_score = float(data.quality_score)
+                        return data, source_name, response_time
+                    else:
+                        logger.debug(f"No valid market data from {source_name}")
+                        return None, source_name, response_time
+
+                except TwelveDataThrottled as e:
+                    logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
+                    should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
+                    if should_fallback:
+                        logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
+                    response_time = time.time() - sub_start
+
+                    # If this was a recovery attempt, record the failure
+                    if self.fallback_manager.is_in_fallback(source_name):
+                        self.fallback_manager.record_retry_attempt(source_name, success=False)
+
+                    return None, source_name, response_time
+
+                except TwelveDataError as e:
+                    logger.warning(f"TwelveData API error for {symbol}: {e}")
+                    should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
+                    if should_fallback:
+                        logger.info(f"Data source {source_name} put in fallback mode due to API error")
+                    response_time = time.time() - sub_start
+
+                    # If this was a recovery attempt, record the failure
+                    if self.fallback_manager.is_in_fallback(source_name):
+                        self.fallback_manager.record_retry_attempt(source_name, success=False)
+
+                    return None, source_name, response_time
+
+                except Exception as e:
+                    logger.error(f"Error fetching market data from {source}: {e}")
+                    should_fallback = self.fallback_manager.record_error(source_name, e, "unknown")
+                    response_time = time.time() - sub_start
+
+                    # If this was a recovery attempt, record the failure
+                    if self.fallback_manager.is_in_fallback(source_name):
+                        self.fallback_manager.record_retry_attempt(source_name, success=False)
+
+                    return None, source_name, response_time
+
+        # Execute concurrent fetches
+        step3 = time.time(); timings['concurrent_setup'] = step3 - step2
+
+        tasks = [fetch_from_source(source) for source in ordered_sources]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        step4 = time.time(); timings['concurrent_fetch'] = step4 - step3
+
+        # Process results
+        best_data: Optional[MarketData] = None
+        best_quality = 0
+
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Exception in concurrent fetch: {result}")
+                continue
+
+            if not isinstance(result, tuple) or len(result) != 3:
+                logger.error(f"Invalid result format: {result}")
+                continue
+
+            data, source_name, response_time = result
+            timings[f'fetch_{source_name}'] = response_time
+
+            if data and hasattr(data, 'quality_score') and data.quality_score is not None:
+                quality_score = float(data.quality_score)
+                if quality_score > best_quality:
+                    best_data = data
+                    best_quality = quality_score
+
+                    # If we got excellent quality, we can return early
+                    if quality_score >= 95.0:
+                        logger.debug(f"Excellent quality market data from {source_name}, returning early")
+                        break
+
+        timings['total'] = time.time() - step_start
+        logger.info(f"Async profiling timings for get_market_data_async({symbol}): {timings}")
+
+        # Log fallback status if any sources are in fallback mode
+        fallback_status = self.fallback_manager.get_fallback_status()
+        if fallback_status:
+            logger.info(f"Current fallback status: {fallback_status}")
+
+        return best_data
+
     # ------------------------------------------------------------------------
     # New methods delegating to ConsolidatedDataFeed (compatibility bridge)
     # ------------------------------------------------------------------------
@@ -1768,6 +2288,7 @@ class DataFeedOrchestrator:
         If FMP fails (e.g., 403), falls back to FinViz earnings and normalizes to the same schema.
         """
         base_params = {"tickers": tickers or []}
+       
         key_hash = None
         entry = None
         if getattr(self, "persistent_cache", None):
@@ -1796,7 +2317,7 @@ class DataFeedOrchestrator:
                 f"?from={today.isoformat()}&to={to_date.isoformat()}&apikey={api_key}"
             )
             try:
-                resp = requests.get(url, timeout=20)
+                resp = optimized_get(url, timeout=20)
                 resp.raise_for_status()
                 data = resp.json()
                 if isinstance(data, list):
@@ -2179,6 +2700,18 @@ class DataFeedOrchestrator:
                 logger.warning(f"[cache] options_analytics write failed: {e}")
 
         return result
+
+    async def get_options_analytics_async(self, symbol: str, include: list[str] | None = None) -> Optional[dict]:
+        """
+        Async version of get_options_analytics with async database operations.
+        """
+        # Initialize async I/O if needed
+        await self._init_options_schema_async()
+
+        # Reuse most of the logic from get_options_analytics but with async database calls
+        # For now, delegate to sync version since full async conversion would require
+        # making the entire method async (which is a larger refactoring)
+        return self.get_options_analytics(symbol, include)
 
     def get_company_info(self, symbol: str) -> Optional[CompanyInfo]:
         """

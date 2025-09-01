@@ -3,7 +3,28 @@ from decimal import Decimal
 from typing import List, Dict, Optional
 import re
 import requests
+import os
 from bs4 import BeautifulSoup
+
+# Import optimized HTTP client
+try:
+    from core.http_client import optimized_get
+    OPTIMIZED_HTTP_AVAILABLE = True
+except ImportError:
+    OPTIMIZED_HTTP_AVAILABLE = False
+    optimized_get = None
+    print("[WARNING] Optimized HTTP client not available, falling back to requests")
+
+# Async I/O utilities import with fallback
+AsyncHTTPClient = None
+ASYNC_IO_AVAILABLE = False
+try:
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from core.async_io_utils import AsyncHTTPClient
+    ASYNC_IO_AVAILABLE = True
+except ImportError:
+    pass
 
 # Import finvizfinance modules
 from finvizfinance.group.performance import Performance
@@ -26,7 +47,10 @@ def fetch_finviz_breadth() -> dict:
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
         }
         
-        resp = requests.get(url, headers=headers, timeout=10)
+        if OPTIMIZED_HTTP_AVAILABLE and optimized_get:
+            resp = optimized_get(url, headers=headers, timeout=10)
+        else:
+            resp = requests.get(url, headers=headers, timeout=10)
         resp.raise_for_status()
         
         soup = BeautifulSoup(resp.text, "html.parser")

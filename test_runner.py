@@ -299,7 +299,7 @@ Examples:
     with open('test_report.json', 'w') as f:
         json.dump(runner.test_results, f, indent=2, default=str)
     
-    print(f"\n💾 Detailed report saved to: test_report.json")
+    print("\n💾 Detailed report saved to: test_report.json")
     
     # Exit with appropriate code
     all_success = all(

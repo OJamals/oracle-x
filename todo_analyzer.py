@@ -6,11 +6,9 @@ This script scans the codebase for TODO, FIXME, HACK, and similar markers,
 categorizes them by priority, and generates actionable remediation plans.
 """
 
-import os
 import re
-import sys
 from pathlib import Path
-from typing import Dict, List, Tuple, Optional
+from typing import List, Optional
 from dataclasses import dataclass
 from enum import Enum
 
@@ -312,7 +310,7 @@ def main():
     
     if args.summary or (not args.report and not args.action_plan):
         # Show summary
-        print(f"📋 TODO Analysis Summary")
+        print("📋 TODO Analysis Summary")
         print(f"Total items found: {len(todos)}")
         
         if todos:

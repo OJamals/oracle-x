@@ -1,0 +1,2078 @@
+{
+  "timestamp": "20250901_130526",
+  "total_tests": 192,
+  "models_tested": 4,
+  "sources_tested": 4,
+  "model_performance": {
+    "finbert_news_twitter": "ModelPerformance(model='finbert_news', source='twitter', accuracy=0.8333333333333334, avg_latency=0.061171929041544594, total_tests=12, correct_predictions=10, avg_confidence=0.9275033076604208, precision=0.8333333333333334, recall=0.8333333333333334)",
+    "finbert_news_news": "ModelPerformance(model='finbert_news', source='news', accuracy=0.0, avg_latency=1.6490618387858074e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)",
+    "finbert_news_reddit": "ModelPerformance(model='finbert_news', source='reddit', accuracy=0.9166666666666666, avg_latency=0.034756104151407875, total_tests=12, correct_predictions=11, avg_confidence=0.883513147632281, precision=0.8333333333333334, recall=1.0)",
+    "finbert_news_financial": "ModelPerformance(model='finbert_news', source='financial', accuracy=0.0, avg_latency=2.0464261372884116e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)",
+    "finbert_earnings_twitter": "ModelPerformance(model='finbert_earnings', source='twitter', accuracy=0.8333333333333334, avg_latency=0.06198654572168986, total_tests=12, correct_predictions=10, avg_confidence=0.9275033076604208, precision=0.8333333333333334, recall=0.8333333333333334)",
+    "finbert_earnings_news": "ModelPerformance(model='finbert_earnings', source='news', accuracy=0.0, avg_latency=1.9272168477376303e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)",
+    "finbert_earnings_reddit": "ModelPerformance(model='finbert_earnings', source='reddit', accuracy=0.9166666666666666, avg_latency=0.03536365429560343, total_tests=12, correct_predictions=11, avg_confidence=0.883513147632281, precision=0.8333333333333334, recall=1.0)",
+    "finbert_earnings_financial": "ModelPerformance(model='finbert_earnings', source='financial', accuracy=0.0, avg_latency=1.6887982686360676e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)",
+    "finbert_prosus_twitter": "ModelPerformance(model='finbert_prosus', source='twitter', accuracy=0.8333333333333334, avg_latency=0.07436559597651164, total_tests=12, correct_predictions=10, avg_confidence=0.9275033076604208, precision=0.8333333333333334, recall=0.8333333333333334)",
+    "finbert_prosus_news": "ModelPerformance(model='finbert_prosus', source='news', accuracy=0.0, avg_latency=1.708666483561198e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)",
+    "finbert_prosus_reddit": "ModelPerformance(model='finbert_prosus', source='reddit', accuracy=0.9166666666666666, avg_latency=0.04287262757619222, total_tests=12, correct_predictions=11, avg_confidence=0.883513147632281, precision=0.8333333333333334, recall=1.0)",
+    "finbert_prosus_financial": "ModelPerformance(model='finbert_prosus', source='financial', accuracy=0.0, avg_latency=3.119309743245443e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)",
+    "fintwitbert_sentiment_twitter": "ModelPerformance(model='fintwitbert_sentiment', source='twitter', accuracy=0.8333333333333334, avg_latency=0.042499264081319175, total_tests=12, correct_predictions=10, avg_confidence=0.9275033076604208, precision=0.8333333333333334, recall=0.8333333333333334)",
+    "fintwitbert_sentiment_news": "ModelPerformance(model='fintwitbert_sentiment', source='news', accuracy=0.0, avg_latency=1.629193623860677e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)",
+    "fintwitbert_sentiment_reddit": "ModelPerformance(model='fintwitbert_sentiment', source='reddit', accuracy=0.9166666666666666, avg_latency=0.03834523757298788, total_tests=12, correct_predictions=11, avg_confidence=0.883513147632281, precision=0.8333333333333334, recall=1.0)",
+    "fintwitbert_sentiment_financial": "ModelPerformance(model='fintwitbert_sentiment', source='financial', accuracy=0.0, avg_latency=1.9073486328125e-06, total_tests=12, correct_predictions=0, avg_confidence=0.0, precision=0.0, recall=0.0)"
+  },
+  "recommendations": {
+    "best_overall_model": {
+      "model": "finbert_news",
+      "accuracy": 0.9166666666666666,
+      "source": "reddit"
+    },
+    "best_by_source": {
+      "reddit": {
+        "model": "finbert_news",
+        "accuracy": 0.9166666666666666,
+        "avg_latency": 0.034756104151407875,
+        "confidence": 0.883513147632281
+      },
+      "twitter": {
+        "model": "finbert_news",
+        "accuracy": 0.8333333333333334,
+        "avg_latency": 0.061171929041544594,
+        "confidence": 0.9275033076604208
+      },
+      "financial": {
+        "model": "finbert_news",
+        "accuracy": 0.0,
+        "avg_latency": 2.0464261372884116e-06,
+        "confidence": 0.0
+      },
+      "news": {
+        "model": "finbert_news",
+        "accuracy": 0.0,
+        "avg_latency": 1.6490618387858074e-06,
+        "confidence": 0.0
+      }
+    },
+    "performance_rankings": [
+      {
+        "rank": 1,
+        "model": "finbert_news",
+        "source": "reddit",
+        "score": 0.9166666666666666
+      },
+      {
+        "rank": 2,
+        "model": "finbert_earnings",
+        "source": "reddit",
+        "score": 0.9166666666666666
+      },
+      {
+        "rank": 3,
+        "model": "finbert_prosus",
+        "source": "reddit",
+        "score": 0.9166666666666666
+      },
+      {
+        "rank": 4,
+        "model": "fintwitbert_sentiment",
+        "source": "reddit",
+        "score": 0.9166666666666666
+      },
+      {
+        "rank": 5,
+        "model": "finbert_news",
+        "source": "twitter",
+        "score": 0.8333333333333334
+      },
+      {
+        "rank": 6,
+        "model": "finbert_earnings",
+        "source": "twitter",
+        "score": 0.8333333333333334
+      },
+      {
+        "rank": 7,
+        "model": "finbert_prosus",
+        "source": "twitter",
+        "score": 0.8333333333333334
+      },
+      {
+        "rank": 8,
+        "model": "fintwitbert_sentiment",
+        "source": "twitter",
+        "score": 0.8333333333333334
+      },
+      {
+        "rank": 9,
+        "model": "finbert_news",
+        "source": "news",
+        "score": 0.0
+      },
+      {
+        "rank": 10,
+        "model": "finbert_news",
+        "source": "financial",
+        "score": 0.0
+      },
+      {
+        "rank": 11,
+        "model": "finbert_earnings",
+        "source": "news",
+        "score": 0.0
+      },
+      {
+        "rank": 12,
+        "model": "finbert_earnings",
+        "source": "financial",
+        "score": 0.0
+      },
+      {
+        "rank": 13,
+        "model": "finbert_prosus",
+        "source": "news",
+        "score": 0.0
+      },
+      {
+        "rank": 14,
+        "model": "finbert_prosus",
+        "source": "financial",
+        "score": 0.0
+      },
+      {
+        "rank": 15,
+        "model": "fintwitbert_sentiment",
+        "source": "news",
+        "score": 0.0
+      },
+      {
+        "rank": 16,
+        "model": "fintwitbert_sentiment",
+        "source": "financial",
+        "score": 0.0
+      }
+    ],
+    "calibration_issues": []
+  },
+  "detailed_results": [
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "Just bought $AAPL calls, this stock is mooning! \ud83d\ude80",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.9993820190429688,
+      "confidence": 0.9993820190429688,
+      "latency": 0.3623039722442627,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$TSLA earnings beat expectations by $0.50! Bullish!",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9965858459472656,
+      "latency": 0.032839298248291016,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$NVDA breaking out to new highs! This is just the beginning \ud83d\udcc8",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.9996160268783569,
+      "confidence": 0.9996160268783569,
+      "latency": 0.032729148864746094,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "Bought the dip on $SPY, expecting strong recovery",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9760581851005554,
+      "confidence": 0.9760581851005554,
+      "latency": 0.03307390213012695,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$AAPL stock crashing after disappointing iPhone sales \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9999144077301025,
+      "confidence": 0.9999144077301025,
+      "latency": 0.03296184539794922,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$TSLA delivery numbers missed estimates badly. Bearish!",
+      "expected_sentiment": -0.95,
+      "predicted_sentiment": -0.999800980091095,
+      "confidence": 0.999800980091095,
+      "latency": 0.03290700912475586,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$NVDA guidance cut due to weak AI demand. Selling everything",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -1.0,
+      "confidence": 0.9998760223388672,
+      "latency": 0.03243279457092285,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$SPY breaking major support levels. Market crash incoming",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.999950647354126,
+      "confidence": 0.999950647354126,
+      "latency": 0.03069305419921875,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$AAPL reports Q3 earnings after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9645499587059021,
+      "latency": 0.03513908386230469,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$TSLA announces new factory location in Mexico",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.7233211398124695,
+      "latency": 0.0377659797668457,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$NVDA board approves $25B stock buyback program",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.8326675891876221,
+      "confidence": 0.8326675891876221,
+      "latency": 0.036889076232910156,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "twitter",
+      "text": "$SPY dividend yield at 1.8%, above historical average",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.6383168697357178,
+      "confidence": 0.6383168697357178,
+      "latency": 0.03432798385620117,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "Apple reports record Q3 revenue of $89.5B, beating estimates by $3B",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 6.9141387939453125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "Tesla delivers 400,000 vehicles in Q3, exceeding analyst expectations",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.1457672119140625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "NVIDIA announces $10B AI partnership with major cloud providers",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "S&P 500 reaches new all-time high as tech stocks rally",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "Apple warns of slowing iPhone demand in China, cuts production",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "Tesla faces production delays at new Austin factory",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "NVIDIA faces antitrust scrutiny over GPU market dominance",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "Federal Reserve signals potential interest rate hikes",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.6689300537109375e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "Apple announces new iPhone 15 lineup with incremental improvements",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "Tesla reports Q3 deliveries in line with guidance",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "NVIDIA quarterly results to be released after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "news",
+      "text": "S&P 500 futures trading slightly higher in pre-market",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "AAPL to the moon! Diamond hands! This stock is unstoppable \ud83d\ude80\ud83d\udc8e\ud83d\ude4c",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.9979881048202515,
+      "confidence": 0.9979881048202515,
+      "latency": 0.033180952072143555,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "TSLA earnings crushed it! Bulls are taking over this market!",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9589877128601074,
+      "latency": 0.03521990776062012,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "NVDA calls paying off big time. This AI hype is real!",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.955829918384552,
+      "confidence": 0.955829918384552,
+      "latency": 0.034416913986206055,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "Bought the dip on SPY, expecting 10% upside this week",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9371603727340698,
+      "confidence": 0.9371603727340698,
+      "latency": 0.03496193885803223,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "AAPL overvalued garbage. Dumping all shares now \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9984778761863708,
+      "confidence": 0.9984778761863708,
+      "latency": 0.03317093849182129,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "TSLA delivery numbers are a joke. Musk is lying to everyone",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -0.9998549222946167,
+      "confidence": 0.9998549222946167,
+      "latency": 0.03564882278442383,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "NVDA is getting margin called. AI winter is here!",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.9858052134513855,
+      "confidence": 0.9858052134513855,
+      "latency": 0.03448772430419922,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "SPY breaking down. Bears are winning this fight",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": -0.9963758587837219,
+      "confidence": 0.9963758587837219,
+      "latency": 0.034681081771850586,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "AAPL earnings call tonight. What do you think?",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9238315224647522,
+      "latency": 0.03448987007141113,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "TSLA new model announcement next week",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.6478358507156372,
+      "confidence": 0.6478358507156372,
+      "latency": 0.03743290901184082,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "NVDA earnings after market close tomorrow",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.5678435564041138,
+      "latency": 0.03389620780944824,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "reddit",
+      "text": "SPY options expiring this Friday",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.632166862487793,
+      "confidence": 0.632166862487793,
+      "latency": 0.03548598289489746,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "Technical analysis shows AAPL in strong uptrend with multiple bullish indicators",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 5.7220458984375e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "TSLA fundamentals improving with positive free cash flow generation",
+      "expected_sentiment": 0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.9073486328125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "NVDA valuation attractive relative to growth prospects and competitive moat",
+      "expected_sentiment": 0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.1457672119140625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "SPY showing accumulation patterns suggesting institutional buying",
+      "expected_sentiment": 0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 6.9141387939453125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "AAPL facing margin pressure from increased competition in premium segment",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "TSLA balance sheet deterioration with negative operating cash flow",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "NVDA facing supply chain constraints limiting production capacity",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "SPY technical indicators suggest potential reversal at resistance levels",
+      "expected_sentiment": -0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 7.152557373046875e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "AAPL trading at fair valuation given current growth trajectory",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "TSLA valuation metrics in line with industry averages",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "NVDA competitive positioning stable despite market share pressures",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_news",
+      "source": "financial",
+      "text": "SPY sector rotation analysis shows balanced market participation",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "Just bought $AAPL calls, this stock is mooning! \ud83d\ude80",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.9993820190429688,
+      "confidence": 0.9993820190429688,
+      "latency": 0.35512280464172363,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$TSLA earnings beat expectations by $0.50! Bullish!",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9965858459472656,
+      "latency": 0.03378725051879883,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$NVDA breaking out to new highs! This is just the beginning \ud83d\udcc8",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.9996160268783569,
+      "confidence": 0.9996160268783569,
+      "latency": 0.03524494171142578,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "Bought the dip on $SPY, expecting strong recovery",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9760581851005554,
+      "confidence": 0.9760581851005554,
+      "latency": 0.0349879264831543,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$AAPL stock crashing after disappointing iPhone sales \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9999144077301025,
+      "confidence": 0.9999144077301025,
+      "latency": 0.03328108787536621,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$TSLA delivery numbers missed estimates badly. Bearish!",
+      "expected_sentiment": -0.95,
+      "predicted_sentiment": -0.999800980091095,
+      "confidence": 0.999800980091095,
+      "latency": 0.03343677520751953,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$NVDA guidance cut due to weak AI demand. Selling everything",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -1.0,
+      "confidence": 0.9998760223388672,
+      "latency": 0.03437495231628418,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$SPY breaking major support levels. Market crash incoming",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.999950647354126,
+      "confidence": 0.999950647354126,
+      "latency": 0.03480696678161621,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$AAPL reports Q3 earnings after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9645499587059021,
+      "latency": 0.03920793533325195,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$TSLA announces new factory location in Mexico",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.7233211398124695,
+      "latency": 0.03845381736755371,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$NVDA board approves $25B stock buyback program",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.8326675891876221,
+      "confidence": 0.8326675891876221,
+      "latency": 0.03572893142700195,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "twitter",
+      "text": "$SPY dividend yield at 1.8%, above historical average",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.6383168697357178,
+      "confidence": 0.6383168697357178,
+      "latency": 0.03540515899658203,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "Apple reports record Q3 revenue of $89.5B, beating estimates by $3B",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.0728836059570312e-05,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "Tesla delivers 400,000 vehicles in Q3, exceeding analyst expectations",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "NVIDIA announces $10B AI partnership with major cloud providers",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.9073486328125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "S&P 500 reaches new all-time high as tech stocks rally",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "Apple warns of slowing iPhone demand in China, cuts production",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "Tesla faces production delays at new Austin factory",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "NVIDIA faces antitrust scrutiny over GPU market dominance",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "Federal Reserve signals potential interest rate hikes",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "Apple announces new iPhone 15 lineup with incremental improvements",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "Tesla reports Q3 deliveries in line with guidance",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "NVIDIA quarterly results to be released after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "news",
+      "text": "S&P 500 futures trading slightly higher in pre-market",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "AAPL to the moon! Diamond hands! This stock is unstoppable \ud83d\ude80\ud83d\udc8e\ud83d\ude4c",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.9979881048202515,
+      "confidence": 0.9979881048202515,
+      "latency": 0.03531384468078613,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "TSLA earnings crushed it! Bulls are taking over this market!",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9589877128601074,
+      "latency": 0.033715009689331055,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "NVDA calls paying off big time. This AI hype is real!",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.955829918384552,
+      "confidence": 0.955829918384552,
+      "latency": 0.037277936935424805,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "Bought the dip on SPY, expecting 10% upside this week",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9371603727340698,
+      "confidence": 0.9371603727340698,
+      "latency": 0.03540205955505371,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "AAPL overvalued garbage. Dumping all shares now \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9984778761863708,
+      "confidence": 0.9984778761863708,
+      "latency": 0.03565692901611328,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "TSLA delivery numbers are a joke. Musk is lying to everyone",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -0.9998549222946167,
+      "confidence": 0.9998549222946167,
+      "latency": 0.03630208969116211,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "NVDA is getting margin called. AI winter is here!",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.9858052134513855,
+      "confidence": 0.9858052134513855,
+      "latency": 0.03569483757019043,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "SPY breaking down. Bears are winning this fight",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": -0.9963758587837219,
+      "confidence": 0.9963758587837219,
+      "latency": 0.035978078842163086,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "AAPL earnings call tonight. What do you think?",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9238315224647522,
+      "latency": 0.0338590145111084,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "TSLA new model announcement next week",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.6478358507156372,
+      "confidence": 0.6478358507156372,
+      "latency": 0.03447389602661133,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "NVDA earnings after market close tomorrow",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.5678435564041138,
+      "latency": 0.03525710105895996,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "reddit",
+      "text": "SPY options expiring this Friday",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.632166862487793,
+      "confidence": 0.632166862487793,
+      "latency": 0.035433053970336914,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "Technical analysis shows AAPL in strong uptrend with multiple bullish indicators",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 5.9604644775390625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "TSLA fundamentals improving with positive free cash flow generation",
+      "expected_sentiment": 0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.1457672119140625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "NVDA valuation attractive relative to growth prospects and competitive moat",
+      "expected_sentiment": 0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.1457672119140625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "SPY showing accumulation patterns suggesting institutional buying",
+      "expected_sentiment": 0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "AAPL facing margin pressure from increased competition in premium segment",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "TSLA balance sheet deterioration with negative operating cash flow",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 7.152557373046875e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "NVDA facing supply chain constraints limiting production capacity",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.1457672119140625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "SPY technical indicators suggest potential reversal at resistance levels",
+      "expected_sentiment": -0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "AAPL trading at fair valuation given current growth trajectory",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "TSLA valuation metrics in line with industry averages",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "NVDA competitive positioning stable despite market share pressures",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_earnings",
+      "source": "financial",
+      "text": "SPY sector rotation analysis shows balanced market participation",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 7.152557373046875e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "Just bought $AAPL calls, this stock is mooning! \ud83d\ude80",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.9993820190429688,
+      "confidence": 0.9993820190429688,
+      "latency": 0.41693997383117676,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$TSLA earnings beat expectations by $0.50! Bullish!",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9965858459472656,
+      "latency": 0.041029930114746094,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$NVDA breaking out to new highs! This is just the beginning \ud83d\udcc8",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.9996160268783569,
+      "confidence": 0.9996160268783569,
+      "latency": 0.04078197479248047,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "Bought the dip on $SPY, expecting strong recovery",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9760581851005554,
+      "confidence": 0.9760581851005554,
+      "latency": 0.043241024017333984,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$AAPL stock crashing after disappointing iPhone sales \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9999144077301025,
+      "confidence": 0.9999144077301025,
+      "latency": 0.040493011474609375,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$TSLA delivery numbers missed estimates badly. Bearish!",
+      "expected_sentiment": -0.95,
+      "predicted_sentiment": -0.999800980091095,
+      "confidence": 0.999800980091095,
+      "latency": 0.0423738956451416,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$NVDA guidance cut due to weak AI demand. Selling everything",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -1.0,
+      "confidence": 0.9998760223388672,
+      "latency": 0.044142723083496094,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$SPY breaking major support levels. Market crash incoming",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.999950647354126,
+      "confidence": 0.999950647354126,
+      "latency": 0.03960394859313965,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$AAPL reports Q3 earnings after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9645499587059021,
+      "latency": 0.041200876235961914,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$TSLA announces new factory location in Mexico",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.7233211398124695,
+      "latency": 0.04985761642456055,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$NVDA board approves $25B stock buyback program",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.8326675891876221,
+      "confidence": 0.8326675891876221,
+      "latency": 0.044259071350097656,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "twitter",
+      "text": "$SPY dividend yield at 1.8%, above historical average",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.6383168697357178,
+      "confidence": 0.6383168697357178,
+      "latency": 0.04846310615539551,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "Apple reports record Q3 revenue of $89.5B, beating estimates by $3B",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 5.9604644775390625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "Tesla delivers 400,000 vehicles in Q3, exceeding analyst expectations",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 3.814697265625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "NVIDIA announces $10B AI partnership with major cloud providers",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "S&P 500 reaches new all-time high as tech stocks rally",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "Apple warns of slowing iPhone demand in China, cuts production",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "Tesla faces production delays at new Austin factory",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.6689300537109375e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "NVIDIA faces antitrust scrutiny over GPU market dominance",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "Federal Reserve signals potential interest rate hikes",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "Apple announces new iPhone 15 lineup with incremental improvements",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "Tesla reports Q3 deliveries in line with guidance",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "NVIDIA quarterly results to be released after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "news",
+      "text": "S&P 500 futures trading slightly higher in pre-market",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "AAPL to the moon! Diamond hands! This stock is unstoppable \ud83d\ude80\ud83d\udc8e\ud83d\ude4c",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.9979881048202515,
+      "confidence": 0.9979881048202515,
+      "latency": 0.04303288459777832,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "TSLA earnings crushed it! Bulls are taking over this market!",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9589877128601074,
+      "latency": 0.042858123779296875,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "NVDA calls paying off big time. This AI hype is real!",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.955829918384552,
+      "confidence": 0.955829918384552,
+      "latency": 0.03908514976501465,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "Bought the dip on SPY, expecting 10% upside this week",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9371603727340698,
+      "confidence": 0.9371603727340698,
+      "latency": 0.04912400245666504,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "AAPL overvalued garbage. Dumping all shares now \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9984778761863708,
+      "confidence": 0.9984778761863708,
+      "latency": 0.0439910888671875,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "TSLA delivery numbers are a joke. Musk is lying to everyone",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -0.9998549222946167,
+      "confidence": 0.9998549222946167,
+      "latency": 0.040958404541015625,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "NVDA is getting margin called. AI winter is here!",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.9858052134513855,
+      "confidence": 0.9858052134513855,
+      "latency": 0.04244828224182129,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "SPY breaking down. Bears are winning this fight",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": -0.9963758587837219,
+      "confidence": 0.9963758587837219,
+      "latency": 0.04323768615722656,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "AAPL earnings call tonight. What do you think?",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9238315224647522,
+      "latency": 0.043376922607421875,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "TSLA new model announcement next week",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.6478358507156372,
+      "confidence": 0.6478358507156372,
+      "latency": 0.04446911811828613,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "NVDA earnings after market close tomorrow",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.5678435564041138,
+      "latency": 0.04143500328063965,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "reddit",
+      "text": "SPY options expiring this Friday",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.632166862487793,
+      "confidence": 0.632166862487793,
+      "latency": 0.040454864501953125,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "Technical analysis shows AAPL in strong uptrend with multiple bullish indicators",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.3126602172851562e-05,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "TSLA fundamentals improving with positive free cash flow generation",
+      "expected_sentiment": 0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.1457672119140625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "NVDA valuation attractive relative to growth prospects and competitive moat",
+      "expected_sentiment": 0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.9073486328125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "SPY showing accumulation patterns suggesting institutional buying",
+      "expected_sentiment": 0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.9073486328125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "AAPL facing margin pressure from increased competition in premium segment",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "TSLA balance sheet deterioration with negative operating cash flow",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "NVDA facing supply chain constraints limiting production capacity",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "SPY technical indicators suggest potential reversal at resistance levels",
+      "expected_sentiment": -0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "AAPL trading at fair valuation given current growth trajectory",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "TSLA valuation metrics in line with industry averages",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "NVDA competitive positioning stable despite market share pressures",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "finbert_prosus",
+      "source": "financial",
+      "text": "SPY sector rotation analysis shows balanced market participation",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "Just bought $AAPL calls, this stock is mooning! \ud83d\ude80",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.9993820190429688,
+      "confidence": 0.9993820190429688,
+      "latency": 0.07088613510131836,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$TSLA earnings beat expectations by $0.50! Bullish!",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9965858459472656,
+      "latency": 0.04240703582763672,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$NVDA breaking out to new highs! This is just the beginning \ud83d\udcc8",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.9996160268783569,
+      "confidence": 0.9996160268783569,
+      "latency": 0.04415774345397949,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "Bought the dip on $SPY, expecting strong recovery",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9760581851005554,
+      "confidence": 0.9760581851005554,
+      "latency": 0.042365312576293945,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$AAPL stock crashing after disappointing iPhone sales \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9999144077301025,
+      "confidence": 0.9999144077301025,
+      "latency": 0.0373692512512207,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$TSLA delivery numbers missed estimates badly. Bearish!",
+      "expected_sentiment": -0.95,
+      "predicted_sentiment": -0.999800980091095,
+      "confidence": 0.999800980091095,
+      "latency": 0.04030895233154297,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$NVDA guidance cut due to weak AI demand. Selling everything",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -1.0,
+      "confidence": 0.9998760223388672,
+      "latency": 0.04104876518249512,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$SPY breaking major support levels. Market crash incoming",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.999950647354126,
+      "confidence": 0.999950647354126,
+      "latency": 0.041680097579956055,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$AAPL reports Q3 earnings after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9645499587059021,
+      "latency": 0.0342099666595459,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$TSLA announces new factory location in Mexico",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.7233211398124695,
+      "latency": 0.04345297813415527,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$NVDA board approves $25B stock buyback program",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.8326675891876221,
+      "confidence": 0.8326675891876221,
+      "latency": 0.037671804428100586,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "twitter",
+      "text": "$SPY dividend yield at 1.8%, above historical average",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.6383168697357178,
+      "confidence": 0.6383168697357178,
+      "latency": 0.03443312644958496,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "Apple reports record Q3 revenue of $89.5B, beating estimates by $3B",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 5.9604644775390625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "Tesla delivers 400,000 vehicles in Q3, exceeding analyst expectations",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 2.1457672119140625e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "NVIDIA announces $10B AI partnership with major cloud providers",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "S&P 500 reaches new all-time high as tech stocks rally",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "Apple warns of slowing iPhone demand in China, cuts production",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "Tesla faces production delays at new Austin factory",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "NVIDIA faces antitrust scrutiny over GPU market dominance",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "Federal Reserve signals potential interest rate hikes",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "Apple announces new iPhone 15 lineup with incremental improvements",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "Tesla reports Q3 deliveries in line with guidance",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.9073486328125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "NVIDIA quarterly results to be released after market close",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "news",
+      "text": "S&P 500 futures trading slightly higher in pre-market",
+      "expected_sentiment": 0.2,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "AAPL to the moon! Diamond hands! This stock is unstoppable \ud83d\ude80\ud83d\udc8e\ud83d\ude4c",
+      "expected_sentiment": 0.95,
+      "predicted_sentiment": 0.9979881048202515,
+      "confidence": 0.9979881048202515,
+      "latency": 0.03633522987365723,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "TSLA earnings crushed it! Bulls are taking over this market!",
+      "expected_sentiment": 0.9,
+      "predicted_sentiment": 1.0,
+      "confidence": 0.9589877128601074,
+      "latency": 0.0363922119140625,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "NVDA calls paying off big time. This AI hype is real!",
+      "expected_sentiment": 0.85,
+      "predicted_sentiment": 0.955829918384552,
+      "confidence": 0.955829918384552,
+      "latency": 0.035526275634765625,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "Bought the dip on SPY, expecting 10% upside this week",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.9371603727340698,
+      "confidence": 0.9371603727340698,
+      "latency": 0.04141592979431152,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "AAPL overvalued garbage. Dumping all shares now \ud83d\udcc9",
+      "expected_sentiment": -0.9,
+      "predicted_sentiment": -0.9984778761863708,
+      "confidence": 0.9984778761863708,
+      "latency": 0.03747391700744629,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "TSLA delivery numbers are a joke. Musk is lying to everyone",
+      "expected_sentiment": -0.85,
+      "predicted_sentiment": -0.9998549222946167,
+      "confidence": 0.9998549222946167,
+      "latency": 0.03670811653137207,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "NVDA is getting margin called. AI winter is here!",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": -0.9858052134513855,
+      "confidence": 0.9858052134513855,
+      "latency": 0.03671431541442871,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "SPY breaking down. Bears are winning this fight",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": -0.9963758587837219,
+      "confidence": 0.9963758587837219,
+      "latency": 0.036192893981933594,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "AAPL earnings call tonight. What do you think?",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.9238315224647522,
+      "latency": 0.03323173522949219,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "TSLA new model announcement next week",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.6478358507156372,
+      "confidence": 0.6478358507156372,
+      "latency": 0.05530405044555664,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "NVDA earnings after market close tomorrow",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.5678435564041138,
+      "latency": 0.037297964096069336,
+      "accuracy_score": 1.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "reddit",
+      "text": "SPY options expiring this Friday",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.632166862487793,
+      "confidence": 0.632166862487793,
+      "latency": 0.03755021095275879,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "Technical analysis shows AAPL in strong uptrend with multiple bullish indicators",
+      "expected_sentiment": 0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.0013580322265625e-05,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "TSLA fundamentals improving with positive free cash flow generation",
+      "expected_sentiment": 0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "NVDA valuation attractive relative to growth prospects and competitive moat",
+      "expected_sentiment": 0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "SPY showing accumulation patterns suggesting institutional buying",
+      "expected_sentiment": 0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "AAPL facing margin pressure from increased competition in premium segment",
+      "expected_sentiment": -0.75,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "TSLA balance sheet deterioration with negative operating cash flow",
+      "expected_sentiment": -0.8,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 3.0994415283203125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "NVDA facing supply chain constraints limiting production capacity",
+      "expected_sentiment": -0.7,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 7.152557373046875e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "SPY technical indicators suggest potential reversal at resistance levels",
+      "expected_sentiment": -0.65,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "AAPL trading at fair valuation given current growth trajectory",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "TSLA valuation metrics in line with industry averages",
+      "expected_sentiment": 0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "NVDA competitive positioning stable despite market share pressures",
+      "expected_sentiment": -0.1,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 1.1920928955078125e-06,
+      "accuracy_score": 0.0
+    },
+    {
+      "model": "fintwitbert_sentiment",
+      "source": "financial",
+      "text": "SPY sector rotation analysis shows balanced market participation",
+      "expected_sentiment": 0.0,
+      "predicted_sentiment": 0.0,
+      "confidence": 0.0,
+      "latency": 9.5367431640625e-07,
+      "accuracy_score": 0.0
+    }
+  ]
+}

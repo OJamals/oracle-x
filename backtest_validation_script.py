@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 import pandas as pd
 import numpy as np
-from typing import Dict, List, Any
+from typing import Dict, Any
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parent
@@ -18,7 +18,7 @@ if PROJECT_ROOT not in sys.path:
 
 # Import backtesting framework
 from backtest_tracker.comprehensive_backtest import (
-    BacktestEngine, BacktestConfig, BacktestMode, DataManager,
+    BacktestConfig, BacktestMode, DataManager,
     create_backtest_engine, run_strategy_backtest
 )
 from backtest_tracker.example_strategies import (
@@ -227,10 +227,8 @@ class BacktestValidator:
             df['returns'] = df['portfolio_value'].pct_change().fillna(0)
 
             # Calculate metrics manually
-            total_return = (df['portfolio_value'].iloc[-1] / df['portfolio_value'].iloc[0]) - 1
             volatility = df['returns'].std() * np.sqrt(252)
             risk_free_rate = 0.04
-            trading_days = len(df)
 
             # Manual Sharpe calculation
             expected_return = df['returns'].mean() * 252
@@ -242,9 +240,6 @@ class BacktestValidator:
             manual_sortino = (expected_return - risk_free_rate) / downside_deviation if downside_deviation > 0 else 0
 
             # Test with backtesting engine
-            from backtest_tracker.comprehensive_backtest import Portfolio, PerformanceMetrics
-            from backtest_tracker.example_strategies import MomentumStrategy
-
             # Create mock positions for testing
             positions = []
             for i in range(10):

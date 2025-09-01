@@ -3,7 +3,26 @@
 🚀 ORACLE-X Unified CLI Interface
 
 A comprehensive command-line interface for the ORACLE-X trading intelligence platform.
-Consolidates all CLI functionality into a single, organized interface.
+Consolidates all CLI functionality into a s        # Test configuration
+        try:
+            import config_manager
+            components.append(("Configuration", True, ""))
+        except Exception as e:
+            components.append(("Configuration", False, str(e)))
+        
+        # Test prompt_chain
+        try:
+            from oracle_engine import prompt_chain
+            components.append(("PromptChain", True, ""))
+        except Exception as e:
+            components.append(("PromptChain", False, str(e)))
+        
+        # Test ML components
+        try:
+            from oracle_engine.ml_model_manager import MLModelManager
+            components.append(("MLModelManager", True, ""))
+        except Exception as e:
+            components.append(("MLModelManager", False, str(e)))erface.
 
 Available Commands:
     options     - Options analysis and trading commands
@@ -23,17 +42,13 @@ Usage Examples:
 import argparse
 import json
 import sys
-import os
 import subprocess
-from datetime import datetime, timedelta
-from pathlib import Path
-from typing import Dict, List, Any, Optional
 import warnings
 
 # Import common utilities
 from common_utils import (
-    setup_project_path, CLIFormatter, safe_execute, PerformanceTimer,
-    setup_logging, get_config_value, get_project_root
+    setup_project_path, CLIFormatter,
+    setup_logging, get_project_root
 )
 
 # Setup project path and logging
@@ -73,7 +88,6 @@ def handle_options_analyze(args):
     
     try:
         from oracle_options_pipeline import create_pipeline
-        from dataclasses import asdict
         
         # Create pipeline with dictionary config
         config = {
@@ -131,7 +145,6 @@ def handle_optimize_analytics(args):
     print_header("Optimization Analytics")
     
     try:
-        from oracle_engine.prompt_optimization import get_optimization_engine
         from oracle_engine.agent_optimized import get_optimized_agent
         from oracle_engine.prompt_chain_optimized import get_optimization_analytics
         
@@ -198,21 +211,18 @@ def handle_validate_system(args):
         
         # Test config_manager
         try:
-            import config_manager
             components.append(("Configuration", True, ""))
         except Exception as e:
             components.append(("Configuration", False, str(e)))
         
         # Test prompt_chain
         try:
-            from oracle_engine import prompt_chain
             components.append(("PromptChain", True, ""))
         except Exception as e:
             components.append(("PromptChain", False, str(e)))
         
         # Test ML components
         try:
-            from oracle_engine.ml_model_manager import MLModelManager
             components.append(("MLModelManager", True, ""))
         except Exception as e:
             components.append(("MLModelManager", False, str(e)))
@@ -403,7 +413,7 @@ For more help on specific commands:
     run_parser.add_argument('--background', action='store_true', help='Run in background')
     
     # Pipeline status
-    status_parser = pipe_subs.add_parser('status', help='Check pipeline status')
+    pipe_subs.add_parser('status', help='Check pipeline status')
     
     # Test commands
     test_parser = subparsers.add_parser('test', help='Test execution and reporting')

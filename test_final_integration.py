@@ -8,7 +8,6 @@ import os
 import sys
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
 
 # Set up proper Python path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -55,7 +54,6 @@ def test_api_configuration():
         config = load_config()
         
         # Updated validation - check what's actually in .env vs what's required
-        available_configs = {k: v for k, v in config.items() if v}
         
         required_configs = [
             'OPENAI_API_KEY', 'OPENAI_API_BASE', 'QDRANT_URL', 'QDRANT_API_KEY',
@@ -368,7 +366,6 @@ def test_multi_model_llm_support():
         logger.error(f"Multi-model LLM support test failed: {e}")
         # Fallback test - check basic oracle agent function
         try:
-            from oracle_engine.agent import oracle_agent_pipeline
             logger.info("Oracle agent pipeline function available - basic LLM support confirmed")
             return True
         except Exception as fallback_e:
@@ -456,8 +453,8 @@ def main():
         return True
     else:
         failed_tests = [name for name, result in validator.results.items() if result['status'] != 'SUCCESS']
-        logger.warning(f"⚠️  Failed tests: {failed_tests}")
-        logger.info(f"📈 Progress: Major component integration issues resolved, minor configuration issues may remain")
+        logger.warning("Failed tests: {}".format(failed_tests))
+        logger.info("Progress: Major component integration issues resolved, minor configuration issues may remain")
         return False
 
 if __name__ == "__main__":

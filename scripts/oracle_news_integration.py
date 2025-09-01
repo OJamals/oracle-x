@@ -122,7 +122,7 @@ try:
             for i, feed in enumerate(feeds, 1):
                 print(f"  {i}. {feed['name']}: {feed['focus']}")
             
-            print(f"\n📊 Testing sentiment analysis...")
+            print("\n📊 Testing sentiment analysis...")
             
             for symbol in symbols:
                 print(f"\n🎯 {symbol}:")
@@ -137,19 +137,19 @@ try:
                     # Show sample headlines
                     if sentiment.get('raw_data', {}).get('sample_texts'):
                         headlines = sentiment['raw_data']['sample_texts'][:2]
-                        print(f"  📝 Headlines:")
+                        print("  📝 Headlines:")
                         for i, headline in enumerate(headlines, 1):
                             print(f"     {i}. {headline[:70]}...")
                 else:
-                    print(f"  ❌ No sentiment data available")
+                    print("  ❌ No sentiment data available")
             
             # Summary
             successful = len([r for r in results.values() if r])
             total = len(symbols)
             
-            print(f"\n" + "="*80)
-            print(f"INTEGRATION TEST SUMMARY")
-            print(f"="*80)
+            print("\n" + "="*80)
+            print("INTEGRATION TEST SUMMARY")
+            print("="*80)
             print(f"Successfully processed: {successful}/{total} symbols")
             print(f"Success rate: {(successful/total)*100:.1f}%")
             
@@ -160,11 +160,11 @@ try:
                 print(f"Total articles analyzed: {total_articles}")
             
             if successful >= total * 0.75:
-                print(f"\n✅ NEWS INTEGRATION SUCCESSFUL!")
-                print(f"   📰 All news adapters integrated and tested")
-                print(f"   🎯 Ready for production use in Oracle-X")
+                print("\n✅ NEWS INTEGRATION SUCCESSFUL!")
+                print("   📰 All news adapters integrated and tested")
+                print("   🎯 Ready for production use in Oracle-X")
             else:
-                print(f"\n⚠️  NEWS INTEGRATION PARTIAL")
+                print("\n⚠️  NEWS INTEGRATION PARTIAL")
                 
             return results
 
@@ -178,24 +178,24 @@ try:
             results = news.test_integration()
             
             # Show usage example
-            print(f"\n📖 USAGE EXAMPLES:")
-            print(f"="*80)
-            print(f"# Initialize news integration")
-            print(f"from oracle_news_integration import OracleNewsIntegration")
-            print(f"news = OracleNewsIntegration()")
-            print(f"")
-            print(f"# Get sentiment for a symbol")
-            print(f"sentiment = news.get_news_sentiment('AAPL')")
-            print(f"print(f'AAPL sentiment: {{sentiment['sentiment_score']:.3f}}')")
-            print(f"")
-            print(f"# Get all sentiment sources (including RSS)")
-            print(f"all_sentiment = news.get_comprehensive_sentiment('AAPL')")
-            print(f"print(f'Available sources: {{list(all_sentiment.keys())}}')")
-            print(f"")
-            print(f"# List integrated feeds")
-            print(f"feeds = news.list_integrated_feeds()")
-            print(f"for feed in feeds:")
-            print(f"    print(f'{{feed['name']}}: {{feed['focus']}}')")
+            print("\n📖 USAGE EXAMPLES:")
+            print("="*80)
+            print("# Initialize news integration")
+            print("from oracle_news_integration import OracleNewsIntegration")
+            print("news = OracleNewsIntegration()")
+            print("")
+            print("# Get sentiment for a symbol")
+            print("sentiment = news.get_news_sentiment('AAPL')")
+            print("print(f'AAPL sentiment: {sentiment['sentiment_score']:.3f}')")
+            print("")
+            print("# Get all sentiment sources (including RSS)")
+            print("all_sentiment = news.get_comprehensive_sentiment('AAPL')")
+            print("print(f'Available sources: {list(all_sentiment.keys())}')")
+            print("")
+            print("# List integrated feeds")
+            print("feeds = news.list_integrated_feeds()")
+            print("for feed in feeds:")
+            print("    print(f'{feed['name']}: {feed['focus']}')")
             
             return len(results) > 0
             

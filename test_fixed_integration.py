@@ -8,7 +8,6 @@ import os
 import sys
 import logging
 from datetime import datetime
-from typing import Dict, Any, Optional
 
 # Set up proper Python path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
@@ -336,9 +335,9 @@ def test_multi_model_llm_support():
         config = load_config()
         
         # Initialize optimized agent with GitHub Copilot configuration
-        agent = OracleAgentOptimized()
+        OracleAgentOptimized()
         
-        logger.info(f"OracleAgentOptimized initialized successfully")
+        logger.info("OracleAgentOptimized initialized successfully")
         
         # Test multi-model capabilities by checking agent functions
         from oracle_engine.agent import oracle_agent_pipeline

@@ -9,7 +9,6 @@ Separates unit tests from slow integration tests for better developer experience
 import sys
 import subprocess
 import argparse
-from pathlib import Path
 
 def run_command(cmd):
     """Run command and return success status"""
