@@ -133,9 +133,17 @@ class OracleDataProvider:
                 "quality_score": min([q.quality_score for q in [spy_quote, qqq_quote, vix_quote] if q and q.quality_score]) if any([spy_quote, qqq_quote, vix_quote]) else 0
             }
             
-            # Add breadth indicators (basic implementation)
-            # TODO: Enhance with more sophisticated breadth analysis
-            internals["market_breadth"] = "neutral"  # Placeholder for now
+            # Add breadth indicators using real market data
+            spy_change = internals.get("spy_change", 0)
+            qqq_change = internals.get("qqq_change", 0)
+            avg_change = (spy_change + qqq_change) / 2 if spy_change and qqq_change else 0
+            
+            if avg_change > 1.0:
+                internals["market_breadth"] = "positive"
+            elif avg_change < -1.0:
+                internals["market_breadth"] = "negative"
+            else:
+                internals["market_breadth"] = "neutral"
             
             return internals
             
@@ -148,22 +156,9 @@ class OracleDataProvider:
         Get real earnings calendar data
         Replaces fetch_earnings_calendar() placeholder
         """
-        # For now, return basic structure - TODO: Implement with real earnings data
-        # This could be enhanced with Yahoo Finance earnings calendar or SEC filings
-        if tickers is None:
-            tickers = self._get_default_tickers()
-        
-        earnings_calendar = []
-        for ticker in tickers[:10]:  # Limit to prevent API overload
-            # Basic implementation - can be enhanced later
-            earnings_calendar.append({
-                "ticker": ticker,
-                "next_earnings_date": "TBD",  # TODO: Implement real earnings date lookup
-                "estimate": "TBD",
-                "quality_score": 50  # Mark as basic implementation
-            })
-        
-        return earnings_calendar
+        # Use the updated earnings_calendar.py implementation
+        from data_feeds.earnings_calendar import fetch_earnings_calendar
+        return fetch_earnings_calendar(tickers)
     
     def get_options_analysis(self, tickers: Optional[List[str]] = None) -> Dict[str, Any]:
         """
@@ -179,22 +174,9 @@ class OracleDataProvider:
             "quality_score": 50  # Mark as basic implementation
         }
         
-        # TODO: Implement with yfinance options data
-        # This is a placeholder that acknowledges the limitation
-        for ticker in tickers:
-            try:
-                # Basic volume analysis using regular market data
-                quote = self.orchestrator.get_quote(ticker)
-                if quote and quote.volume > 1000000:  # High volume threshold
-                    options_analysis["unusual_volume"].append({
-                        "ticker": ticker,
-                        "volume": quote.volume,
-                        "note": "High equity volume (options data limited in free tier)"
-                    })
-            except Exception as e:
-                logger.error(f"Error analyzing options for {ticker}: {e}")
-        
-        return options_analysis
+        # Use the updated options_flow.py implementation
+        from data_feeds.options_flow import fetch_options_flow
+        return fetch_options_flow(tickers)
     
     def get_sentiment_analysis(self, tickers: Optional[List[str]] = None) -> Dict[str, Any]:
         """
