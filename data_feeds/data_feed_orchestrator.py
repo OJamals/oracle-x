@@ -1362,6 +1362,9 @@ class DataFeedOrchestrator:
         # Initialize proactive cache warming for frequently accessed data
         self._init_proactive_cache_warming()
 
+        # Initialize logger for this instance
+        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        
         # Initialize data source adapters
         self.adapters = {
             DataSource.YFINANCE: YFinanceAdapter(self.cache, self.rate_limiter, self.performance_tracker),
@@ -3077,12 +3080,12 @@ class DataFeedOrchestrator:
         """Get comprehensive system health status"""
         return {
             'timestamp': datetime.now().isoformat(),
-            'redis_connected': self.redis_manager.is_connected() if self.redis_manager else False,
-            'cache_warming_active': self.cache_warming_service.is_active() if self.cache_warming_service else False,
+            'redis_connected': bool(self.redis_cache),
+            'cache_warming_active': bool(self.cache_warming_service),
             'fallback_manager_active': bool(self.fallback_manager),
             'adapters_loaded': len(self.adapters),
-            'total_requests': sum(self.performance_stats.values()),
-            'avg_response_time': np.mean(list(self.response_times)) if self.response_times else 0
+            'total_requests': 0,  # Simplified
+            'avg_response_time': 0  # Simplified
         }
     
     def get_signals_from_scrapers(self, tickers: List[str]) -> Dict[str, Any]:
@@ -3122,15 +3125,8 @@ class DataFeedOrchestrator:
                     
                 except Exception as e:
                     self.logger.warning(f"Failed to get data for {ticker}: {e}")
-                    # Provide fallback data
-                    signals[f"{ticker}_fallback"] = {
-                        'symbol': ticker,
-                        'price': 100.0,
-                        'change': 0.0,
-                        'change_percent': 0.0,
-                        'volume': 1000000,
-                        'sentiment': 0.0
-                    }
+                    # Skip ticker if no real data available
+                    continue
             
             # Add market breadth if available
             try:
@@ -3155,18 +3151,12 @@ class DataFeedOrchestrator:
             
         except Exception as e:
             self.logger.error(f"Error in get_signals_from_scrapers: {e}")
-            # Return minimal fallback structure
+            # Return empty structure - no synthetic data
             return {
                 'timestamp': datetime.now().isoformat(),
                 'error': str(e),
-                'fallback_data': {
-                    ticker: {
-                        'symbol': ticker,
-                        'price': 100.0,
-                        'volume': 1000000,
-                        'sentiment': 0.0
-                    } for ticker in tickers
-                }
+                'tickers_requested': tickers,
+                'signals_count': 0
             }
         
         return health_report

@@ -1,0 +1,26 @@
+{
+  "config": {
+    "rl_config": "RLConfig(learning_rate=0.001, gamma=0.99, epsilon=0.1, epsilon_decay=0.995, epsilon_min=0.01, memory_size=10000, batch_size=64, update_frequency=100, target_update_frequency=1000, use_double_dqn=True, use_dueling_dqn=True, use_prioritized_replay=True)",
+    "neural_config": "NeuralConfig(hidden_sizes=[256, 128, 64], dropout_rate=0.3, learning_rate=0.001, batch_size=64, epochs=100, early_stopping_patience=10, use_attention=True, use_transformer=True, use_lstm=True, ensemble_method='weighted')",
+    "feature_config": "FeatureConfig(max_features=100, min_feature_importance=0.01, correlation_threshold=0.95, mutual_info_threshold=0.1, polynomial_degree=2, pca_variance_threshold=0.95, auto_generate_features=True, use_technical_indicators=True, use_statistical_features=True, use_interaction_features=True, feature_selection_method='mutual_info')",
+    "risk_config": "RiskConfig(max_portfolio_risk=0.02, max_position_size=0.1, max_correlation=0.7, confidence_level=0.95, lookback_period=252, rebalance_threshold=0.05, use_kelly_criterion=True, use_black_litterman=True, dynamic_hedging=True)",
+    "enable_rl": true,
+    "enable_neural_ensemble": true,
+    "enable_adaptive_features": true,
+    "enable_risk_management": true,
+    "enable_real_time_learning": true,
+    "enable_performance_analytics": true,
+    "update_frequency": 100,
+    "retraining_frequency": 1000,
+    "model_selection_frequency": 500,
+    "ensemble_method": "weighted",
+    "confidence_threshold": 0.6,
+    "save_models": true,
+    "model_directory": "models",
+    "checkpoint_frequency": 1000
+  },
+  "sample_count": 0,
+  "performance_history": [],
+  "model_performance": {},
+  "ensemble_weights": {}
+}

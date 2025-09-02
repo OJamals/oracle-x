@@ -1,0 +1,20 @@
+{
+  "config": {
+    "hidden_sizes": [
+      256,
+      128,
+      64
+    ],
+    "dropout_rate": 0.3,
+    "learning_rate": 0.001,
+    "batch_size": 64,
+    "epochs": 100,
+    "early_stopping_patience": 10,
+    "use_attention": true,
+    "use_transformer": true,
+    "use_lstm": true,
+    "ensemble_method": "weighted"
+  },
+  "ensemble_weights": {},
+  "training_history": {}
+}

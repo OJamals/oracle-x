@@ -246,41 +246,6 @@ class OracleXPipeline:
         print(f"[ERROR] No real data available for {ticker}")
         return pd.DataFrame()
     
-    def _generate_synthetic_price_data(self, ticker: str, days: int) -> pd.DataFrame:
-        """Generate synthetic price data as fallback"""
-        import numpy as np
-        
-        # Base price for common tickers
-        base_prices = {
-            'AAPL': 150.0, 'TSLA': 200.0, 'NVDA': 400.0, 'MSFT': 300.0,
-            'GOOGL': 120.0, 'AMZN': 140.0, 'META': 250.0, 'SPY': 420.0
-        }
-        
-        base_price = base_prices.get(ticker, 100.0)
-        
-        # Generate dates
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=days)
-        dates = pd.date_range(start=start_date, end=end_date, freq='D')
-        
-        # Generate realistic price movements
-        np.random.seed(hash(ticker) % 2**32)  # Consistent seed per ticker
-        returns = np.random.normal(0.001, 0.02, len(dates))  # 0.1% daily return, 2% volatility
-        
-        prices = [base_price]
-        for ret in returns[1:]:
-            prices.append(prices[-1] * (1 + ret))
-        
-        # Create OHLCV data
-        df = pd.DataFrame(index=dates[:len(prices)])
-        df['Close'] = prices
-        df['Open'] = df['Close'].shift(1).fillna(df['Close'].iloc[0])
-        df['High'] = df[['Open', 'Close']].max(axis=1) * (1 + np.random.uniform(0, 0.01, len(df)))
-        df['Low'] = df[['Open', 'Close']].min(axis=1) * (1 - np.random.uniform(0, 0.01, len(df)))
-        df['Volume'] = np.random.randint(1000000, 10000000, len(df))
-        df['Adj Close'] = df['Close']
-        
-        return df
 
     def plot_price_chart(self, ticker: str, image_path: str, days: int = 60):
         """Generate price chart for ticker"""
@@ -502,23 +467,12 @@ class OracleXPipeline:
                     signals = self.orchestrator.get_signals_from_scrapers(['AAPL', 'TSLA', 'NVDA'])
                     market_data = signals
                 except Exception as e:
-                    print(f"⚠️  Using fallback market data: {e}")
-                    market_data = {
-                        'symbol': 'AAPL',
-                        'close': 150.0,
-                        'volume': 1000000,
-                        'sentiment': 0.1,
-                        'volatility': 0.25
-                    }
+                    print(f"❌ Failed to collect market data: {e}")
+                    print("⚠️  No fallback data available - continuing without market data")
+                    market_data = {}
             else:
-                # Fallback market data
-                market_data = {
-                    'symbol': 'AAPL', 
-                    'close': 150.0,
-                    'volume': 1000000,
-                    'sentiment': 0.1,
-                    'volatility': 0.25
-                }
+                print("⚠️  No data orchestrator available - continuing without market data")
+                market_data = {}
             
             # Process market data through learning systems
             print("🔄 Processing market data through learning systems...")
