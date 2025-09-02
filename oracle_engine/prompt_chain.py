@@ -461,33 +461,43 @@ def generate_final_playbook(signals, scenario_tree, model_name=MODEL_NAME):
     # Clean signals before prompt construction
     signals = clean_signals_for_llm(signals)
 
-    # Extract current prices from signals for explicit inclusion in prompt
+    # Get real-time prices for ALL tickers using orchestrator data
     current_prices = {}
-    if 'market_internals' in signals and signals['market_internals']:
-        # Try to extract current prices from market internals
-        try:
-            internals_str = str(signals['market_internals'])
-            # Look for price patterns in the data
-            import re
-            price_matches = re.findall(r'([A-Z]{2,5}).*?(\$?\d+\.\d{2})', internals_str)
-            for ticker, price in price_matches:
-                if ticker in ['SPY', 'QQQ', 'DIA', 'AMD', 'TSLA', 'NVDA', 'AAPL', 'MSFT']:
-                    current_prices[ticker] = price.replace('$', '')
-        except:
-            pass
+    all_tickers = set()
     
-    # Get real-time prices for key tickers to override LLM training data
+    # Extract all tickers from signals
+    if 'tickers' in signals and signals['tickers']:
+        all_tickers.update(signals['tickers'])
+    
+    # Extract tickers from scenario tree
+    if scenario_tree:
+        import re
+        scenario_tickers = re.findall(r'\b[A-Z]{2,5}\b', scenario_tree)
+        all_tickers.update([t for t in scenario_tickers if len(t) <= 5 and t.isalpha()])
+    
+    # Get orchestrator for real-time pricing
     try:
-        import yfinance as yf
-        key_tickers = ['SPY', 'AMD', 'TSLA', 'NVDA', 'AAPL', 'MSFT', 'QQQ']
-        for ticker in key_tickers:
+        from data_feeds.data_feed_orchestrator import get_orchestrator
+        orch = get_orchestrator()
+        
+        for ticker in all_tickers:
             try:
-                data = yf.Ticker(ticker).history(period='1d')
-                if not data.empty:
-                    current_prices[ticker] = f"{data['Close'].iloc[-1]:.2f}"
-            except:
+                # Get current quote from orchestrator
+                quote = orch.get_quote(ticker)
+                if quote and hasattr(quote, 'price') and quote.price:
+                    current_prices[ticker] = f"{float(quote.price):.2f}"
+                else:
+                    # Fallback to market data
+                    market_data = orch.get_market_data(ticker, period="1d", interval="1d")
+                    if market_data and hasattr(market_data, 'data') and not market_data.data.empty:
+                        latest_close = market_data.data['Close'].iloc[-1]
+                        current_prices[ticker] = f"{float(latest_close):.2f}"
+            except Exception as e:
+                # Skip tickers that fail to fetch
                 continue
-    except:
+                
+    except Exception as e:
+        print(f"[WARN] Could not access orchestrator for pricing: {e}")
         pass
 
     price_context = ""
