@@ -461,6 +461,44 @@ def generate_final_playbook(signals, scenario_tree, model_name=MODEL_NAME):
     # Clean signals before prompt construction
     signals = clean_signals_for_llm(signals)
 
+    # Extract current prices from signals for explicit inclusion in prompt
+    current_prices = {}
+    if 'market_internals' in signals and signals['market_internals']:
+        # Try to extract current prices from market internals
+        try:
+            internals_str = str(signals['market_internals'])
+            # Look for price patterns in the data
+            import re
+            price_matches = re.findall(r'([A-Z]{2,5}).*?(\$?\d+\.\d{2})', internals_str)
+            for ticker, price in price_matches:
+                if ticker in ['SPY', 'QQQ', 'DIA', 'AMD', 'TSLA', 'NVDA', 'AAPL', 'MSFT']:
+                    current_prices[ticker] = price.replace('$', '')
+        except:
+            pass
+    
+    # Get real-time prices for key tickers to override LLM training data
+    try:
+        import yfinance as yf
+        key_tickers = ['SPY', 'AMD', 'TSLA', 'NVDA', 'AAPL', 'MSFT', 'QQQ']
+        for ticker in key_tickers:
+            try:
+                data = yf.Ticker(ticker).history(period='1d')
+                if not data.empty:
+                    current_prices[ticker] = f"{data['Close'].iloc[-1]:.2f}"
+            except:
+                continue
+    except:
+        pass
+
+    price_context = ""
+    if current_prices:
+        price_context = f"""
+CRITICAL - CURRENT MARKET PRICES (Use these exact prices, NOT training data):
+{chr(10).join([f"{ticker}: ${price}" for ticker, price in current_prices.items()])}
+
+MANDATORY: All entry ranges, profit targets, and stop losses MUST be based on these current prices, not historical training data.
+"""
+
     prompt = f"""
 Signals:
 Market Internals: {signals['market_internals']}
@@ -470,14 +508,14 @@ Sentiment (Web): {signals['sentiment_web']}
 Sentiment (LLM): {signals['sentiment_llm']}
 Chart Analysis: {signals['chart_analysis']}
 Earnings Calendar: {signals['earnings_calendar']}
-
+{price_context}
 Adjusted Scenario Tree:
 {scenario_tree}
 
 Based on this, generate the 1–3 highest-confidence trades for tomorrow.
 Include: ticker, direction, instrument, entry range, profit target, stop-loss,
 counter-signal, and a 5-sentence 'Tomorrow's Tape'.
-python main.py
+
 Format your response as **valid JSON only** (no markdown, no extra text, no comments) with:
 - 'trades': a list of trade objects
 - 'tomorrows_tape': a string summary
