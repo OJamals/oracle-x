@@ -266,15 +266,33 @@ def handle_pipeline_run(args):
     
     mode_files = {
         'standard': 'main.py',
-        'enhanced': 'main_enhanced.py',
-        'optimized': 'main_optimized.py',
-        'signals': 'signals_runner.py'
+        'signals': 'signals_runner.py',
+        'options': 'oracle_options_pipeline.py'
     }
+    
+    if args.mode == 'all':
+        # Run all pipelines sequentially
+        print_info("Running all pipelines sequentially...")
+        for mode, script in mode_files.items():
+            print_section(f"Running {mode} pipeline")
+            try:
+                cmd = [sys.executable, script]
+                result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
+                if result.returncode == 0:
+                    print_success(f"{mode} pipeline completed successfully")
+                else:
+                    print_error(f"{mode} pipeline failed with exit code {result.returncode}")
+                    if args.verbose:
+                        print(result.stdout)
+                        print(result.stderr)
+            except Exception as e:
+                print_error(f"{mode} pipeline execution failed: {e}")
+        return
     
     script = mode_files.get(args.mode)
     if not script:
         print_error(f"Unknown pipeline mode: {args.mode}")
-        print_info(f"Available modes: {', '.join(mode_files.keys())}")
+        print_info(f"Available modes: {', '.join(mode_files.keys())}, all")
         return
     
     print_info(f"Running {args.mode} pipeline ({script})")
@@ -408,9 +426,10 @@ For more help on specific commands:
     
     # Pipeline run
     run_parser = pipe_subs.add_parser('run', help='Run a pipeline')
-    run_parser.add_argument('--mode', choices=['standard', 'enhanced', 'optimized', 'signals'], 
+    run_parser.add_argument('--mode', choices=['standard', 'signals', 'options', 'all'], 
                            default='standard', help='Pipeline mode (default: standard)')
     run_parser.add_argument('--background', action='store_true', help='Run in background')
+    run_parser.add_argument('--verbose', action='store_true', help='Verbose output for all mode')
     
     # Pipeline status
     pipe_subs.add_parser('status', help='Check pipeline status')

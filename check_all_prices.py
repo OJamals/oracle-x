@@ -6,7 +6,7 @@ from datetime import datetime
 
 def check_current_prices():
     """Check current prices for all tickers in the recent playbook"""
-    tickers = ['TSLA', 'SPY', 'AMD']
+    tickers = ['TSLA', 'SPY', 'AMD', 'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'NVDA', 'META', 'NFLX']
     
     print("=== CURRENT MARKET PRICES ===")
     current_prices = {}

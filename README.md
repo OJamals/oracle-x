@@ -83,6 +83,32 @@ Scenario tree
 
 Tomorrow’s Tape summary
 
+## 🖥️ CLI Control (Recommended)
+
+For centralized control of all pipelines, use the unified CLI:
+
+```bash
+# Run individual pipelines
+python oracle_cli.py pipeline run --mode standard    # Main trading playbook
+python oracle_cli.py pipeline run --mode signals     # Market signals snapshot
+python oracle_cli.py pipeline run --mode options     # Options analysis
+
+# Run all pipelines sequentially
+python oracle_cli.py pipeline run --mode all
+
+# Run in background (for long-running processes)
+python oracle_cli.py pipeline run --mode standard --background
+
+# Get help
+python oracle_cli.py --help
+python oracle_cli.py pipeline --help
+```
+
+The CLI provides:
+- ✅ **Centralized Control**: Single interface for all pipelines
+- ✅ **Error Handling**: Graceful failure handling and status reporting
+- ✅ **Background Execution**: Run pipelines in background for automation
+- ✅ **Status Monitoring**: Check pipeline status and health
 
 ✅ 5️⃣ 🕒 Hook your pipeline into a cron job (Mac/Linux)
 1️⃣ Edit your cron:
@@ -97,7 +123,7 @@ cron
 Copy
 Edit
 # Run Oracle-X daily at 6PM Eastern (adjust as needed)
-0 18 * * * cd /path/to/oracle-x && /usr/bin/python3 main.py >> cronlog.txt 2>&1
+0 18 * * * cd /path/to/oracle-x && /usr/bin/python3 oracle_cli.py pipeline run --mode all >> cronlog.txt 2>&1
 3️⃣ Add your backtest:
 
 cron
