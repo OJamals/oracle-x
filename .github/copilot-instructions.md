@@ -15,7 +15,7 @@ This file provides focused, actionable knowledge for AI coding agents to be prod
    - `agent_bundle/` (agent blueprints, data orchestrator, financial calculator)
    - `oracle_engine/` (prompt chains, optimization engine, ML training, model management)
    - `data_feeds/` (enhanced adapters with caching and fallback systems)
-   - `vector_db/` (Qdrant integration with quality validation)
+   - `vector_db/` (Local vector storage with OpenAI embeddings)
    - `backtest_tracker/` (performance analysis and backtesting)
    - `dashboard/` (Streamlit UI with real-time analytics)
    - `models/` (ML model storage and versioning)
@@ -43,7 +43,7 @@ This file provides focused, actionable knowledge for AI coding agents to be prod
 ### Core System Patterns (Preserved)
  - **Orchestrator Integration**: `main.py` imports `data_feeds.data_feed_orchestrator.DataFeedOrchestrator` with guarded try/except; code must handle `orchestrator is None` gracefully
  - **LLM Output Sanitization**: All pipelines use `_sanitize_llm_json()` before json.loads; maintain strict JSON format compliance in model wrappers
- - **Vector DB Health Checks**: `vector_db/qdrant_store.ensure_collection()` and `embed_text()` validate embedding dimensions {512,768,1024,1536}; failures skip storage gracefully
+ - **Vector Storage Health Checks**: `vector_db/qdrant_store.ensure_collection()` creates local storage directory; `embed_text()` uses OpenAI API from `OPENAI_API_BASE`; failures skip storage gracefully
  - **Best-Effort Enrichment**: Functions like `enrich_trades_with_data_feeds()` and `enrich_playbook_top_level()` must never raise exceptions; use defensive try/except patterns
 
 ### New Advanced Patterns (Critical - Recently Enhanced)

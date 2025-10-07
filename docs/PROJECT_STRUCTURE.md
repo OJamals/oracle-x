@@ -7,7 +7,7 @@
 | File | Purpose |
 |------|---------|
 | `agent.py` | The single entrypoint. Orchestrates the full Prompt Chain. |
-| `prompt_chain.py` | Multi-step chain: pulls signals ➝ Qdrant recall ➝ adjusts scenario tree ➝ final Playbook. |
+| `prompt_chain.py` | Multi-step chain: pulls signals ➝ Vector recall ➝ adjusts scenario tree ➝ final Playbook. |
 | `tools.py` | Your custom LLM tools — sentiment analyzer, chart interpreter, etc. |
 
 ---
@@ -16,9 +16,11 @@
 
 | File | Purpose |
 |------|---------|
-| `qdrant_store.py` | CRUD for storing & retrieving trade pattern vectors. |
-| `prompt_booster.py` | Queries Qdrant for similar past scenarios to boost tomorrow’s tape. |
+| `qdrant_store.py` | CRUD for storing & retrieving trade pattern vectors in local storage (JSON/pickle). |
+| `prompt_booster.py` | Queries local vector storage for similar past scenarios to boost tomorrow's tape. |
 
+
+**Note**: Vector storage now uses simple local files in `data/vector_store/` (no external DB required). Embeddings use OpenAI API from `OPENAI_API_BASE`.
 ---
 
 ## 📡 `data_feeds/`
