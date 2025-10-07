@@ -65,6 +65,10 @@ pipeline_run_*.log
 backtest_data/*.pkl
 backtest_data/*
 
+# Vector storage (local embeddings and metadata)
+data/vector_store/*.pkl
+data/vector_store/*.json
+
 # Test reports and temporary test files
 test_report.json
 test_results_*.json
