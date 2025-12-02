@@ -4,25 +4,21 @@ Replaces all individual data feed calls in oracle_engine with quality-validated 
 This eliminates placeholder data and provides a single interface for all market intelligence.
 """
 
-from typing import Dict, List, Optional, Any
-from datetime import datetime
 import logging
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import pandas as pd
 
-from data_feeds.data_feed_orchestrator import (
-    get_orchestrator,
-    get_quote,
-    get_market_data,
-    get_sentiment_data,
-    get_system_health,
-    DataSource,
-    SentimentData,
-    Quote,
-    MarketData,
-)
+from data_feeds.data_feed_orchestrator import (DataSource, MarketData, Quote,
+                                               SentimentData, get_market_data,
+                                               get_orchestrator, get_quote,
+                                               get_sentiment_data,
+                                               get_system_health)
 
 logger = logging.getLogger(__name__)
+from data_feeds.config_loader import load_config
 
 
 @dataclass
@@ -48,6 +44,7 @@ class OracleDataProvider:
     def __init__(self):
         self.orchestrator = get_orchestrator()
         self.min_quality_threshold = 60.0
+self.config = load_config()
         logger.info("OracleDataProvider initialized with quality validation")
 
     def get_comprehensive_market_intelligence(

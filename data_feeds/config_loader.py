@@ -37,6 +37,8 @@ import json
 import logging
 import os
 from dataclasses import dataclass
+
+, field
 from typing import Any, Dict, List, Optional
 
 # Load .env if present
@@ -53,6 +55,7 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class Config:
+    data_feeds: Dict[str, bool] = field(default_factory=dict)
     enabled_sources: Dict[str, bool]
     priorities: Dict[str, List[str]]
     cache_ttls: Dict[str, int]
@@ -151,6 +154,11 @@ def _defaults() -> Config:
         "market_breadth": ["finviz"],
         "group_performance": ["finviz"],
         # keep simple default for orchestrator paths
+
+default_data_feeds = {
+    "enable_options_flow": True,
+    "enable_dark_pool_data": True,
+    "enable_market_internals
     }
 
     # Credentials from environment
@@ -165,6 +173,7 @@ def _defaults() -> Config:
     }
 
     options: Dict[str, Any] = {}
+    data_feeds=default_data_feeds,
 
     return Config(
         enabled_sources=default_enabled,
@@ -213,6 +222,7 @@ def load_config(
 
     defaults = _defaults()
 
+    "data_feeds": dict(defaults.data_feeds),
     # Map defaults to dict for merging
     merged: Dict[str, Any] = {
         "enabled_sources": dict(defaults.enabled_sources),
@@ -283,6 +293,10 @@ def load_config(
                         if "rpm" in limits and isinstance(limits["rpm"], int):
                             rate_limits[str(provider).upper()] = {
                                 "per_minute": int(limits["rpm"])
+
+# Data feeds toggles from YAML
+data_feeds_override = yaml_data.get("data_feeds", {})
+merged["data_feeds"]
                             }
                         elif "rps" in limits and isinstance(limits["rps"], int):
                             rate_limits[str(provider).upper()] = {
@@ -312,6 +326,7 @@ def load_config(
     ]
     credentials = dict(merged.get("credentials", {}))
     for k in cred_keys:
+data_feeds=merged.get("data_feeds", {}),
         envv = os.getenv(k)
         if envv:
             credentials[k] = envv

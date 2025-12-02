@@ -47,7 +47,7 @@ os.environ.setdefault("ABSL_MIN_LOG_LEVEL", "1")
 # ========================== CONFIGURATION ==========================
 
 # Vector DB configuration
-STORAGE_PATH = str(config.vector_db.get_full_path())
+STORAGE_PATH = "data/vector_db"
 COLLECTION_NAME = config.vector_db.collection_name
 DISABLE_VECTOR_DB = os.environ.get("ORACLEX_DISABLE_VECTOR_DB", "").strip().lower() in {
     "1",

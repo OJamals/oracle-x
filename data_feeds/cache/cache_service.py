@@ -21,14 +21,14 @@ Usage:
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import sqlite3
 import sys
 import time
-import hashlib
 from dataclasses import dataclass
-from typing import Any, Optional, Dict
+from typing import Any, Dict, Optional
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -253,6 +253,11 @@ class CacheService:
         self.enable_multi_level = enable_multi_level
 
         # Initialize multi-level cache components
+        self.cache_config = config.cache
+        self.memory_max_size = int(
+            os.getenv("MEMORY_CACHE_SIZE", str(self.cache_config.lru_size))
+        )
+        self.default_ttl = self.cache_config.default_ttl
         self.memory_cache = ThreadSafeLRUCache() if enable_multi_level else None
         self.redis_cache = (
             RedisCacheManager() if enable_multi_level and REDIS_AVAILABLE else None

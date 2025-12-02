@@ -120,3 +120,6 @@ data_feeds:
   fetch_finviz_breadth: true
   fetch_earnings_calendar: true
   enable_premium_feeds: true
+  enable_news_adapter: true
+  enable_twitter_grok: true
+  enable_google_trends: true

@@ -3,13 +3,13 @@ Cache warming service for preloading popular ticker data at market open.
 Provides intelligent cache warming based on trading volume, market cap, and access patterns.
 """
 
-import os
-import time
 import logging
+import os
 import threading
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any, Set
+import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Set
 
 try:
     import schedule  # type: ignore

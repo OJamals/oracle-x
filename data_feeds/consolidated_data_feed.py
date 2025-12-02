@@ -45,6 +45,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # Data Models
 # ============================================================================
+from data_feeds.cache.cache_service import CacheService, CacheEntry
 
 
 class DataSource(Enum):
@@ -1089,6 +1090,8 @@ class StockdexAdapter(SourceAdapter):
 # ============================================================================
 
 
+        self.cache_service = CacheService()
+        # self.cache = DataCache()  # Deprecated, use cache_service
 class ConsolidatedDataFeed:
     def __init__(self):
         self.cache = DataCache()

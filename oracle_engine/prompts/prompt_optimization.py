@@ -13,6 +13,7 @@ Key Features:
 - Real-time context management and token budget optimization
 """
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -27,6 +28,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+
 
 # Configure logging
 logger = logging.getLogger(__name__)
@@ -914,3 +916,72 @@ def get_optimization_engine() -> PromptOptimizationEngine:
     if _optimization_engine is None:
         _optimization_engine = PromptOptimizationEngine()
     return _optimization_engine
+
+
+def _extract_payload(hit):
+    """Extract payload from ChromaDB hit."""
+    payload = getattr(hit, "payload", None)
+    if payload is not None:
+        return payload
+    if isinstance(hit, dict):
+        return hit.get("payload", {})
+    return {}
+
+
+async def build_boosted_prompt(base_prompt: str, ticker: str, k: int = 3) -> str:
+    """
+    Build boosted prompt by querying ChromaDB (data/vector_db/chroma.sqlite3)
+    for similar past scenarios/news using ticker + prompt embedding.
+    Appends top-k contexts to base_prompt.
+    """
+    query_text = f"{ticker} trading scenario: {base_prompt}"
+    hits = await asyncio.to_thread(query_similar, query_text, k)
+
+    if not hits:
+        return base_prompt
+
+    boost_text = f"\n\n### SIMILAR PAST SCENARIOS (ChromaDB top-{k} similarity):\n"
+    for hit in hits:
+        payload = _extract_payload(hit)
+        thesis_snip = (
+            (payload.get("thesis", "N/A")[:100] + "...")
+            if len(payload.get("thesis", "")) > 100
+            else payload.get("thesis", "N/A")
+        )
+        boost_text += f"- {payload.get('ticker', 'N/A')} | {payload.get('direction', 'N/A')} | {thesis_snip} | {payload.get('date', 'N/A')}\n"
+
+    return base_prompt + boost_text
+
+
+async def batch_build_boosted_prompts(
+    prompts: list[str], tickers: list[str], k: int = 3
+) -> list[str]:
+    """
+    Batch version using asyncio.gather on individual boosted prompts.
+    """
+    if len(prompts) != len(tickers):
+        raise ValueError("prompts and tickers lists must have equal length")
+
+    query_texts = [
+        f"{tickers[i]} trading scenario: {prompts[i]}" for i in range(len(prompts))
+    ]
+    all_hits_lists = await asyncio.to_thread(batch_query_similar, query_texts, k)
+
+    boosted = []
+    for i, hits in enumerate(all_hits_lists):
+        if not hits:
+            boosted.append(prompts[i])
+            continue
+
+        boost_text = f"\n\n### SIMILAR PAST SCENARIOS (ChromaDB top-{k}):\n"
+        for hit in hits:
+            payload = _extract_payload(hit)
+            thesis_snip = (
+                (payload.get("thesis", "N/A")[:100] + "...")
+                if len(payload.get("thesis", "")) > 100
+                else payload.get("thesis", "N/A")
+            )
+            boost_text += f"- {payload.get('ticker', 'N/A')} | {payload.get('direction', 'N/A')} | {thesis_snip} | {payload.get('date', 'N/A')}\n"
+        boosted.append(prompts[i] + boost_text)
+
+    return boosted

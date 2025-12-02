@@ -303,6 +303,18 @@ class OptimizationConfig:
 
 
 @dataclass
+@dataclass
+class CacheConfig:
+    """Cache configuration settings"""
+    redis_url: Optional[str] = None
+    default_ttl: int = 300
+    lru_size: int = 1000
+
+    def __post_init__(self):
+        """Override from environment variables"""
+        self.redis_url = os.getenv("CACHE_REDIS_URL", self.redis_url)
+        self.default_ttl = int(os.getenv("CACHE_DEFAULT_TTL", str(self.default_ttl)))
+        self.lru_size = int(os.getenv("CACHE_LRU_SIZE", str(self.lru_size)))
 class SystemConfig:
     """Complete system configuration"""
 
@@ -310,6 +322,7 @@ class SystemConfig:
     debug_mode: bool = False
     log_level: str = "INFO"
     log_dir: str = "logs"
+    cache: CacheConfig = field(default_factory=CacheConfig)
 
     # Sub-configurations
     database: DatabaseConfig = field(default_factory=DatabaseConfig)

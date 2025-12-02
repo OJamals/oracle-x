@@ -6,9 +6,11 @@ import base64
 from typing import Optional
 
 from core.config import config
+from core.config import get_openai_model
 from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat
 
-MODEL_NAME = config.model.openai_model
+MODEL_NAME = get_openai_model()
+MODEL_NAME = config.model.get_openai_model()
 
 
 def get_sentiment(text: str, model_name: str = MODEL_NAME) -> str:

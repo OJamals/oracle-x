@@ -12,12 +12,12 @@ Implements intelligent caching for API responses with:
 import asyncio
 import hashlib
 import json
+import logging
 import pickle
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional, Callable, Tuple
-import logging
+from typing import Any, Callable, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -127,6 +127,7 @@ class RequestCache:
             "news": TimedLRUCache(maxsize=100, ttl_seconds=600),
             "dark_pools": TimedLRUCache(maxsize=300, ttl_seconds=180),
             "earnings": TimedLRUCache(maxsize=50, ttl_seconds=3600),  # 1 hour
+            "llm_prompts": TimedLRUCache(maxsize=500, ttl_seconds=300),
             "quotes": TimedLRUCache(maxsize=1000, ttl_seconds=30),  # 30 seconds
         }
 

@@ -84,6 +84,11 @@ from core.config import config
 from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat
 from oracle_engine.prompts.prompt_optimization import (MarketCondition,
                                                        get_optimization_engine)
+import asyncio
+from oracle_engine.prompts.prompt_optimization import (
+    build_boosted_prompt,
+    batch_build_boosted_prompts
+)
 
 logger = logging.getLogger(__name__)
 
@@ -619,6 +624,8 @@ IMPORTANT: Always mention dark pool signals in your reasoning when available and
 
 And these similar past scenarios:
 {similar_scenarios}
+    ticker = signals.get("tickers", ["SPY"])[0]
+    boosted_prompt = asyncio.run(build_boosted_prompt(base_prompt, ticker))
 
 Analyze and output a scenario tree with updated probabilities for base/bull/bear cases.
 Explain how the past scenarios influence your adjustments.
@@ -670,6 +677,8 @@ Earnings Calendar: {signals['earnings_calendar']}
 
 And these similar past scenarios:
 {similar_scenarios}
+    tickers = [s.get("tickers", ["SPY"])[0] for s in signals_list]
+    boosted_prompts = asyncio.run(batch_build_boosted_prompts(base_prompts, tickers))
 
 Analyze and output a scenario tree with updated probabilities for base/bull/bear cases.
 Explain how the past scenarios influence your adjustments.

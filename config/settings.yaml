@@ -14,3 +14,15 @@ data_sources:
   fetch_finviz_breadth: true
   fetch_earnings_calendar: true
   enable_premium_feeds: false  # Requires API keys
+
+llm:
+  default_model: "x-ai/grok-beta"
+  providers:
+    grok:
+      model: "x-ai/grok-beta"
+    openai:
+      model: "gpt-4o-mini"
+cache:
+  redis_url: null
+  default_ttl: 300
+  lru_size: 1000

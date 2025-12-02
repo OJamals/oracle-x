@@ -3,12 +3,12 @@ Cache invalidation service for managing stale data and ensuring cache freshness.
 Provides intelligent invalidation strategies based on data age, quality, and market conditions.
 """
 
-import time
 import logging
 import threading
-from datetime import datetime, timedelta
-from typing import Dict, Any, List, Optional, Set
+import time
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Set
 
 try:
     import schedule  # type: ignore
