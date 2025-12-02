@@ -13,9 +13,10 @@ from datetime import datetime
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
-    load_dotenv('config/optimization.env')
-    load_dotenv('config/rss_feeds_config.env')
+    load_dotenv("config/optimization.env")
+    load_dotenv("config/rss_feeds_config.env")
 except Exception:
     pass
 
@@ -28,30 +29,32 @@ from data_feeds.finnhub import fetch_finnhub_quote
 from data_feeds.consolidated_data_feed import FMPAdapter
 import requests
 
+
 def test_finnhub_connectivity() -> Dict[str, Any]:
     """Test Finnhub API connectivity"""
     print("📈 Testing Finnhub API connectivity...")
 
     try:
         result = fetch_finnhub_quote("AAPL")
-        if result and isinstance(result, dict) and 'c' in result:
+        if result and isinstance(result, dict) and "c" in result:
             return {
-                'status': 'success',
-                'message': f"Successfully fetched AAPL quote: ${result.get('c', 'N/A')}",
-                'data': result
+                "status": "success",
+                "message": f"Successfully fetched AAPL quote: ${result.get('c', 'N/A')}",
+                "data": result,
             }
         else:
             return {
-                'status': 'error',
-                'message': 'Failed to fetch valid quote data from Finnhub',
-                'data': result
+                "status": "error",
+                "message": "Failed to fetch valid quote data from Finnhub",
+                "data": result,
             }
     except Exception as e:
         return {
-            'status': 'error',
-            'message': f'Finnhub API error: {str(e)}',
-            'data': None
+            "status": "error",
+            "message": f"Finnhub API error: {str(e)}",
+            "data": None,
         }
+
 
 def test_fmp_connectivity() -> Dict[str, Any]:
     """Test Financial Modeling Prep API connectivity"""
@@ -61,44 +64,41 @@ def test_fmp_connectivity() -> Dict[str, Any]:
         fmp = FMPAdapter()
         if not fmp.api_key:
             return {
-                'status': 'error',
-                'message': 'FMP API key not configured',
-                'data': None
+                "status": "error",
+                "message": "FMP API key not configured",
+                "data": None,
             }
 
         # Test with a simple quote endpoint
-        data = fmp.get_quote('AAPL')
+        data = fmp.get_quote("AAPL")
 
-        if data and hasattr(data, 'price') and data.price:
+        if data and hasattr(data, "price") and data.price:
             return {
-                'status': 'success',
-                'message': f"Successfully fetched AAPL quote: ${data.price}",
-                'data': {'price': data.price, 'symbol': data.symbol}
+                "status": "success",
+                "message": f"Successfully fetched AAPL quote: ${data.price}",
+                "data": {"price": data.price, "symbol": data.symbol},
             }
         else:
             return {
-                'status': 'error',
-                'message': 'Failed to fetch valid quote data from FMP',
-                'data': data
+                "status": "error",
+                "message": "Failed to fetch valid quote data from FMP",
+                "data": data,
             }
     except Exception as e:
-        return {
-            'status': 'error',
-            'message': f'FMP API error: {str(e)}',
-            'data': None
-        }
+        return {"status": "error", "message": f"FMP API error: {str(e)}", "data": None}
+
 
 def test_alphavantage_connectivity() -> Dict[str, Any]:
     """Test Alpha Vantage API connectivity"""
     print("📈 Testing Alpha Vantage API connectivity...")
 
     try:
-        api_key = os.getenv('ALPHAVANTAGE_API_KEY')
+        api_key = os.getenv("ALPHAVANTAGE_API_KEY")
         if not api_key:
             return {
-                'status': 'error',
-                'message': 'Alpha Vantage API key not configured',
-                'data': None
+                "status": "error",
+                "message": "Alpha Vantage API key not configured",
+                "data": None,
             }
 
         # Test with a simple quote endpoint
@@ -107,31 +107,32 @@ def test_alphavantage_connectivity() -> Dict[str, Any]:
 
         if response.status_code == 200:
             data = response.json()
-            if 'Global Quote' in data and data['Global Quote']:
-                price = data['Global Quote'].get('05. price', 'N/A')
+            if "Global Quote" in data and data["Global Quote"]:
+                price = data["Global Quote"].get("05. price", "N/A")
                 return {
-                    'status': 'success',
-                    'message': f"Successfully fetched AAPL quote: ${price}",
-                    'data': data['Global Quote']
+                    "status": "success",
+                    "message": f"Successfully fetched AAPL quote: ${price}",
+                    "data": data["Global Quote"],
                 }
             else:
                 return {
-                    'status': 'error',
-                    'message': 'Invalid response format from Alpha Vantage',
-                    'data': data
+                    "status": "error",
+                    "message": "Invalid response format from Alpha Vantage",
+                    "data": data,
                 }
         else:
             return {
-                'status': 'error',
-                'message': f'Alpha Vantage API error: HTTP {response.status_code}',
-                'data': None
+                "status": "error",
+                "message": f"Alpha Vantage API error: HTTP {response.status_code}",
+                "data": None,
             }
     except Exception as e:
         return {
-            'status': 'error',
-            'message': f'Alpha Vantage API error: {str(e)}',
-            'data': None
+            "status": "error",
+            "message": f"Alpha Vantage API error: {str(e)}",
+            "data": None,
         }
+
 
 def test_twitter_connectivity() -> Dict[str, Any]:
     """Test Twitter connectivity (using twscrape, no API key needed)"""
@@ -146,25 +147,30 @@ def test_twitter_connectivity() -> Dict[str, Any]:
 
         if tweets and len(tweets) > 0:
             return {
-                'status': 'success',
-                'message': f"Successfully fetched {len(tweets)} tweets about AAPL",
-                'data': {
-                    'tweet_count': len(tweets),
-                    'sample_text': tweets[0].get('text', '')[:100] + '...' if tweets[0].get('text') else 'No text'
-                }
+                "status": "success",
+                "message": f"Successfully fetched {len(tweets)} tweets about AAPL",
+                "data": {
+                    "tweet_count": len(tweets),
+                    "sample_text": (
+                        tweets[0].get("text", "")[:100] + "..."
+                        if tweets[0].get("text")
+                        else "No text"
+                    ),
+                },
             }
         else:
             return {
-                'status': 'warning',
-                'message': 'No tweets returned from Twitter (might be rate limited or no recent tweets)',
-                'data': tweets
+                "status": "warning",
+                "message": "No tweets returned from Twitter (might be rate limited or no recent tweets)",
+                "data": tweets,
             }
     except Exception as e:
         return {
-            'status': 'error',
-            'message': f'Twitter connectivity error: {str(e)}',
-            'data': None
+            "status": "error",
+            "message": f"Twitter connectivity error: {str(e)}",
+            "data": None,
         }
+
 
 def run_connectivity_tests() -> Dict[str, Any]:
     """Run all connectivity tests"""
@@ -175,64 +181,64 @@ def run_connectivity_tests() -> Dict[str, Any]:
     print("🔑 Validating API keys...")
     validation = validate_all_api_keys()
 
-    if validation['summary']['required_missing'] > 0:
+    if validation["summary"]["required_missing"] > 0:
         print("❌ Cannot run connectivity tests - missing required API keys")
         return {
-            'timestamp': datetime.now(),
-            'status': 'failed',
-            'reason': 'missing_api_keys',
-            'validation': validation
+            "timestamp": datetime.now(),
+            "status": "failed",
+            "reason": "missing_api_keys",
+            "validation": validation,
         }
 
     # Define test functions
     test_functions = {
-        'finnhub': test_finnhub_connectivity,
-        'fmp': test_fmp_connectivity,
-        'alphavantage': test_alphavantage_connectivity,
-        'twitter': test_twitter_connectivity
+        "finnhub": test_finnhub_connectivity,
+        "fmp": test_fmp_connectivity,
+        "alphavantage": test_alphavantage_connectivity,
+        "twitter": test_twitter_connectivity,
     }
 
     results = {
-        'timestamp': datetime.now(),
-        'tests': {},
-        'summary': {
-            'total': len(test_functions),
-            'passed': 0,
-            'failed': 0,
-            'warnings': 0
-        }
+        "timestamp": datetime.now(),
+        "tests": {},
+        "summary": {
+            "total": len(test_functions),
+            "passed": 0,
+            "failed": 0,
+            "warnings": 0,
+        },
     }
 
     # Run each test
     for service_name, test_func in test_functions.items():
         print(f"\n{'-'*30}")
         result = test_func()
-        results['tests'][service_name] = result
+        results["tests"][service_name] = result
 
-        if result['status'] == 'success':
-            results['summary']['passed'] += 1
+        if result["status"] == "success":
+            results["summary"]["passed"] += 1
             print(f"✅ {service_name.upper()}: {result['message']}")
-        elif result['status'] == 'warning':
-            results['summary']['warnings'] += 1
+        elif result["status"] == "warning":
+            results["summary"]["warnings"] += 1
             print(f"⚠️  {service_name.upper()}: {result['message']}")
         else:
-            results['summary']['failed'] += 1
+            results["summary"]["failed"] += 1
             print(f"❌ {service_name.upper()}: {result['message']}")
 
     # Overall status
-    summary = results['summary']
-    if summary['failed'] > 0:
-        overall_status = 'failed'
+    summary = results["summary"]
+    if summary["failed"] > 0:
+        overall_status = "failed"
         overall_message = f"{summary['failed']} API(s) failed connectivity tests"
-    elif summary['warnings'] > 0:
-        overall_status = 'warning'
+    elif summary["warnings"] > 0:
+        overall_status = "warning"
         overall_message = f"{summary['warnings']} API(s) have warnings"
     else:
-        overall_status = 'success'
+        overall_status = "success"
         overall_message = "All APIs passed connectivity tests"
 
-    results['summary']['overall_status'] = overall_status
-    results['summary']['overall_message'] = overall_message
+    results["summary"]["overall_status"] = overall_status
+    results["summary"]["overall_message"] = overall_message
 
     print(f"\n{'='*50}")
     print("📋 CONNECTIVITY TEST SUMMARY")
@@ -241,9 +247,12 @@ def run_connectivity_tests() -> Dict[str, Any]:
     print(f"Passed: {summary['passed']}")
     print(f"Failed: {summary['failed']}")
     print(f"Warnings: {summary['warnings']}")
-    print(f"\nOverall Status: {'✅' if overall_status == 'success' else '⚠️' if overall_status == 'warning' else '❌'} {overall_message}")
+    print(
+        f"\nOverall Status: {'✅' if overall_status == 'success' else '⚠️' if overall_status == 'warning' else '❌'} {overall_message}"
+    )
 
     return results
+
 
 def main():
     """Main function"""
@@ -251,10 +260,10 @@ def main():
         results = run_connectivity_tests()
 
         # Exit with appropriate code
-        if results['summary']['overall_status'] == 'failed':
+        if results["summary"]["overall_status"] == "failed":
             print("\n❌ Some APIs failed connectivity tests")
             sys.exit(1)
-        elif results['summary']['overall_status'] == 'warning':
+        elif results["summary"]["overall_status"] == "warning":
             print("\n⚠️  All APIs are accessible but some have warnings")
             sys.exit(0)
         else:
@@ -267,6 +276,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Connectivity tests failed with error: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     main()

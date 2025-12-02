@@ -14,7 +14,7 @@ from .llm_providers import (
     LLMRequest,
     LLMResponse,
     ModelCapability,
-    ProviderType
+    ProviderType,
 )
 
 logger = logging.getLogger(__name__)
@@ -26,12 +26,15 @@ class LLMClient:
     def __init__(self):
         self.provider_manager = get_provider_manager()
 
-    def create_chat_completion(self, messages: List[Dict[str, str]],
-                             model: str = "auto",
-                             max_tokens: Optional[int] = None,
-                             temperature: float = 0.7,
-                             task_type: str = "general",
-                             cost_optimization: bool = True) -> LLMResponse:
+    def create_chat_completion(
+        self,
+        messages: List[Dict[str, str]],
+        model: str = "auto",
+        max_tokens: Optional[int] = None,
+        temperature: float = 0.7,
+        task_type: str = "general",
+        cost_optimization: bool = True,
+    ) -> LLMResponse:
         """
         Create a chat completion using the multi-model system.
 
@@ -53,7 +56,10 @@ class LLMClient:
         # Determine model preferences based on task type
         model_preferences = []
         if task_type == "analytical":
-            model_preferences = [ModelCapability.ANALYTICAL, ModelCapability.HIGH_QUALITY]
+            model_preferences = [
+                ModelCapability.ANALYTICAL,
+                ModelCapability.HIGH_QUALITY,
+            ]
         elif task_type == "creative":
             model_preferences = [ModelCapability.CREATIVE, ModelCapability.BALANCED]
         elif task_type == "fast":
@@ -68,7 +74,7 @@ class LLMClient:
             temperature=temperature,
             model_preferences=model_preferences,
             cost_optimization=cost_optimization,
-            task_type=task_type
+            task_type=task_type,
         )
 
         # If specific model requested, try to use it first
@@ -102,7 +108,7 @@ class LLMClient:
             "cost_per_1k_output": model.cost_per_1k_output,
             "max_tokens": model.max_tokens,
             "context_window": model.context_window,
-            "is_available": model.is_available
+            "is_available": model.is_available,
         }
 
     def get_analytics(self) -> Dict[str, Any]:
@@ -165,7 +171,7 @@ class ChatCompletions:
         # Return in OpenAI-compatible format
         class Choice:
             def __init__(self, content):
-                self.message = type('Message', (), {'content': content})()
+                self.message = type("Message", (), {"content": content})()
 
         class Usage:
             def __init__(self, input_tokens, output_tokens):
@@ -177,8 +183,8 @@ class ChatCompletions:
             def __init__(self, response: LLMResponse):
                 self.choices = [Choice(response.content)]
                 self.usage = Usage(
-                    response.tokens_used.get('input_tokens', 0),
-                    response.tokens_used.get('output_tokens', 0)
+                    response.tokens_used.get("input_tokens", 0),
+                    response.tokens_used.get("output_tokens", 0),
                 )
                 self.model = response.model_used
 
@@ -193,29 +199,33 @@ class OpenAI:
         self.api_key = api_key
         self.base_url = base_url
         self.timeout = timeout
-        self.chat = type('Chat', (), {'completions': ChatCompletions()})()
+        self.chat = type("Chat", (), {"completions": ChatCompletions()})()
 
 
-def get_sentiment(text: str, model_name: str = "auto", task_type: str = "analytical") -> str:
+def get_sentiment(
+    text: str, model_name: str = "auto", task_type: str = "analytical"
+) -> str:
     """
     Enhanced sentiment analysis using multi-model system
     """
     messages = [
-        {"role": "system", "content": "Analyze the sentiment of the following text and provide a brief analysis."},
-        {"role": "user", "content": text}
+        {
+            "role": "system",
+            "content": "Analyze the sentiment of the following text and provide a brief analysis.",
+        },
+        {"role": "user", "content": text},
     ]
 
     response = _llm_client.create_chat_completion(
-        messages=messages,
-        model=model_name,
-        max_tokens=300,
-        task_type=task_type
+        messages=messages, model=model_name, max_tokens=300, task_type=task_type
     )
 
     return response.content if response.success else "Sentiment analysis failed"
 
 
-def analyze_chart(image_data: Optional[bytes], model_name: str = "auto", task_type: str = "analytical") -> str:
+def analyze_chart(
+    image_data: Optional[bytes], model_name: str = "auto", task_type: str = "analytical"
+) -> str:
     """
     Enhanced chart analysis using multi-model system
     """
@@ -225,15 +235,18 @@ def analyze_chart(image_data: Optional[bytes], model_name: str = "auto", task_ty
     # For now, we'll use text-based analysis since the multi-modal aspect
     # would require provider-specific implementations
     messages = [
-        {"role": "system", "content": "Analyze the following chart data and provide insights."},
-        {"role": "user", "content": f"Chart data length: {len(image_data)} bytes. Provide technical analysis."}
+        {
+            "role": "system",
+            "content": "Analyze the following chart data and provide insights.",
+        },
+        {
+            "role": "user",
+            "content": f"Chart data length: {len(image_data)} bytes. Provide technical analysis.",
+        },
     ]
 
     response = _llm_client.create_chat_completion(
-        messages=messages,
-        model=model_name,
-        max_tokens=500,
-        task_type=task_type
+        messages=messages, model=model_name, max_tokens=500, task_type=task_type
     )
 
     return response.content if response.success else "Chart analysis failed"

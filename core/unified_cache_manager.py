@@ -29,15 +29,19 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class CacheLevel(Enum):
     """Cache levels in order of speed"""
-    MEMORY = 1      # Fastest, in-memory
-    SQLITE = 2      # Persistent, file-based
-    REDIS = 3       # Shared, networked
+
+    MEMORY = 1  # Fastest, in-memory
+    SQLITE = 2  # Persistent, file-based
+    REDIS = 3  # Shared, networked
+
 
 @dataclass
 class CacheEntry:
     """Represents a cached item"""
+
     key: str
     value: Any
     timestamp: float
@@ -54,6 +58,7 @@ class CacheEntry:
         """Update access statistics"""
         self.access_count += 1
         self.last_accessed = time.time()
+
 
 class MemoryCache:
     """In-memory LRU cache with TTL support"""
@@ -120,8 +125,11 @@ class MemoryCache:
                 "active_entries": total_entries - expired,
                 "total_accesses": total_accesses,
                 "max_size": self.max_size,
-                "utilization": total_entries / self.max_size if self.max_size > 0 else 0
+                "utilization": (
+                    total_entries / self.max_size if self.max_size > 0 else 0
+                ),
             }
+
 
 class SQLiteCache:
     """SQLite-based persistent cache"""
@@ -135,8 +143,10 @@ class SQLiteCache:
     def _init_db(self):
         """Initialize SQLite database"""
         import sqlite3
+
         self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
-        self.conn.execute("""
+        self.conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS cache (
                 key TEXT PRIMARY KEY,
                 value TEXT,
@@ -146,7 +156,8 @@ class SQLiteCache:
                 last_accessed REAL,
                 size_bytes INTEGER DEFAULT 0
             )
-        """)
+        """
+        )
         self.conn.commit()
 
     def get(self, key: str) -> Optional[CacheEntry]:
@@ -154,12 +165,20 @@ class SQLiteCache:
         with self.lock:
             cursor = self.conn.execute(
                 "SELECT key, value, timestamp, ttl, access_count, last_accessed, size_bytes FROM cache WHERE key = ?",
-                (key,)
+                (key,),
             )
             row = cursor.fetchone()
 
             if row:
-                key, value_str, timestamp, ttl, access_count, last_accessed, size_bytes = row
+                (
+                    key,
+                    value_str,
+                    timestamp,
+                    ttl,
+                    access_count,
+                    last_accessed,
+                    size_bytes,
+                ) = row
 
                 try:
                     value = json.loads(value_str)
@@ -173,14 +192,14 @@ class SQLiteCache:
                     ttl=ttl,
                     access_count=access_count,
                     last_accessed=last_accessed,
-                    size_bytes=size_bytes
+                    size_bytes=size_bytes,
                 )
 
                 if not entry.is_expired():
                     # Update access statistics
                     self.conn.execute(
                         "UPDATE cache SET access_count = ?, last_accessed = ? WHERE key = ?",
-                        (entry.access_count + 1, time.time(), key)
+                        (entry.access_count + 1, time.time(), key),
                     )
                     self.conn.commit()
                     return entry
@@ -200,14 +219,22 @@ class SQLiteCache:
 
             value_str = json.dumps(entry.value)
 
-            self.conn.execute("""
+            self.conn.execute(
+                """
                 INSERT OR REPLACE INTO cache
                 (key, value, timestamp, ttl, access_count, last_accessed, size_bytes)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (
-                entry.key, value_str, entry.timestamp, entry.ttl,
-                entry.access_count, entry.last_accessed, entry.size_bytes
-            ))
+            """,
+                (
+                    entry.key,
+                    value_str,
+                    entry.timestamp,
+                    entry.ttl,
+                    entry.access_count,
+                    entry.last_accessed,
+                    entry.size_bytes,
+                ),
+            )
             self.conn.commit()
             return True
 
@@ -233,17 +260,20 @@ class SQLiteCache:
         """Evict least recently used entries"""
         self.conn.execute(
             "DELETE FROM cache WHERE key IN (SELECT key FROM cache ORDER BY last_accessed ASC LIMIT ?)",
-            (count,)
+            (count,),
         )
         self.conn.commit()
 
     def stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
         with self.lock:
-            cursor = self.conn.execute("""
+            cursor = self.conn.execute(
+                """
                 SELECT COUNT(*), SUM(access_count) FROM cache
                 WHERE timestamp + ttl > ?
-            """, (time.time(),))
+            """,
+                (time.time(),),
+            )
 
             active_entries, total_accesses = cursor.fetchone()
 
@@ -252,13 +282,22 @@ class SQLiteCache:
                 "active_entries": active_entries,
                 "total_accesses": total_accesses or 0,
                 "max_size": self.max_size,
-                "utilization": self._get_size() / self.max_size if self.max_size > 0 else 0
+                "utilization": (
+                    self._get_size() / self.max_size if self.max_size > 0 else 0
+                ),
             }
+
 
 class RedisCache:
     """Redis-based distributed cache"""
 
-    def __init__(self, host: str = 'localhost', port: int = 6379, db: int = 0, max_size: int = 10000):
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        db: int = 0,
+        max_size: int = 10000,
+    ):
         self.host = host
         self.port = port
         self.db = db
@@ -271,7 +310,10 @@ class RedisCache:
         """Initialize Redis connection"""
         try:
             import redis
-            self._redis = redis.Redis(host=self.host, port=self.port, db=self.db, decode_responses=True)
+
+            self._redis = redis.Redis(
+                host=self.host, port=self.port, db=self.db, decode_responses=True
+            )
             # Test connection
             self._redis.ping()
         except ImportError:
@@ -323,7 +365,7 @@ class RedisCache:
                 "ttl": entry.ttl,
                 "access_count": entry.access_count,
                 "last_accessed": entry.last_accessed,
-                "size_bytes": entry.size_bytes
+                "size_bytes": entry.size_bytes,
             }
 
             self._redis.setex(entry.key, int(entry.ttl), json.dumps(entry_dict))
@@ -378,18 +420,22 @@ class RedisCache:
                 "available": True,
                 "total_entries": info.get("db0", {}).get("keys", 0),
                 "memory_used": info.get("memory", {}).get("used_memory_human", "0B"),
-                "hit_rate": info.get("keyspace_hits", 0) / max(info.get("keyspace_hits", 0) + info.get("keyspace_misses", 1), 1)
+                "hit_rate": info.get("keyspace_hits", 0)
+                / max(info.get("keyspace_hits", 0) + info.get("keyspace_misses", 1), 1),
             }
         except Exception as e:
             return {"available": False, "error": str(e)}
 
+
 class UnifiedCacheManager:
     """Unified cache manager with multi-level caching strategy"""
 
-    def __init__(self,
-                 memory_size: int = 1000,
-                 sqlite_path: str = ":memory:",
-                 redis_config: Dict = None):
+    def __init__(
+        self,
+        memory_size: int = 1000,
+        sqlite_path: str = ":memory:",
+        redis_config: Dict = None,
+    ):
         self.memory_cache = MemoryCache(memory_size)
         self.sqlite_cache = SQLiteCache(sqlite_path)
         self.redis_cache = RedisCache(**(redis_config or {}))
@@ -398,7 +444,7 @@ class UnifiedCacheManager:
         self.stats = {
             "memory": self.memory_cache.stats(),
             "sqlite": self.sqlite_cache.stats(),
-            "redis": self.redis_cache.stats()
+            "redis": self.redis_cache.stats(),
         }
 
     def get(self, key: str) -> Optional[Any]:
@@ -416,14 +462,10 @@ class UnifiedCacheManager:
     def set(self, key: str, value: Any, ttl: float = 300) -> bool:
         """Set item in cache"""
         # Calculate approximate size
-        size_bytes = len(str(value).encode('utf-8'))
+        size_bytes = len(str(value).encode("utf-8"))
 
         entry = CacheEntry(
-            key=key,
-            value=value,
-            timestamp=time.time(),
-            ttl=ttl,
-            size_bytes=size_bytes
+            key=key, value=value, timestamp=time.time(), ttl=ttl, size_bytes=size_bytes
         )
 
         # Set in all available levels (write-through)
@@ -457,6 +499,7 @@ class UnifiedCacheManager:
 
     def cached(self, ttl: float = 300, key_func: Callable = None):
         """Decorator for caching function results"""
+
         def decorator(func):
             def wrapper(*args, **kwargs):
                 # Generate cache key
@@ -481,6 +524,7 @@ class UnifiedCacheManager:
                 return result
 
             return wrapper
+
         return decorator
 
     def get_stats(self) -> Dict[str, Any]:
@@ -488,18 +532,24 @@ class UnifiedCacheManager:
         self.stats = {
             "memory": self.memory_cache.stats(),
             "sqlite": self.sqlite_cache.stats(),
-            "redis": self.redis_cache.stats()
+            "redis": self.redis_cache.stats(),
         }
 
         # Calculate aggregate stats
-        total_requests = sum(cache_stats.get("total_accesses", 0) for cache_stats in self.stats.values())
-        cache_hits = sum(cache_stats.get("active_entries", 0) for cache_stats in self.stats.values())
+        total_requests = sum(
+            cache_stats.get("total_accesses", 0) for cache_stats in self.stats.values()
+        )
+        cache_hits = sum(
+            cache_stats.get("active_entries", 0) for cache_stats in self.stats.values()
+        )
 
         return {
             "levels": self.stats,
             "total_requests": total_requests,
             "cache_size": cache_hits,
-            "cache_levels": len([s for s in self.stats.values() if s.get("available", True)])
+            "cache_levels": len(
+                [s for s in self.stats.values() if s.get("available", True)]
+            ),
         }
 
     def optimize(self):
@@ -508,27 +558,31 @@ class UnifiedCacheManager:
         # For now, just refresh stats
         self.get_stats()
 
+
 # Global cache manager instance
 cache_manager = UnifiedCacheManager()
+
 
 # Convenience functions
 def cached(ttl: float = 300, key_func: Callable = None):
     """Convenience decorator for caching"""
     return cache_manager.cached(ttl, key_func)
 
+
 def get_cache_stats() -> Dict[str, Any]:
     """Get cache statistics"""
     return cache_manager.get_stats()
 
+
 # Export key classes and functions
 __all__ = [
-    'UnifiedCacheManager',
-    'MemoryCache',
-    'SQLiteCache',
-    'RedisCache',
-    'CacheEntry',
-    'CacheLevel',
-    'cache_manager',
-    'cached',
-    'get_cache_stats'
+    "UnifiedCacheManager",
+    "MemoryCache",
+    "SQLiteCache",
+    "RedisCache",
+    "CacheEntry",
+    "CacheLevel",
+    "cache_manager",
+    "cached",
+    "get_cache_stats",
 ]

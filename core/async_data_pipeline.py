@@ -22,16 +22,20 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 logger = logging.getLogger(__name__)
 
+
 class Priority(Enum):
     """Request priority levels"""
-    CRITICAL = 1    # Real-time trading data
-    HIGH = 2        # Market data, news
-    MEDIUM = 3      # Historical data, analytics
-    LOW = 4         # Background data, reports
+
+    CRITICAL = 1  # Real-time trading data
+    HIGH = 2  # Market data, news
+    MEDIUM = 3  # Historical data, analytics
+    LOW = 4  # Background data, reports
+
 
 @dataclass
 class DataRequest:
     """Represents a data fetching request"""
+
     request_id: str
     source: str
     priority: Priority
@@ -41,15 +45,18 @@ class DataRequest:
     timestamp: float = field(default_factory=time.time)
     timeout: float = 30.0
 
+
 @dataclass
 class DataResponse:
     """Response from a data source"""
+
     request_id: str
     success: bool
     data: Any = None
     error: str = ""
     response_time: float = 0.0
     source: str = ""
+
 
 class AsyncDataPipeline:
     """High-performance async data pipeline with priority queuing"""
@@ -66,7 +73,7 @@ class AsyncDataPipeline:
             "requests_processed": 0,
             "cache_hits": 0,
             "errors": 0,
-            "avg_response_time": 0.0
+            "avg_response_time": 0.0,
         }
         self._lock = asyncio.Lock()
 
@@ -88,7 +95,9 @@ class AsyncDataPipeline:
 
     async def start_processing(self):
         """Start the request processing loop"""
-        logger.info(f"Starting async data pipeline with {self.max_concurrent} concurrent workers")
+        logger.info(
+            f"Starting async data pipeline with {self.max_concurrent} concurrent workers"
+        )
 
         while True:
             try:
@@ -131,7 +140,7 @@ class AsyncDataPipeline:
                     success=True,
                     data=result,
                     response_time=response_time,
-                    source=request.source
+                    source=request.source,
                 )
 
                 # Cache the response
@@ -140,8 +149,12 @@ class AsyncDataPipeline:
                 # Update stats
                 async with self._lock:
                     self.stats["requests_processed"] += 1
-                    total_time = self.stats["avg_response_time"] * (self.stats["requests_processed"] - 1)
-                    self.stats["avg_response_time"] = (total_time + response_time) / self.stats["requests_processed"]
+                    total_time = self.stats["avg_response_time"] * (
+                        self.stats["requests_processed"] - 1
+                    )
+                    self.stats["avg_response_time"] = (
+                        total_time + response_time
+                    ) / self.stats["requests_processed"]
 
             except asyncio.TimeoutError:
                 response = DataResponse(
@@ -149,7 +162,7 @@ class AsyncDataPipeline:
                     success=False,
                     error=f"Request timed out after {request.timeout}s",
                     response_time=time.time() - start_time,
-                    source=request.source
+                    source=request.source,
                 )
                 async with self._lock:
                     self.stats["errors"] += 1
@@ -160,7 +173,7 @@ class AsyncDataPipeline:
                     success=False,
                     error=str(e),
                     response_time=time.time() - start_time,
-                    source=request.source
+                    source=request.source,
                 )
                 async with self._lock:
                     self.stats["errors"] += 1
@@ -172,6 +185,7 @@ class AsyncDataPipeline:
         """Generate cache key for request"""
         # Create a hash of the request parameters
         import hashlib
+
         key_data = f"{request.source}:{request.args}:{sorted(request.kwargs.items())}"
         return hashlib.md5(key_data.encode()).hexdigest()
 
@@ -198,6 +212,7 @@ class AsyncDataPipeline:
         self.response_cache.clear()
         self.cache_timestamps.clear()
 
+
 class AsyncDataOrchestrator:
     """Coordinates multiple data sources concurrently"""
 
@@ -206,12 +221,11 @@ class AsyncDataOrchestrator:
         self.sources = {}
         self.logger = logging.getLogger(__name__)
 
-    def register_source(self, name: str, fetcher_func: Callable, priority: Priority = Priority.MEDIUM):
+    def register_source(
+        self, name: str, fetcher_func: Callable, priority: Priority = Priority.MEDIUM
+    ):
         """Register a data source"""
-        self.sources[name] = {
-            "function": fetcher_func,
-            "priority": priority
-        }
+        self.sources[name] = {"function": fetcher_func, "priority": priority}
 
     async def fetch_all(self, tickers: List[str]) -> Dict[str, Any]:
         """Fetch data from all registered sources for given tickers"""
@@ -228,7 +242,7 @@ class AsyncDataOrchestrator:
                     source=source_name,
                     priority=source_config["priority"],
                     callback=source_config["function"],
-                    args=(ticker,)
+                    args=(ticker,),
                 )
 
                 requests.append(request)
@@ -240,6 +254,7 @@ class AsyncDataOrchestrator:
         # Collect results (this is a simplified version)
         # In a real implementation, you'd have a proper result collection mechanism
         return {"sources_fetched": len(self.sources), "tickers_processed": len(tickers)}
+
 
 # Utility functions for common data fetching patterns
 async def fetch_yfinance_data(ticker: str) -> Dict[str, Any]:
@@ -255,13 +270,18 @@ async def fetch_yfinance_data(ticker: str) -> Dict[str, Any]:
 
         return {
             "ticker": ticker,
-            "current_price": float(hist['Close'].iloc[-1]),
-            "price_change_30d": float((hist['Close'].iloc[-1] - hist['Close'].iloc[0]) / hist['Close'].iloc[0] * 100),
-            "avg_volume": int(hist['Volume'].mean()),
-            "volatility": float(hist['Close'].pct_change().std() * 100)
+            "current_price": float(hist["Close"].iloc[-1]),
+            "price_change_30d": float(
+                (hist["Close"].iloc[-1] - hist["Close"].iloc[0])
+                / hist["Close"].iloc[0]
+                * 100
+            ),
+            "avg_volume": int(hist["Volume"].mean()),
+            "volatility": float(hist["Close"].pct_change().std() * 100),
         }
     except Exception as e:
         return {"error": str(e)}
+
 
 async def fetch_news_sentiment(ticker: str) -> Dict[str, Any]:
     """Fetch news sentiment data"""
@@ -271,8 +291,9 @@ async def fetch_news_sentiment(ticker: str) -> Dict[str, Any]:
         "ticker": ticker,
         "sentiment_score": 0.0,  # Neutral
         "article_count": 0,
-        "sentiment_trend": "neutral"
+        "sentiment_trend": "neutral",
     }
+
 
 # Performance monitoring utilities
 class PerformanceMonitor:
@@ -308,17 +329,21 @@ class PerformanceMonitor:
                 "avg_time": sum(times) / len(times),
                 "min_time": min(times),
                 "max_time": max(times),
-                "total_time": sum(times)
+                "total_time": sum(times),
             }
 
         # Return all stats
         return {op: self.get_stats(op) for op in self.metrics.keys()}
 
+
 # Global performance monitor instance
 performance_monitor = PerformanceMonitor()
 
+
 # Convenience functions for common use cases
-async def fetch_multiple_tickers_async(tickers: List[str], max_concurrent: int = 5) -> Dict[str, Any]:
+async def fetch_multiple_tickers_async(
+    tickers: List[str], max_concurrent: int = 5
+) -> Dict[str, Any]:
     """Fetch data for multiple tickers concurrently"""
     semaphore = asyncio.Semaphore(max_concurrent)
     results = {}
@@ -342,16 +367,21 @@ async def fetch_multiple_tickers_async(tickers: List[str], max_concurrent: int =
 
     return results
 
+
 def sync_wrapper(async_func):
     """Decorator to run async function synchronously"""
+
     def wrapper(*args, **kwargs):
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # If loop is already running, create a new thread
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(lambda: asyncio.run(async_func(*args, **kwargs)))
+                    future = executor.submit(
+                        lambda: asyncio.run(async_func(*args, **kwargs))
+                    )
                     return future.result()
             else:
                 return loop.run_until_complete(async_func(*args, **kwargs))
@@ -361,17 +391,18 @@ def sync_wrapper(async_func):
 
     return wrapper
 
+
 # Export key classes and functions
 __all__ = [
-    'AsyncDataPipeline',
-    'AsyncDataOrchestrator',
-    'DataRequest',
-    'DataResponse',
-    'Priority',
-    'PerformanceMonitor',
-    'fetch_yfinance_data',
-    'fetch_news_sentiment',
-    'fetch_multiple_tickers_async',
-    'sync_wrapper',
-    'performance_monitor'
+    "AsyncDataPipeline",
+    "AsyncDataOrchestrator",
+    "DataRequest",
+    "DataResponse",
+    "Priority",
+    "PerformanceMonitor",
+    "fetch_yfinance_data",
+    "fetch_news_sentiment",
+    "fetch_multiple_tickers_async",
+    "sync_wrapper",
+    "performance_monitor",
 ]

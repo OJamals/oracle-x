@@ -42,6 +42,7 @@ from typing import Any, Dict, List, Optional
 # Load .env if present
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except Exception:
     # dotenv is optional; proceed if unavailable
@@ -204,6 +205,7 @@ def load_config(
     if env_path and os.path.exists(env_path):
         try:
             from dotenv import load_dotenv as _load
+
             _load(env_path, override=True)
         except Exception:
             # best effort
@@ -267,15 +269,25 @@ def load_config(
                     if "calls" in limits and "period" in limits:
                         calls = limits.get("calls")
                         period = limits.get("period")
-                        if isinstance(calls, int) and isinstance(period, int) and period > 0:
+                        if (
+                            isinstance(calls, int)
+                            and isinstance(period, int)
+                            and period > 0
+                        ):
                             per_minute = int(calls * 60 / period)
-                            rate_limits[str(provider).upper()] = {"per_minute": per_minute}
+                            rate_limits[str(provider).upper()] = {
+                                "per_minute": per_minute
+                            }
                     else:
                         # granular; try rpm first
                         if "rpm" in limits and isinstance(limits["rpm"], int):
-                            rate_limits[str(provider).upper()] = {"per_minute": int(limits["rpm"])}
+                            rate_limits[str(provider).upper()] = {
+                                "per_minute": int(limits["rpm"])
+                            }
                         elif "rps" in limits and isinstance(limits["rps"], int):
-                            rate_limits[str(provider).upper()] = {"per_minute": int(limits["rps"] * 60)}
+                            rate_limits[str(provider).upper()] = {
+                                "per_minute": int(limits["rps"] * 60)
+                            }
                         # keep existing if not mappable
             merged["rate_limits"] = rate_limits
 

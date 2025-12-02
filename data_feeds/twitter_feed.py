@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
+
 class TwitterSentimentFeed:
     """
     Twitter sentiment feed using twscrape for tweet collection.
@@ -18,9 +19,9 @@ class TwitterSentimentFeed:
     """
 
     def __init__(self):
-        self.ticker_pattern = re.compile(r'\$([A-Z]{1,5})')
-        self.mention_pattern = re.compile(r'@[\w]+')
-        self.url_pattern = re.compile(r'https?://[^\s]+')
+        self.ticker_pattern = re.compile(r"\$([A-Z]{1,5})")
+        self.mention_pattern = re.compile(r"@[\w]+")
+        self.url_pattern = re.compile(r"https?://[^\s]+")
         self.max_tweets = 20
         self._last_fetch = {}
         self._cache_duration = 300  # 5 minutes
@@ -31,11 +32,11 @@ class TwitterSentimentFeed:
             return ""
 
         # Remove URLs
-        text = self.url_pattern.sub('', text)
+        text = self.url_pattern.sub("", text)
         # Remove mentions
-        text = self.mention_pattern.sub('', text)
+        text = self.mention_pattern.sub("", text)
         # Remove extra whitespace
-        text = ' '.join(text.split())
+        text = " ".join(text.split())
         return text.strip()
 
     def _extract_tickers(self, text: str) -> List[str]:
@@ -50,17 +51,18 @@ class TwitterSentimentFeed:
         """Basic sentiment analysis using VADER as fallback."""
         try:
             from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+
             analyzer = SentimentIntensityAnalyzer()
             scores = analyzer.polarity_scores(text)
             return {
-                'compound': scores['compound'],
-                'pos': scores['pos'],
-                'neu': scores['neu'],
-                'neg': scores['neg']
+                "compound": scores["compound"],
+                "pos": scores["pos"],
+                "neu": scores["neu"],
+                "neg": scores["neg"],
             }
         except ImportError:
             logger.warning("VADER not available, using neutral sentiment")
-            return {'compound': 0.0, 'pos': 0.0, 'neu': 1.0, 'neg': 0.0}
+            return {"compound": 0.0, "pos": 0.0, "neu": 1.0, "neg": 0.0}
 
     def fetch(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
@@ -77,8 +79,10 @@ class TwitterSentimentFeed:
         cache_key = f"{query}_{limit}"
         current_time = time.time()
 
-        if (cache_key in self._last_fetch and
-            current_time - self._last_fetch[cache_key] < self._cache_duration):
+        if (
+            cache_key in self._last_fetch
+            and current_time - self._last_fetch[cache_key] < self._cache_duration
+        ):
             logger.debug(f"Using cached Twitter data for {query}")
             return self._last_fetch[cache_key]
 
@@ -86,6 +90,7 @@ class TwitterSentimentFeed:
             # Import twscrape
             from twscrape import API
             from twscrape.logger import set_log_level
+
             set_log_level("WARNING")  # Reduce twscrape logging
 
             # Initialize API (this will use existing accounts if configured)
@@ -93,7 +98,7 @@ class TwitterSentimentFeed:
 
             # Prepare search query
             search_query = query
-            if not query.startswith('$') and not query.startswith('#'):
+            if not query.startswith("$") and not query.startswith("#"):
                 # If it's a plain ticker, add $ prefix for better results
                 search_query = f"${query}"
 
@@ -123,7 +128,11 @@ class TwitterSentimentFeed:
                 for tweet in tweets_list:
                     try:
                         # Extract tweet data
-                        tweet_text = tweet.rawContent if hasattr(tweet, 'rawContent') else str(tweet)
+                        tweet_text = (
+                            tweet.rawContent
+                            if hasattr(tweet, "rawContent")
+                            else str(tweet)
+                        )
                         clean_text = self._clean_text(tweet_text)
 
                         if not clean_text:
@@ -137,16 +146,16 @@ class TwitterSentimentFeed:
 
                         # Create tweet dict
                         tweet_dict = {
-                            'text': clean_text,
-                            'raw_text': tweet_text,
-                            'tickers': tickers,
-                            'sentiment': sentiment,
-                            'timestamp': datetime.now(),
-                            'tweet_id': getattr(tweet, 'id', None),
-                            'username': getattr(tweet, 'username', None),
-                            'likes': getattr(tweet, 'likes', 0),
-                            'retweets': getattr(tweet, 'retweets', 0),
-                            'replies': getattr(tweet, 'replies', 0)
+                            "text": clean_text,
+                            "raw_text": tweet_text,
+                            "tickers": tickers,
+                            "sentiment": sentiment,
+                            "timestamp": datetime.now(),
+                            "tweet_id": getattr(tweet, "id", None),
+                            "username": getattr(tweet, "username", None),
+                            "likes": getattr(tweet, "likes", 0),
+                            "retweets": getattr(tweet, "retweets", 0),
+                            "replies": getattr(tweet, "replies", 0),
                         }
 
                         tweets_data.append(tweet_dict)
@@ -177,17 +186,24 @@ class TwitterSentimentFeed:
     def get_health_status(self) -> Dict[str, Any]:
         """Get health status of the Twitter feed."""
         return {
-            'service': 'twitter_feed',
-            'status': 'operational' if self._check_twscrape_available() else 'twscrape_unavailable',
-            'max_tweets': self.max_tweets,
-            'cache_duration': self._cache_duration,
-            'cached_queries': len([k for k in self._last_fetch.keys() if not k.endswith('_time')])
+            "service": "twitter_feed",
+            "status": (
+                "operational"
+                if self._check_twscrape_available()
+                else "twscrape_unavailable"
+            ),
+            "max_tweets": self.max_tweets,
+            "cache_duration": self._cache_duration,
+            "cached_queries": len(
+                [k for k in self._last_fetch.keys() if not k.endswith("_time")]
+            ),
         }
 
     def _check_twscrape_available(self) -> bool:
         """Check if twscrape is available."""
         try:
             import twscrape
+
             return True
         except ImportError:
             return False

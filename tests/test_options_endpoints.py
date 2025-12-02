@@ -95,10 +95,12 @@ def main():
     # Provide a single validated datum that can be easily asserted
     print(
         {
-            "call_price": None if m["call_price"] is None else round(m["call_price"], 6),
-            "iv_backsolve": None
-            if m["iv_backsolve"] is None
-            else round(m["iv_backsolve"], 6),
+            "call_price": (
+                None if m["call_price"] is None else round(m["call_price"], 6)
+            ),
+            "iv_backsolve": (
+                None if m["iv_backsolve"] is None else round(m["iv_backsolve"], 6)
+            ),
             "options_math_valid": m["valid"],
             "options_store_table": s["options_chain_snapshots_exists"],
             "earnings_cache_rows": e["cache_rows"],

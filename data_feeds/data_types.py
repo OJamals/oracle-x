@@ -15,6 +15,7 @@ import pandas as pd
 
 class DataSource(Enum):
     """Available data sources in priority order"""
+
     YFINANCE = "yfinance"
     FINNHUB = "finnhub"
     IEX_CLOUD = "iex_cloud"
@@ -31,11 +32,12 @@ class DataSource(Enum):
 
 class DataQuality(Enum):
     """Data quality levels"""
+
     EXCELLENT = "excellent"  # 95-100% quality score
-    GOOD = "good"           # 80-94% quality score
-    FAIR = "fair"           # 60-79% quality score
-    POOR = "poor"           # 40-59% quality score
-    UNUSABLE = "unusable"   # <40% quality score
+    GOOD = "good"  # 80-94% quality score
+    FAIR = "fair"  # 60-79% quality score
+    POOR = "poor"  # 40-59% quality score
+    UNUSABLE = "unusable"  # <40% quality score
 
 
 @dataclass
@@ -70,7 +72,7 @@ class MarketData:
 class SentimentData:
     symbol: str
     sentiment_score: float  # -1 to 1
-    confidence: float      # 0 to 1
+    confidence: float  # 0 to 1
     source: str
     timestamp: datetime
     sample_size: Optional[int] = None

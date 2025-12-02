@@ -32,7 +32,8 @@ from datetime import datetime, timezone
 from typing import Any, Callable, Dict, List
 
 import sys
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Conservative defaults used elsewhere
 os.environ.setdefault("CACHE_DB_PATH", "data/databases/model_monitoring.db")
@@ -110,7 +111,14 @@ def _summarize(obj: Any) -> Any:
             "cols": list(obj.columns)[:15],
         }
     # Dataclass-like objects (Quote / MarketData / SentimentData)
-    for attr in ("symbol", "price", "change_percent", "quality_score", "timeframe", "sentiment_score"):
+    for attr in (
+        "symbol",
+        "price",
+        "change_percent",
+        "quality_score",
+        "timeframe",
+        "sentiment_score",
+    ):
         if hasattr(obj, attr):
             # Build limited snapshot of public attributes
             keys = ["symbol", "source"]
@@ -133,8 +141,12 @@ def _summarize(obj: Any) -> Any:
 def build_tasks() -> Dict[str, Callable[[], Dict[str, Any]]]:
     return {
         "quotes": lambda: {t: _summarize(get_quote(t)) for t in TickerList},
-        "market_data_daily": lambda: _summarize(get_market_data("AAPL", period="6mo", interval="1d")),
-        "market_data_hourly": lambda: _summarize(get_market_data("AAPL", period="1mo", interval="1h")),
+        "market_data_daily": lambda: _summarize(
+            get_market_data("AAPL", period="6mo", interval="1d")
+        ),
+        "market_data_hourly": lambda: _summarize(
+            get_market_data("AAPL", period="1mo", interval="1h")
+        ),
         "sentiment_reddit_twitter": lambda: _summarize(get_sentiment_data("AAPL")),
         "advanced_sentiment": lambda: _summarize(get_advanced_sentiment("AAPL")),
         "finviz_market_breadth": lambda: _summarize(ORCH.get_market_breadth()),
@@ -144,8 +156,16 @@ def build_tasks() -> Dict[str, Callable[[], Dict[str, Any]]]:
         "finviz_earnings": lambda: _summarize(ORCH.get_finviz_earnings()),
         "finviz_forex": lambda: _summarize(ORCH.get_finviz_forex()),
         "finviz_crypto": lambda: _summarize(ORCH.get_finviz_crypto()),
-        "google_trends": lambda: _summarize(ORCH.get_google_trends(["AAPL", "TSLA", "NVDA"], timeframe="now 7-d", geo="US")),
-        "options_analytics": lambda: _summarize(ORCH.get_options_analytics("AAPL", include=["chain", "iv", "greeks", "gex", "max_pain"])),
+        "google_trends": lambda: _summarize(
+            ORCH.get_google_trends(
+                ["AAPL", "TSLA", "NVDA"], timeframe="now 7-d", geo="US"
+            )
+        ),
+        "options_analytics": lambda: _summarize(
+            ORCH.get_options_analytics(
+                "AAPL", include=["chain", "iv", "greeks", "gex", "max_pain"]
+            )
+        ),
         "options_flow_placeholder": lambda: _summarize(_run_options_flow_placeholder()),
     }
 
@@ -153,6 +173,7 @@ def build_tasks() -> Dict[str, Callable[[], Dict[str, Any]]]:
 def _run_options_flow_placeholder() -> Any:
     try:
         from data_feeds.options_flow import fetch_options_flow
+
         return fetch_options_flow(["AAPL", "TSLA"])
     except Exception as e:  # pragma: no cover
         return {"error": str(e)}
@@ -166,7 +187,9 @@ def list_feeds(tasks: Dict[str, Callable]):  # pragma: no cover - CLI helper
 def main():  # pragma: no cover - script entry
     parser = argparse.ArgumentParser(description="Run individual feed diagnostics.")
     parser.add_argument("--only", help="Comma-separated feed names to run (see --list)")
-    parser.add_argument("--list", action="store_true", help="List available feed names and exit")
+    parser.add_argument(
+        "--list", action="store_true", help="List available feed names and exit"
+    )
     args = parser.parse_args()
 
     tasks = build_tasks()

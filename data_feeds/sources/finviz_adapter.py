@@ -12,6 +12,7 @@ from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
+
 # Define minimal classes to avoid circular imports
 class DataSource:
     FINVIZ = "finviz"
@@ -19,8 +20,18 @@ class DataSource:
     def __init__(self, value):
         self.value = value
 
+
 class SentimentData:
-    def __init__(self, symbol: str, sentiment_score: float, confidence: float, source: str, timestamp: datetime, sample_size: Optional[int] = None, raw_data: Optional[Dict] = None):
+    def __init__(
+        self,
+        symbol: str,
+        sentiment_score: float,
+        confidence: float,
+        source: str,
+        timestamp: datetime,
+        sample_size: Optional[int] = None,
+        raw_data: Optional[Dict] = None,
+    ):
         self.symbol = symbol
         self.sentiment_score = sentiment_score
         self.confidence = confidence
@@ -28,6 +39,7 @@ class SentimentData:
         self.timestamp = timestamp
         self.sample_size = sample_size
         self.raw_data = raw_data
+
 
 class FinVizAdapter:
     """
@@ -102,7 +114,9 @@ class FinVizAdapter:
             # Track performance if available
             if self.performance_tracker:
                 response_time = (datetime.now() - start_time).total_seconds() * 1000
-                quality_score = 85.0 if breadth_data and any(breadth_data.values()) else 0.0
+                quality_score = (
+                    85.0 if breadth_data and any(breadth_data.values()) else 0.0
+                )
                 self.performance_tracker.record_success(
                     self.source.value, response_time, quality_score
                 )
@@ -176,7 +190,9 @@ class FinVizAdapter:
             # Track performance if available
             if self.performance_tracker:
                 response_time = (datetime.now() - start_time).total_seconds() * 1000
-                quality_score = 75.0 if insider_data is not None and not insider_data.empty else 0.0
+                quality_score = (
+                    75.0 if insider_data is not None and not insider_data.empty else 0.0
+                )
                 self.performance_tracker.record_success(
                     self.source.value, response_time, quality_score
                 )
@@ -213,7 +229,9 @@ class FinVizAdapter:
             # Track performance if available
             if self.performance_tracker:
                 response_time = (datetime.now() - start_time).total_seconds() * 1000
-                quality_score = 70.0 if earnings_data and any(earnings_data.values()) else 0.0
+                quality_score = (
+                    70.0 if earnings_data and any(earnings_data.values()) else 0.0
+                )
                 self.performance_tracker.record_success(
                     self.source.value, response_time, quality_score
                 )
@@ -250,7 +268,9 @@ class FinVizAdapter:
             # Track performance if available
             if self.performance_tracker:
                 response_time = (datetime.now() - start_time).total_seconds() * 1000
-                quality_score = 75.0 if forex_data is not None and not forex_data.empty else 0.0
+                quality_score = (
+                    75.0 if forex_data is not None and not forex_data.empty else 0.0
+                )
                 self.performance_tracker.record_success(
                     self.source.value, response_time, quality_score
                 )
@@ -287,7 +307,9 @@ class FinVizAdapter:
             # Track performance if available
             if self.performance_tracker:
                 response_time = (datetime.now() - start_time).total_seconds() * 1000
-                quality_score = 75.0 if crypto_data is not None and not crypto_data.empty else 0.0
+                quality_score = (
+                    75.0 if crypto_data is not None and not crypto_data.empty else 0.0
+                )
                 self.performance_tracker.record_success(
                     self.source.value, response_time, quality_score
                 )

@@ -31,7 +31,7 @@ class PerformanceBenchmarks:
     def setup(self):
         """Setup test environment"""
         # Create temporary database
-        fd, self.temp_db = tempfile.mkstemp(suffix='.db')
+        fd, self.temp_db = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         assert self.temp_db is not None  # Ensure it's set
 
@@ -50,16 +50,16 @@ class PerformanceBenchmarks:
     def _create_test_data(self):
         """Create test data for benchmarks"""
         # Create large CSV file for memory processing tests
-        csv_path = tempfile.mktemp(suffix='.csv')
+        csv_path = tempfile.mktemp(suffix=".csv")
         self.temp_files.append(csv_path)
 
         # Generate 100K rows of test data
         np.random.seed(42)
         data = {
-            'id': range(100000),
-            'value': np.random.randn(100000),
-            'category': np.random.choice(['A', 'B', 'C', 'D'], 100000),
-            'large_number': np.random.randint(0, 1000000, 100000)
+            "id": range(100000),
+            "value": np.random.randn(100000),
+            "category": np.random.choice(["A", "B", "C", "D"], 100000),
+            "large_number": np.random.randint(0, 1000000, 100000),
         }
         df = pd.DataFrame(data)
         df.to_csv(csv_path, index=False)
@@ -73,22 +73,26 @@ class PerformanceBenchmarks:
 
         # Setup test table
         with DatabasePool.get_connection(self.temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE benchmark_test (
                     id INTEGER PRIMARY KEY,
                     data TEXT,
                     value INTEGER
                 )
-            """)
+            """
+            )
             conn.commit()
 
         # Benchmark 1: Sequential inserts
         print("  Testing sequential database inserts...")
         start_time = time.time()
         for i in range(1000):
-            execute_update(self.temp_db,
-                          "INSERT INTO benchmark_test (data, value) VALUES (?, ?)",
-                          (f"test_data_{i}", i))
+            execute_update(
+                self.temp_db,
+                "INSERT INTO benchmark_test (data, value) VALUES (?, ?)",
+                (f"test_data_{i}", i),
+            )
         sequential_time = time.time() - start_time
 
         # Benchmark 2: Bulk inserts
@@ -96,9 +100,12 @@ class PerformanceBenchmarks:
         start_time = time.time()
         bulk_data = [(f"bulk_data_{i}", i) for i in range(1000, 2000)]
         from core.database_pool import execute_many
-        execute_many(self.temp_db,
-                    "INSERT INTO benchmark_test (data, value) VALUES (?, ?)",
-                    bulk_data)
+
+        execute_many(
+            self.temp_db,
+            "INSERT INTO benchmark_test (data, value) VALUES (?, ?)",
+            bulk_data,
+        )
         bulk_time = time.time() - start_time
 
         # Benchmark 3: Concurrent operations
@@ -107,9 +114,11 @@ class PerformanceBenchmarks:
 
         def concurrent_worker(worker_id):
             for i in range(100):
-                execute_update(self.temp_db,
-                              "INSERT INTO benchmark_test (data, value) VALUES (?, ?)",
-                              (f"concurrent_{worker_id}_{i}", worker_id * 100 + i))
+                execute_update(
+                    self.temp_db,
+                    "INSERT INTO benchmark_test (data, value) VALUES (?, ?)",
+                    (f"concurrent_{worker_id}_{i}", worker_id * 100 + i),
+                )
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = [executor.submit(concurrent_worker, i) for i in range(10)]
@@ -123,17 +132,19 @@ class PerformanceBenchmarks:
         query_times = []
         for _ in range(100):
             start = time.time()
-            results = execute_query(self.temp_db, "SELECT * FROM benchmark_test LIMIT 100")
+            results = execute_query(
+                self.temp_db, "SELECT * FROM benchmark_test LIMIT 100"
+            )
             query_times.append(time.time() - start)
 
         avg_query_time = statistics.mean(query_times)
 
-        self.results['database'] = {
-            'sequential_inserts_1000': sequential_time,
-            'bulk_inserts_1000': bulk_time,
-            'concurrent_inserts_1000': concurrent_time,
-            'avg_query_time_100_rows': avg_query_time,
-            'total_operations': 3000
+        self.results["database"] = {
+            "sequential_inserts_1000": sequential_time,
+            "bulk_inserts_1000": bulk_time,
+            "concurrent_inserts_1000": concurrent_time,
+            "avg_query_time_100_rows": avg_query_time,
+            "total_operations": 3000,
         }
 
         print(".3f")
@@ -166,7 +177,7 @@ class PerformanceBenchmarks:
         if sequential_times:
             avg_sequential = statistics.mean(sequential_times)
         else:
-            avg_sequential = float('inf')
+            avg_sequential = float("inf")
 
         # Benchmark 2: Concurrent requests
         print("  Testing concurrent HTTP requests...")
@@ -184,18 +195,22 @@ class PerformanceBenchmarks:
             concurrent_results = [future.result() for future in futures]
 
         concurrent_time = time.time() - start_time
-        success_rate = sum(concurrent_results) / len(concurrent_results) if concurrent_results else 0
+        success_rate = (
+            sum(concurrent_results) / len(concurrent_results)
+            if concurrent_results
+            else 0
+        )
 
         # Get metrics
         metrics = http_client.get_metrics()
 
-        self.results['http'] = {
-            'avg_sequential_request_time': avg_sequential,
-            'concurrent_requests_time': concurrent_time,
-            'concurrent_success_rate': success_rate,
-            'total_requests_made': metrics['requests_total'],
-            'compression_savings': metrics['compression_savings'],
-            'connection_reuse_count': metrics['connection_reuse_count']
+        self.results["http"] = {
+            "avg_sequential_request_time": avg_sequential,
+            "concurrent_requests_time": concurrent_time,
+            "concurrent_success_rate": success_rate,
+            "total_requests_made": metrics["requests_total"],
+            "compression_savings": metrics["compression_savings"],
+            "connection_reuse_count": metrics["connection_reuse_count"],
         }
 
         print(".3f")
@@ -227,35 +242,37 @@ class PerformanceBenchmarks:
         print("  Testing chunked processing...")
         start_time = time.time()
         result = processor.process_large_dataframe(
-            df,
-            lambda chunk: chunk['value'].sum()
+            df, lambda chunk: chunk["value"].sum()
         )
         chunked_time = time.time() - start_time
 
         # Benchmark 3: Direct processing for comparison
         print("  Testing direct processing...")
         start_time = time.time()
-        direct_result = df['value'].sum()
+        direct_result = df["value"].sum()
         direct_time = time.time() - start_time
 
         # Benchmark 4: Streaming DataFrame
         print("  Testing streaming DataFrame...")
         from core.memory_processor import StreamingDataFrame
+
         streaming_df = StreamingDataFrame(df, chunk_size=10000)
 
         start_time = time.time()
-        streaming_results = list(streaming_df.apply_function(lambda chunk: chunk.shape[0]))
+        streaming_results = list(
+            streaming_df.apply_function(lambda chunk: chunk.shape[0])
+        )
         streaming_time = time.time() - start_time
 
-        self.results['memory'] = {
-            'original_memory_mb': original_memory / 1024 / 1024,
-            'optimized_memory_mb': optimized_memory / 1024 / 1024,
-            'memory_savings_percent': memory_savings * 100,
-            'optimization_time': optimize_time,
-            'chunked_processing_time': chunked_time,
-            'direct_processing_time': direct_time,
-            'streaming_processing_time': streaming_time,
-            'results_consistent': abs(result - direct_result) < 1e-6
+        self.results["memory"] = {
+            "original_memory_mb": original_memory / 1024 / 1024,
+            "optimized_memory_mb": optimized_memory / 1024 / 1024,
+            "memory_savings_percent": memory_savings * 100,
+            "optimization_time": optimize_time,
+            "chunked_processing_time": chunked_time,
+            "direct_processing_time": direct_time,
+            "streaming_processing_time": streaming_time,
+            "results_consistent": abs(result - direct_result) < 1e-6,
         }
 
         print(".1f")
@@ -278,7 +295,7 @@ class PerformanceBenchmarks:
 
         # Benchmark 1: Async file operations
         print("  Testing async file operations...")
-        temp_json = tempfile.mktemp(suffix='.json')
+        temp_json = tempfile.mktemp(suffix=".json")
         self.temp_files.append(temp_json)
 
         # Write file
@@ -295,25 +312,28 @@ class PerformanceBenchmarks:
         print("  Testing async database operations...")
 
         # Create test table
-        await io_manager.db.execute_write("""
+        await io_manager.db.execute_write(
+            """
             CREATE TABLE async_test (
                 id INTEGER PRIMARY KEY,
                 data TEXT
             )
-        """)
+        """
+        )
 
         # Insert data
         start_time = time.time()
         for i in range(100):
             await io_manager.db.execute_write(
-                "INSERT INTO async_test (data) VALUES (?)",
-                (f"async_data_{i}",)
+                "INSERT INTO async_test (data) VALUES (?)", (f"async_data_{i}",)
             )
         insert_time = time.time() - start_time
 
         # Query data
         start_time = time.time()
-        results = await io_manager.db.execute_query("SELECT COUNT(*) as count FROM async_test")
+        results = await io_manager.db.execute_query(
+            "SELECT COUNT(*) as count FROM async_test"
+        )
         query_time = time.time() - start_time
 
         # Benchmark 3: Concurrent operations
@@ -324,7 +344,7 @@ class PerformanceBenchmarks:
             for i in range(10):
                 await io_manager.db.execute_write(
                     "INSERT INTO async_test (data) VALUES (?)",
-                    (f"concurrent_{worker_id}_{i}",)
+                    (f"concurrent_{worker_id}_{i}",),
                 )
 
         start_time = time.time()
@@ -332,14 +352,14 @@ class PerformanceBenchmarks:
         await asyncio.gather(*tasks)
         concurrent_time = time.time() - start_time
 
-        self.results['async'] = {
-            'file_write_time': write_time,
-            'file_read_time': read_time,
-            'db_insert_time_100': insert_time,
-            'db_query_time': query_time,
-            'concurrent_operations_time': concurrent_time,
-            'file_operation_success': success,
-            'data_integrity': data == test_data
+        self.results["async"] = {
+            "file_write_time": write_time,
+            "file_read_time": read_time,
+            "db_insert_time_100": insert_time,
+            "db_query_time": query_time,
+            "concurrent_operations_time": concurrent_time,
+            "file_operation_success": success,
+            "data_integrity": data == test_data,
         }
 
         print(".3f")
@@ -384,15 +404,17 @@ class PerformanceBenchmarks:
         print("=" * 60)
 
         print("Database Connection Pooling:")
-        db_results = self.results.get('database', {})
+        db_results = self.results.get("database", {})
         print(".3f")
         print(".3f")
         print(".3f")
         print(".6f")
 
         print("\nHTTP Client Optimization:")
-        http_results = self.results.get('http', {})
-        if http_results.get('avg_sequential_request_time', float('inf')) != float('inf'):
+        http_results = self.results.get("http", {})
+        if http_results.get("avg_sequential_request_time", float("inf")) != float(
+            "inf"
+        ):
             print(".3f")
         else:
             print("  Sequential requests: Failed (network issues)")
@@ -400,7 +422,7 @@ class PerformanceBenchmarks:
         print(".1%")
 
         print("\nMemory-Efficient Processing:")
-        mem_results = self.results.get('memory', {})
+        mem_results = self.results.get("memory", {})
         print(".1f")
         print(".1f")
         print(".1f")
@@ -409,7 +431,7 @@ class PerformanceBenchmarks:
         print(".3f")
 
         print("\nAsync I/O Operations:")
-        async_results = self.results.get('async', {})
+        async_results = self.results.get("async", {})
         print(".3f")
         print(".3f")
         print(".3f")

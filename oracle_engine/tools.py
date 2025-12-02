@@ -7,13 +7,18 @@ from oracle_engine.model_attempt_logger import log_attempt
 import time
 
 API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config.model.openai_api_base or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+API_BASE = config.model.openai_api_base or os.environ.get(
+    "OPENAI_API_BASE", "https://api.githubcopilot.com/v1"
+)
 MODEL_NAME = config.model.openai_model
 
 if not API_KEY:
-    raise RuntimeError("OPENAI_API_KEY environment variable is not set. Please set it to run the application.")
+    raise RuntimeError(
+        "OPENAI_API_KEY environment variable is not set. Please set it to run the application."
+    )
 
 client = OpenAI(api_key=API_KEY, base_url=API_BASE)
+
 
 def _iter_fallback_models(primary: str):
     try:
@@ -37,26 +42,53 @@ def get_sentiment(text: str, model_name: str = MODEL_NAME) -> str:
             resp = client.chat.completions.create(
                 model=model,
                 messages=[
-                    {"role": "system", "content": "You are a sentiment analysis engine."},
-                    {"role": "user", "content": f"Analyze sentiment: \"{text}\""}
+                    {
+                        "role": "system",
+                        "content": "You are a sentiment analysis engine.",
+                    },
+                    {"role": "user", "content": f'Analyze sentiment: "{text}"'},
                 ],
-                max_completion_tokens=20
+                max_completion_tokens=20,
             )
             msg = (resp.choices[0].message.content or "").strip()
             if msg:
                 if model != model_name:
                     print(f"[INFO] Fallback model '{model}' succeeded for sentiment.")
-                log_attempt("sentiment", model, start_time=start, success=True, empty=False, error=None)
+                log_attempt(
+                    "sentiment",
+                    model,
+                    start_time=start,
+                    success=True,
+                    empty=False,
+                    error=None,
+                )
                 return msg
             else:
-                log_attempt("sentiment", model, start_time=start, success=False, empty=True, error=None)
-                print(f"[DEBUG] Sentiment model {model} returned empty content – falling back.")
+                log_attempt(
+                    "sentiment",
+                    model,
+                    start_time=start,
+                    success=False,
+                    empty=True,
+                    error=None,
+                )
+                print(
+                    f"[DEBUG] Sentiment model {model} returned empty content – falling back."
+                )
         except Exception as e:
-            log_attempt("sentiment", model, start_time=start, success=False, empty=False, error=str(e))
+            log_attempt(
+                "sentiment",
+                model,
+                start_time=start,
+                success=False,
+                empty=False,
+                error=str(e),
+            )
             print(f"[DEBUG] Sentiment model {model} failed: {e}")
             continue
     print("[WARN] All models failed for sentiment analysis.")
     return "Unknown"
+
 
 # 🔑 TOOL: Visual chart analyzer
 import io
@@ -85,21 +117,49 @@ def analyze_chart(image_bytes: Optional[bytes], model_name: str = MODEL_NAME) ->
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are a chart analysis engine."},
-                    {"role": "user", "content": f"Analyze this chart (base64): {b64_str}"}
+                    {
+                        "role": "user",
+                        "content": f"Analyze this chart (base64): {b64_str}",
+                    },
                 ],
-                max_completion_tokens=60
+                max_completion_tokens=60,
             )
             msg = (resp.choices[0].message.content or "").strip()
             if msg:
                 if model != model_name:
-                    print(f"[INFO] Fallback model '{model}' succeeded for chart analysis.")
-                log_attempt("chart_analysis", model, start_time=start, success=True, empty=False, error=None)
+                    print(
+                        f"[INFO] Fallback model '{model}' succeeded for chart analysis."
+                    )
+                log_attempt(
+                    "chart_analysis",
+                    model,
+                    start_time=start,
+                    success=True,
+                    empty=False,
+                    error=None,
+                )
                 return msg
             else:
-                log_attempt("chart_analysis", model, start_time=start, success=False, empty=True, error=None)
-                print(f"[DEBUG] Chart model {model} returned empty content – falling back.")
+                log_attempt(
+                    "chart_analysis",
+                    model,
+                    start_time=start,
+                    success=False,
+                    empty=True,
+                    error=None,
+                )
+                print(
+                    f"[DEBUG] Chart model {model} returned empty content – falling back."
+                )
         except Exception as e:
-            log_attempt("chart_analysis", model, start_time=start, success=False, empty=False, error=str(e))
+            log_attempt(
+                "chart_analysis",
+                model,
+                start_time=start,
+                success=False,
+                empty=False,
+                error=str(e),
+            )
             print(f"[DEBUG] Chart model {model} failed: {e}")
             continue
     print("[WARN] All models failed for chart analysis.")

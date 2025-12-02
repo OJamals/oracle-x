@@ -18,6 +18,7 @@ from oracle_engine.agent import oracle_agent_pipeline
 # Optional imports with fallbacks
 try:
     from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
+
     orchestrator_available = True
 except ImportError:
     DataFeedOrchestrator = None
@@ -25,6 +26,7 @@ except ImportError:
 
 try:
     from oracle_engine.agent_optimized import get_optimized_agent
+
     optimization_available = True
 except ImportError:
     optimization_available = False
@@ -32,8 +34,9 @@ except ImportError:
 try:
     from learning_system.unified_learning_orchestrator import (
         UnifiedLearningOrchestrator,
-        UnifiedLearningConfig
+        UnifiedLearningConfig,
     )
+
     advanced_learning_available = True
 except ImportError:
     UnifiedLearningOrchestrator = None
@@ -41,7 +44,9 @@ except ImportError:
     advanced_learning_available = False
 
 
-DEFAULT_PROMPT = "Generate comprehensive trading scenarios based on current market conditions"
+DEFAULT_PROMPT = (
+    "Generate comprehensive trading scenarios based on current market conditions"
+)
 
 
 class OracleXPipeline:
@@ -91,14 +96,16 @@ class OracleXPipeline:
 
     def _init_learning_orchestrator(self) -> Optional[UnifiedLearningOrchestrator]:
         """Initialize advanced learning orchestrator."""
-        if not advanced_learning_available or not self.config.get('enable_advanced_learning', True):
+        if not advanced_learning_available or not self.config.get(
+            "enable_advanced_learning", True
+        ):
             print("⚠️  Advanced learning orchestrator not available")
             return None
 
         try:
             config = UnifiedLearningConfig()
-            if 'learning_config' in self.config:
-                for key, value in self.config['learning_config'].items():
+            if "learning_config" in self.config:
+                for key, value in self.config["learning_config"].items():
                     if hasattr(config, key):
                         setattr(config, key, value)
             return UnifiedLearningOrchestrator(config)
@@ -141,7 +148,7 @@ class OracleXPipeline:
         """Save pipeline results."""
         try:
             Path("playbooks").mkdir(exist_ok=True)
-            with open(filename, 'w') as f:
+            with open(filename, "w") as f:
                 json.dump(data, f, indent=2, default=str)
             print(f"📁 Results saved to: {filename}")
             return filename
@@ -162,9 +169,13 @@ class OracleXPipeline:
         """Standard pipeline generator wrapper."""
         return oracle_agent_pipeline(prompt, None), None
 
-    def _generate_optimized(self, prompt: str, agent: Any) -> Tuple[str, Optional[Dict[str, Any]]]:
+    def _generate_optimized(
+        self, prompt: str, agent: Any
+    ) -> Tuple[str, Optional[Dict[str, Any]]]:
         """Optimized pipeline generator wrapper."""
-        return agent.oracle_agent_pipeline_optimized(prompt, None, enable_experiments=True)
+        return agent.oracle_agent_pipeline_optimized(
+            prompt, None, enable_experiments=True
+        )
 
     def _get_optimized_agent(self) -> Optional[Any]:
         """Load and cache optimized agent if available."""
@@ -196,8 +207,7 @@ class OracleXPipeline:
 
         try:
             return self._run_agent_mode(
-                "optimized",
-                lambda prompt: self._generate_optimized(prompt, agent)
+                "optimized", lambda prompt: self._generate_optimized(prompt, agent)
             )
         except Exception as e:
             print(f"❌ Optimized pipeline failed: {e}")
@@ -221,15 +231,25 @@ class OracleXPipeline:
             market_data = {}
             if self.orchestrator:
                 try:
-                    signals = self.orchestrator.get_signals_from_scrapers(['AAPL', 'TSLA', 'NVDA'])
+                    signals = self.orchestrator.get_signals_from_scrapers(
+                        ["AAPL", "TSLA", "NVDA"]
+                    )
                     market_data = signals
                 except Exception as e:
                     print(f"⚠️  Market data collection failed: {e}")
 
-            processing_results = self.learning_orchestrator.process_market_data(market_data)
-            trading_decision = self.learning_orchestrator.make_trading_decision(market_data)
-            performance_report = self.learning_orchestrator.generate_performance_report()
-            explanations = self.learning_orchestrator.get_model_explanations(market_data)
+            processing_results = self.learning_orchestrator.process_market_data(
+                market_data
+            )
+            trading_decision = self.learning_orchestrator.make_trading_decision(
+                market_data
+            )
+            performance_report = (
+                self.learning_orchestrator.generate_performance_report()
+            )
+            explanations = self.learning_orchestrator.get_model_explanations(
+                market_data
+            )
             system_status = self.learning_orchestrator.get_system_status()
 
             execution_time = time.time() - start_time
@@ -265,6 +285,7 @@ class OracleXPipeline:
 
         if inspect.iscoroutinefunction(runner):
             import asyncio
+
             return asyncio.run(runner())
 
         return runner()
@@ -277,7 +298,7 @@ def run_oracle_pipeline(prompt_text: str) -> Dict:
     try:
         result_file = pipeline.run()
         if result_file and os.path.exists(result_file):
-            with open(result_file, 'r') as f:
+            with open(result_file, "r") as f:
                 results = json.load(f)
             results["date"] = datetime.now().strftime("%Y-%m-%d")
             results["logs"] = f"Pipeline executed at {datetime.now().isoformat()}"
@@ -289,5 +310,5 @@ def run_oracle_pipeline(prompt_text: str) -> Dict:
     return {
         "date": datetime.now().strftime("%Y-%m-%d"),
         "playbook": {"trades": [], "tomorrows_tape": "Pipeline execution failed"},
-        "logs": f"Error: {error_message}"
+        "logs": f"Error: {error_message}",
     }

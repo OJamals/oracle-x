@@ -8,11 +8,12 @@ import json
 from datetime import datetime
 
 # Add parent dir to sys.path for backend import
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Import dashboard functions
 sys.path.append(os.path.dirname(__file__))
 from app import list_playbooks, load_playbook, auto_generate_market_summary
+
 
 def test_playbooks_integration():
     """Test playbook listing and loading functionality"""
@@ -35,14 +36,18 @@ def test_playbooks_integration():
                 trades = playbook_data["trades"]
                 print(f"Found {len(trades)} trades")
                 if trades:
-                    print(f"First trade: {trades[0].get('ticker', 'N/A')} - {trades[0].get('direction', 'N/A')}")
+                    print(
+                        f"First trade: {trades[0].get('ticker', 'N/A')} - {trades[0].get('direction', 'N/A')}"
+                    )
             elif "playbook" in playbook_data:
                 inner_playbook = playbook_data["playbook"]
                 if "trades" in inner_playbook:
                     trades = inner_playbook["trades"]
                     print(f"Found {len(trades)} trades (nested structure)")
                     if trades:
-                        print(f"First trade: {trades[0].get('ticker', 'N/A')} - {trades[0].get('direction', 'N/A')}")
+                        print(
+                            f"First trade: {trades[0].get('ticker', 'N/A')} - {trades[0].get('direction', 'N/A')}"
+                        )
 
             if "tomorrows_tape" in playbook_data:
                 tape = playbook_data["tomorrows_tape"]
@@ -54,6 +59,7 @@ def test_playbooks_integration():
     except Exception as e:
         print(f"❌ Playbooks integration test failed: {e}")
         return False
+
 
 def test_auto_generate_summary():
     """Test the auto-generate market summary function"""
@@ -69,6 +75,7 @@ def test_auto_generate_summary():
         print(f"❌ Auto-generate summary test failed: {e}")
         return False
 
+
 def test_service_health():
     """Test service health checking"""
     print("\n=== Testing Service Health Checks ===")
@@ -77,7 +84,7 @@ def test_service_health():
 
     services = [
         ("Qdrant", "http://localhost:6333/collections"),
-        ("Qwen3", "http://localhost:8000/v1/models")
+        ("Qwen3", "http://localhost:8000/v1/models"),
     ]
 
     results = {}
@@ -91,6 +98,7 @@ def test_service_health():
             print(f"{name}: ❌ ERROR - {e}")
 
     return results
+
 
 def main():
     """Run all tests"""
@@ -121,6 +129,7 @@ def main():
         print("⚠️  Some tests failed - check output above")
 
     return tests_passed == total_tests
+
 
 if __name__ == "__main__":
     success = main()

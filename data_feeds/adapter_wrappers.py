@@ -82,9 +82,15 @@ class _BaseWrapper(SourceAdapterProtocol):
         try:
             # Attempt to expose simple rate limit counters if the injected rate_limiter provides them
             if hasattr(self.rate_limiter, "limits"):
-                rate_info["limits"] = {str(getattr(k, "value", str(k))): v for k, v in getattr(self.rate_limiter, "limits", {}).items()}
+                rate_info["limits"] = {
+                    str(getattr(k, "value", str(k))): v
+                    for k, v in getattr(self.rate_limiter, "limits", {}).items()
+                }
             if hasattr(self.rate_limiter, "daily_usage"):
-                rate_info["daily_usage"] = {str(getattr(k, "value", str(k))): v for k, v in getattr(self.rate_limiter, "daily_usage", {}).items()}
+                rate_info["daily_usage"] = {
+                    str(getattr(k, "value", str(k))): v
+                    for k, v in getattr(self.rate_limiter, "daily_usage", {}).items()
+                }
         except Exception:
             # Best-effort only
             rate_info = {}
@@ -128,7 +134,9 @@ class YFinanceAdapterWrapper(_BaseWrapper):
             return self._adapter.get_historical(symbol, period=period)
         except Exception as e:
             self._last_error = str(e)
-            logger.error(f"YFinanceAdapterWrapper.fetch_historical error for {symbol}: {e}")
+            logger.error(
+                f"YFinanceAdapterWrapper.fetch_historical error for {symbol}: {e}"
+            )
             return None
 
     def fetch_company_info(self, symbol: str) -> Optional[CompanyInfo]:
@@ -136,7 +144,9 @@ class YFinanceAdapterWrapper(_BaseWrapper):
             return self._adapter.get_company_info(symbol)
         except Exception as e:
             self._last_error = str(e)
-            logger.error(f"YFinanceAdapterWrapper.fetch_company_info error for {symbol}: {e}")
+            logger.error(
+                f"YFinanceAdapterWrapper.fetch_company_info error for {symbol}: {e}"
+            )
             return None
 
     def fetch_news(self, symbol: str, limit: int = 10) -> List[NewsItem]:
@@ -188,11 +198,15 @@ class FMPAdapterWrapper(_BaseWrapper):
             return self._adapter.get_company_info(symbol)
         except Exception as e:
             self._last_error = str(e)
-            logger.error(f"FMPAdapterWrapper.fetch_company_info error for {symbol}: {e}")
+            logger.error(
+                f"FMPAdapterWrapper.fetch_company_info error for {symbol}: {e}"
+            )
             return None
 
     def fetch_news(self, symbol: str, limit: int = 10) -> List[NewsItem]:
-        raise NotImplementedError("FMP adapter does not provide company news in consolidated adapter.")
+        raise NotImplementedError(
+            "FMP adapter does not provide company news in consolidated adapter."
+        )
 
     def fetch_sentiment(self, symbol: str, **kwargs):
         raise NotImplementedError("FMP adapter does not support sentiment.")
@@ -222,14 +236,18 @@ class FinnhubAdapterWrapper(_BaseWrapper):
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
     ) -> Optional[pd.DataFrame]:
-        raise NotImplementedError("Finnhub consolidated adapter does not expose historical fetch in this module.")
+        raise NotImplementedError(
+            "Finnhub consolidated adapter does not expose historical fetch in this module."
+        )
 
     def fetch_company_info(self, symbol: str) -> Optional[CompanyInfo]:
         try:
             return self._adapter.get_company_info(symbol)
         except Exception as e:
             self._last_error = str(e)
-            logger.error(f"FinnhubAdapterWrapper.fetch_company_info error for {symbol}: {e}")
+            logger.error(
+                f"FinnhubAdapterWrapper.fetch_company_info error for {symbol}: {e}"
+            )
             return None
 
     def fetch_news(self, symbol: str, limit: int = 10) -> List[NewsItem]:
@@ -241,7 +259,9 @@ class FinnhubAdapterWrapper(_BaseWrapper):
             return []
 
     def fetch_sentiment(self, symbol: str, **kwargs):
-        raise NotImplementedError("Finnhub adapter does not support sentiment in this module.")
+        raise NotImplementedError(
+            "Finnhub adapter does not support sentiment in this module."
+        )
 
 
 class FinanceDatabaseAdapterWrapper(_BaseWrapper):
@@ -268,7 +288,9 @@ class FinanceDatabaseAdapterWrapper(_BaseWrapper):
 
     def fetch_company_info(self, symbol: str) -> Optional[CompanyInfo]:
         # Not directly supported via this adapter in consolidated module
-        raise NotImplementedError("FinanceDatabase wrapper does not provide single-company info here.")
+        raise NotImplementedError(
+            "FinanceDatabase wrapper does not provide single-company info here."
+        )
 
     def fetch_news(self, symbol: str, limit: int = 10) -> List[NewsItem]:
         raise NotImplementedError("FinanceDatabase does not provide company news.")

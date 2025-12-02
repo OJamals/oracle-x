@@ -19,7 +19,7 @@ def run_signals_scraper(output_dir: Path | str = "signals") -> Path:
         "options_flow": fetch_options_flow(),
         "dark_pools": fetch_dark_pool_data(),
         "sentiment_data": fetch_sentiment_data(),
-        "earnings_calendar": fetch_earnings_calendar()
+        "earnings_calendar": fetch_earnings_calendar(),
     }
 
     output_dir = Path(output_dir)
@@ -31,6 +31,7 @@ def run_signals_scraper(output_dir: Path | str = "signals") -> Path:
 
     print(f"\n✅ Signals snapshot saved to: {signals_file}")
     return signals_file
+
 
 if __name__ == "__main__":
     run_signals_scraper()

@@ -9,6 +9,7 @@ Consumers should prefer importing from data_feeds.consolidated_data_feed:
 
 This shim exists for backward compatibility only.
 """
+
 from importlib import import_module as _import_module
 import inspect as _inspect
 

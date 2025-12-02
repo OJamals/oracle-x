@@ -27,25 +27,31 @@ import hashlib
 
 logger = logging.getLogger(__name__)
 
+
 class MLModelType(Enum):
     """Supported ML model types"""
+
     PRICE_PREDICTION = "price_prediction"
     DIRECTION_CLASSIFICATION = "direction_classification"
     VOLATILITY_MODEL = "volatility_model"
     SENTIMENT_ANALYSIS = "sentiment_analysis"
     ENSEMBLE_MODEL = "ensemble_model"
 
+
 class PredictionConfidence(Enum):
     """Confidence levels for predictions"""
+
     VERY_LOW = 0.1
     LOW = 0.3
     MEDIUM = 0.5
     HIGH = 0.7
     VERY_HIGH = 0.9
 
+
 @dataclass
 class PredictionResult:
     """Standardized prediction result"""
+
     ticker: str
     model_type: MLModelType
     prediction: Any
@@ -67,12 +73,14 @@ class PredictionResult:
             "features_used": self.features_used,
             "model_version": self.model_version,
             "timestamp": self.timestamp.isoformat(),
-            "metadata": self.metadata
+            "metadata": self.metadata,
         }
+
 
 @dataclass
 class ModelInfo:
     """Information about a trained model"""
+
     model_id: str
     model_type: MLModelType
     version: str
@@ -81,6 +89,7 @@ class ModelInfo:
     accuracy: float
     is_active: bool
     metadata: Dict[str, Any] = field(default_factory=dict)
+
 
 class ModelRegistry:
     """Registry for managing multiple ML models"""
@@ -109,6 +118,7 @@ class ModelRegistry:
                 return [m for m in self.models.values() if m.model_type == model_type]
             return list(self.models.values())
 
+
 class FeatureExtractor:
     """Extract features for ML models"""
 
@@ -127,16 +137,18 @@ class FeatureExtractor:
                 return {}
 
             # Basic price features
-            current_price = hist['Close'].iloc[-1]
-            price_change = (current_price - hist['Close'].iloc[0]) / hist['Close'].iloc[0]
+            current_price = hist["Close"].iloc[-1]
+            price_change = (current_price - hist["Close"].iloc[0]) / hist["Close"].iloc[
+                0
+            ]
 
             # Technical indicators
-            returns = hist['Close'].pct_change()
+            returns = hist["Close"].pct_change()
             volatility = returns.std()
 
             # Volume features
-            avg_volume = hist['Volume'].mean()
-            current_volume = hist['Volume'].iloc[-1]
+            avg_volume = hist["Volume"].mean()
+            current_volume = hist["Volume"].iloc[-1]
             volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1.0
 
             return {
@@ -146,9 +158,21 @@ class FeatureExtractor:
                 "avg_volume": float(avg_volume),
                 "current_volume": float(current_volume),
                 "volume_ratio": float(volume_ratio),
-                "rsi": FeatureExtractor._calculate_rsi(hist['Close']).iloc[-1] if len(hist) > 14 else 50.0,
-                "sma_20": float(hist['Close'].rolling(20).mean().iloc[-1]) if len(hist) >= 20 else float(current_price),
-                "ema_12": float(hist['Close'].ewm(span=12).mean().iloc[-1]) if len(hist) >= 12 else float(current_price)
+                "rsi": (
+                    FeatureExtractor._calculate_rsi(hist["Close"]).iloc[-1]
+                    if len(hist) > 14
+                    else 50.0
+                ),
+                "sma_20": (
+                    float(hist["Close"].rolling(20).mean().iloc[-1])
+                    if len(hist) >= 20
+                    else float(current_price)
+                ),
+                "ema_12": (
+                    float(hist["Close"].ewm(span=12).mean().iloc[-1])
+                    if len(hist) >= 12
+                    else float(current_price)
+                ),
             }
 
         except Exception as e:
@@ -166,6 +190,7 @@ class FeatureExtractor:
             return 100 - (100 / (1 + rs))
         except:
             return pd.Series([50.0] * len(prices))
+
 
 class UnifiedMLInterface:
     """Unified interface for all ML operations"""
@@ -188,7 +213,7 @@ class UnifiedMLInterface:
                 features=["price", "volume", "volatility"],
                 training_date=datetime.now(),
                 accuracy=0.75,
-                is_active=True
+                is_active=True,
             ),
             ModelInfo(
                 model_id="direction_classifier_v1",
@@ -197,14 +222,16 @@ class UnifiedMLInterface:
                 features=["rsi", "macd", "volume"],
                 training_date=datetime.now(),
                 accuracy=0.68,
-                is_active=True
-            )
+                is_active=True,
+            ),
         ]
 
         for model in models:
             self.model_registry.register_model(model)
 
-    async def predict_price(self, ticker: str, horizon: str = "1d", confidence_threshold: float = 0.5) -> Optional[PredictionResult]:
+    async def predict_price(
+        self, ticker: str, horizon: str = "1d", confidence_threshold: float = 0.5
+    ) -> Optional[PredictionResult]:
         """Predict future price for a ticker"""
         try:
             # Extract features
@@ -229,13 +256,18 @@ class UnifiedMLInterface:
 
             # Add some randomness based on volatility
             import random
+
             random_factor = random.uniform(-volatility, volatility)
             predicted_change += random_factor
 
             predicted_price = current_price * (1 + predicted_change)
 
             # Calculate confidence
-            confidence = min(abs(predicted_change) / volatility + 0.3, 0.95) if volatility > 0 else 0.5
+            confidence = (
+                min(abs(predicted_change) / volatility + 0.3, 0.95)
+                if volatility > 0
+                else 0.5
+            )
             confidence_level = self._get_confidence_level(confidence)
 
             result = PredictionResult(
@@ -247,7 +279,7 @@ class UnifiedMLInterface:
                 features_used=features,
                 model_version=model.version,
                 timestamp=datetime.now(),
-                metadata={"horizon": horizon, "method": "momentum_based"}
+                metadata={"horizon": horizon, "method": "momentum_based"},
             )
 
             # Store in history
@@ -259,7 +291,9 @@ class UnifiedMLInterface:
             logger.error(f"Error in price prediction for {ticker}: {e}")
             return None
 
-    async def predict_direction(self, ticker: str, horizon: str = "1d") -> Optional[PredictionResult]:
+    async def predict_direction(
+        self, ticker: str, horizon: str = "1d"
+    ) -> Optional[PredictionResult]:
         """Predict price direction (up/down) for a ticker"""
         try:
             # Extract features
@@ -269,7 +303,9 @@ class UnifiedMLInterface:
                 return None
 
             # Get active model
-            model = self.model_registry.get_active_model(MLModelType.DIRECTION_CLASSIFICATION)
+            model = self.model_registry.get_active_model(
+                MLModelType.DIRECTION_CLASSIFICATION
+            )
             if not model:
                 logger.warning("No active direction classification model available")
                 return None
@@ -289,7 +325,9 @@ class UnifiedMLInterface:
             elif price_change > 0.01 and volume_ratio > 1.2:  # Strong upward momentum
                 direction = "bullish"
                 confidence = 0.8
-            elif price_change < -0.01 and volume_ratio > 1.2:  # Strong downward momentum
+            elif (
+                price_change < -0.01 and volume_ratio > 1.2
+            ):  # Strong downward momentum
                 direction = "bearish"
                 confidence = 0.8
             else:
@@ -307,7 +345,7 @@ class UnifiedMLInterface:
                 features_used=features,
                 model_version=model.version,
                 timestamp=datetime.now(),
-                metadata={"horizon": horizon, "method": "technical_analysis"}
+                metadata={"horizon": horizon, "method": "technical_analysis"},
             )
 
             # Store in history
@@ -319,7 +357,9 @@ class UnifiedMLInterface:
             logger.error(f"Error in direction prediction for {ticker}: {e}")
             return None
 
-    async def predict_volatility(self, ticker: str, horizon: str = "1d") -> Optional[PredictionResult]:
+    async def predict_volatility(
+        self, ticker: str, horizon: str = "1d"
+    ) -> Optional[PredictionResult]:
         """Predict future volatility for a ticker"""
         try:
             features = FeatureExtractor.extract_price_features(ticker)
@@ -331,7 +371,9 @@ class UnifiedMLInterface:
             if not model:
                 # Fallback to simple volatility prediction
                 current_volatility = features.get("volatility", 0.02)
-                predicted_volatility = current_volatility * 0.8  # Mean reversion tendency
+                predicted_volatility = (
+                    current_volatility * 0.8
+                )  # Mean reversion tendency
 
                 result = PredictionResult(
                     ticker=ticker,
@@ -342,7 +384,7 @@ class UnifiedMLInterface:
                     features_used=features,
                     model_version="fallback_1.0",
                     timestamp=datetime.now(),
-                    metadata={"horizon": horizon, "method": "mean_reversion"}
+                    metadata={"horizon": horizon, "method": "mean_reversion"},
                 )
 
                 await self._store_prediction(result)
@@ -377,7 +419,9 @@ class UnifiedMLInterface:
             if len(self.prediction_history) > 1000:
                 self.prediction_history = self.prediction_history[-1000:]
 
-    def get_prediction_history(self, ticker: str = None, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_prediction_history(
+        self, ticker: str = None, limit: int = 100
+    ) -> List[Dict[str, Any]]:
         """Get prediction history, optionally filtered by ticker"""
         with self.lock:
             if ticker:
@@ -398,7 +442,7 @@ class UnifiedMLInterface:
         return {
             "models_retrained": 0,
             "status": "retraining_not_implemented",
-            "timestamp": datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
     def get_performance_stats(self) -> Dict[str, Any]:
@@ -409,7 +453,10 @@ class UnifiedMLInterface:
 
             # Calculate basic statistics
             total_predictions = len(self.prediction_history)
-            avg_confidence = sum(p["confidence"] for p in self.prediction_history) / total_predictions
+            avg_confidence = (
+                sum(p["confidence"] for p in self.prediction_history)
+                / total_predictions
+            )
 
             # Group by model type
             model_stats = {}
@@ -425,40 +472,47 @@ class UnifiedMLInterface:
                 "model_stats": {
                     model: {
                         "count": len(confs),
-                        "avg_confidence": sum(confs) / len(confs)
+                        "avg_confidence": sum(confs) / len(confs),
                     }
                     for model, confs in model_stats.items()
                 },
-                "last_updated": datetime.now().isoformat()
+                "last_updated": datetime.now().isoformat(),
             }
+
 
 # Global ML interface instance
 ml_interface = UnifiedMLInterface()
+
 
 # Convenience functions for backward compatibility
 async def predict_price(ticker: str, horizon: str = "1d") -> Optional[PredictionResult]:
     """Convenience function for price prediction"""
     return await ml_interface.predict_price(ticker, horizon)
 
-async def predict_direction(ticker: str, horizon: str = "1d") -> Optional[PredictionResult]:
+
+async def predict_direction(
+    ticker: str, horizon: str = "1d"
+) -> Optional[PredictionResult]:
     """Convenience function for direction prediction"""
     return await ml_interface.predict_direction(ticker, horizon)
+
 
 def get_ml_stats() -> Dict[str, Any]:
     """Get ML interface statistics"""
     return ml_interface.get_performance_stats()
 
+
 # Export key classes and functions
 __all__ = [
-    'UnifiedMLInterface',
-    'MLModelType',
-    'PredictionConfidence',
-    'PredictionResult',
-    'ModelInfo',
-    'ModelRegistry',
-    'FeatureExtractor',
-    'ml_interface',
-    'predict_price',
-    'predict_direction',
-    'get_ml_stats'
+    "UnifiedMLInterface",
+    "MLModelType",
+    "PredictionConfidence",
+    "PredictionResult",
+    "ModelInfo",
+    "ModelRegistry",
+    "FeatureExtractor",
+    "ml_interface",
+    "predict_price",
+    "predict_direction",
+    "get_ml_stats",
 ]

@@ -24,14 +24,17 @@ AsyncHTTPClient = None
 ASYNC_IO_AVAILABLE = False
 try:
     import sys
+
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from core.async_io_utils import AsyncHTTPClient
+
     ASYNC_IO_AVAILABLE = True
 except ImportError:
     pass
 
 # Mute noisy loggers by default (user can override at app level)
 import logging as _logging
+
 for _name in ("investiny", "httpx", "urllib3", "httpcore", "anyio"):
     try:
         _logging.getLogger(_name).setLevel(_logging.ERROR)
@@ -50,6 +53,7 @@ except Exception as e:  # pragma: no cover
 
 
 # ---- Public API ----
+
 
 def search_investing_id(
     query: str,
@@ -86,7 +90,11 @@ def search_investing_id(
     kwargs: Dict[str, Any] = {"query": q, "limit": max_results}
     # Per docs: 'type' expects "Stock" etc. Ensure proper capitalization.
     if instrument_type:
-        kwargs["type"] = instrument_type if instrument_type[0].isupper() else instrument_type.capitalize()
+        kwargs["type"] = (
+            instrument_type
+            if instrument_type[0].isupper()
+            else instrument_type.capitalize()
+        )
     else:
         kwargs["type"] = "Stock"
     # Prefer NASDAQ first pass; if it fails we will retry with NYSE and then without exchange.
@@ -94,7 +102,11 @@ def search_investing_id(
     if country:
         exchanges_try = [country]
     else:
-        exchanges_try = ["NASDAQ", "NYSE", ""]  # final empty string means no exchange filter
+        exchanges_try = [
+            "NASDAQ",
+            "NYSE",
+            "",
+        ]  # final empty string means no exchange filter
 
     results: List[Dict[str, Any]] = []
     for ex in exchanges_try:
@@ -179,12 +191,15 @@ def fetch_historical_by_id(
     ed = _parse_date(end_date)
 
     try:
-        data: List[Dict[str, Any]] = historical_data(
-            investing_id=int(investing_id),
-            from_date=sd.strftime("%m/%d/%Y"),
-            to_date=ed.strftime("%m/%d/%Y"),
-            interval=tf,  # Expecting 'D','W','M' or intraday like '1','5','15','30','60'
-        ) or []
+        data: List[Dict[str, Any]] = (
+            historical_data(
+                investing_id=int(investing_id),
+                from_date=sd.strftime("%m/%d/%Y"),
+                to_date=ed.strftime("%m/%d/%Y"),
+                interval=tf,  # Expecting 'D','W','M' or intraday like '1','5','15','30','60'
+            )
+            or []
+        )
     except Exception as e:  # pragma: no cover
         data = []
         last_error: Optional[Exception] = e
@@ -195,7 +210,7 @@ def fetch_historical_by_id(
 
     # Normalize into DataFrame
     # Some endpoints return {'s':'ok','t':[...],'o':[...],'h':[...],'l':[...],'c':[...],'v':[...]}
-    if isinstance(data, dict) and set(data.keys()) & {"t","o","h","l","c"}:
+    if isinstance(data, dict) and set(data.keys()) & {"t", "o", "h", "l", "c"}:
         t = data.get("t") or []
         o = data.get("o") or []
         h = data.get("h") or []
@@ -247,7 +262,16 @@ def fetch_historical_by_id(
             df = pd.DataFrame(recs)
         else:
             # Case 2: row-wise
-            df = df.rename(columns={"t": "date", "o": "open", "h": "high", "l": "low", "c": "close", "v": "volume"})
+            df = df.rename(
+                columns={
+                    "t": "date",
+                    "o": "open",
+                    "h": "high",
+                    "l": "low",
+                    "c": "close",
+                    "v": "volume",
+                }
+            )
             df["date"] = df["date"].apply(_coerce_to_timestamp)
     else:
         # Case 3 or fallback
@@ -337,7 +361,11 @@ def format_daily_oc(
     if df is None or getattr(df, "empty", True):
         return f"{symbol_or_name.upper()}: no data in range {start}..{end}"
     try:
-        df = df.sort_values("date").drop_duplicates(subset=["date"], keep="last").reset_index(drop=True)
+        df = (
+            df.sort_values("date")
+            .drop_duplicates(subset=["date"], keep="last")
+            .reset_index(drop=True)
+        )
     except Exception:
         pass
     parts: List[str] = []
@@ -353,6 +381,7 @@ def format_daily_oc(
 
 
 # ---- Helpers ----
+
 
 def _map_interval(interval: str) -> str:
     """
@@ -397,13 +426,20 @@ def _coerce_range(date_range_or_start: str, end_date: Optional[str]) -> Tuple[st
     if end_date:
         return s[:10], end_date.strip()[:10]
     # Try explicit pattern YYYY-MM-DD-YYYY-MM-DD
-    if len(s) >= 21 and s[4] == "-" and s[7] == "-" and s[10] == "-" and s[15] == "-" and s[18] == "-":
+    if (
+        len(s) >= 21
+        and s[4] == "-"
+        and s[7] == "-"
+        and s[10] == "-"
+        and s[15] == "-"
+        and s[18] == "-"
+    ):
         return s[:10], s[11:21]
     # Generic split: look for a separator after first 10 chars
     for sep in ["-", " to ", "–", "—"]:
         idx = s.find(sep, 10)
         if idx != -1:
-            return s[:10].strip(), s[idx + len(sep):idx + len(sep) + 10].strip()
+            return s[:10].strip(), s[idx + len(sep) : idx + len(sep) + 10].strip()
     # Fallback: mirror same date
     return s[:10], s[:10]
 

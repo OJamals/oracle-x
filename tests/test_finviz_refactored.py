@@ -2,13 +2,14 @@ import pandas as pd
 from data_feeds.finviz_adapter import FinVizAdapter
 from data_feeds.models import MarketBreadth, GroupPerformance
 
+
 def test_finviz_adapter():
     """Test the refactored FinViz adapter"""
     print("Testing refactored FinViz adapter...")
-    
+
     # Create adapter instance
     adapter = FinVizAdapter()
-    
+
     # Test market breadth
     print("\n=== Testing Market Breadth ===")
     try:
@@ -24,7 +25,7 @@ def test_finviz_adapter():
             print("❌ Market breadth fetch failed")
     except Exception as e:
         print(f"❌ Market breadth test failed with error: {e}")
-    
+
     # Test sector performance
     print("\n=== Testing Sector Performance ===")
     try:
@@ -42,7 +43,7 @@ def test_finviz_adapter():
             print("❌ Sector performance fetch returned empty list")
     except Exception as e:
         print(f"❌ Sector performance test failed with error: {e}")
-    
+
     # Test news
     print("\n=== Testing News ===")
     try:
@@ -50,16 +51,16 @@ def test_finviz_adapter():
         if news_data:
             print(f"✅ News fetched successfully")
             print(f"   News keys: {list(news_data.keys())}")
-            if 'news' in news_data and not news_data['news'].empty:
+            if "news" in news_data and not news_data["news"].empty:
                 print(f"   News items: {len(news_data['news'])}")
                 print(f"   News columns: {list(news_data['news'].columns)}")
-            if 'blogs' in news_data and not news_data['blogs'].empty:
+            if "blogs" in news_data and not news_data["blogs"].empty:
                 print(f"   Blog items: {len(news_data['blogs'])}")
         else:
             print("❌ News fetch returned empty data")
     except Exception as e:
         print(f"❌ News test failed with error: {e}")
-    
+
     # Test insider trading
     print("\n=== Testing Insider Trading ===")
     try:
@@ -72,7 +73,7 @@ def test_finviz_adapter():
             print("⚠️  Insider trading fetch returned empty DataFrame")
     except Exception as e:
         print(f"❌ Insider trading test failed with error: {e}")
-    
+
     # Test earnings
     print("\n=== Testing Earnings ===")
     try:
@@ -88,7 +89,7 @@ def test_finviz_adapter():
             print("⚠️  Earnings fetch returned empty data")
     except Exception as e:
         print(f"❌ Earnings test failed with error: {e}")
-    
+
     # Test forex
     print("\n=== Testing Forex ===")
     try:
@@ -101,7 +102,7 @@ def test_finviz_adapter():
             print("⚠️  Forex fetch returned empty DataFrame")
     except Exception as e:
         print(f"❌ Forex test failed with error: {e}")
-    
+
     # Test crypto
     print("\n=== Testing Crypto ===")
     try:
@@ -115,12 +116,13 @@ def test_finviz_adapter():
     except Exception as e:
         print(f"❌ Crypto test failed with error: {e}")
 
+
 def test_finviz_scraper_directly():
     """Test the scraper functions directly"""
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Testing finviz_scraper functions directly...")
-    print("="*50)
-    
+    print("=" * 50)
+
     from data_feeds.finviz_scraper import (
         fetch_finviz_breadth,
         fetch_finviz_sector_performance,
@@ -128,9 +130,9 @@ def test_finviz_scraper_directly():
         fetch_finviz_insider_trading,
         fetch_finviz_earnings,
         fetch_finviz_forex,
-        fetch_finviz_crypto
+        fetch_finviz_crypto,
     )
-    
+
     # Test breadth
     print("\n=== Testing fetch_finviz_breadth ===")
     try:
@@ -138,7 +140,7 @@ def test_finviz_scraper_directly():
         print(f"✅ Breadth data: {breadth}")
     except Exception as e:
         print(f"❌ Breadth fetch failed: {e}")
-    
+
     # Test sector performance
     print("\n=== Testing fetch_finviz_sector_performance ===")
     try:
@@ -148,7 +150,7 @@ def test_finviz_scraper_directly():
             print(f"   First sector: {sectors[0]['sector_name']}")
     except Exception as e:
         print(f"❌ Sector performance fetch failed: {e}")
-    
+
     # Test news
     print("\n=== Testing fetch_finviz_news ===")
     try:
@@ -156,7 +158,7 @@ def test_finviz_scraper_directly():
         print(f"✅ News keys: {list(news.keys())}")
     except Exception as e:
         print(f"❌ News fetch failed: {e}")
-    
+
     # Test insider trading
     print("\n=== Testing fetch_finviz_insider_trading ===")
     try:
@@ -164,7 +166,7 @@ def test_finviz_scraper_directly():
         print(f"✅ Insider trades: {len(insider)}")
     except Exception as e:
         print(f"❌ Insider trading fetch failed: {e}")
-    
+
     # Test earnings
     print("\n=== Testing fetch_finviz_earnings ===")
     try:
@@ -172,7 +174,7 @@ def test_finviz_scraper_directly():
         print(f"✅ Earnings days: {list(earnings.keys())}")
     except Exception as e:
         print(f"❌ Earnings fetch failed: {e}")
-    
+
     # Test forex
     print("\n=== Testing fetch_finviz_forex ===")
     try:
@@ -180,7 +182,7 @@ def test_finviz_scraper_directly():
         print(f"✅ Forex pairs: {len(forex)}")
     except Exception as e:
         print(f"❌ Forex fetch failed: {e}")
-    
+
     # Test crypto
     print("\n=== Testing fetch_finviz_crypto ===")
     try:
@@ -189,10 +191,11 @@ def test_finviz_scraper_directly():
     except Exception as e:
         print(f"❌ Crypto fetch failed: {e}")
 
+
 if __name__ == "__main__":
     print("Running comprehensive FinViz refactored implementation tests...")
     test_finviz_adapter()
     test_finviz_scraper_directly()
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("Testing completed!")
-    print("="*50)
+    print("=" * 50)

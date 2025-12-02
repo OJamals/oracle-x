@@ -32,6 +32,7 @@ from pathlib import Path
 # Async I/O libraries with fallbacks
 try:
     import aiofiles
+
     AIOFILES_AVAILABLE = True
 except ImportError:
     AIOFILES_AVAILABLE = False
@@ -39,6 +40,7 @@ except ImportError:
 
 try:
     import aiosqlite
+
     AIOSQLITE_AVAILABLE = True
 except ImportError:
     AIOSQLITE_AVAILABLE = False
@@ -46,6 +48,7 @@ except ImportError:
 
 try:
     import aiohttp
+
     AIOHTTP_AVAILABLE = True
 except ImportError:
     AIOHTTP_AVAILABLE = False
@@ -63,7 +66,9 @@ class AsyncFileManager:
 
     def __init__(self):
         if not AIOFILES_AVAILABLE:
-            logger.warning("aiofiles not available, falling back to sync file operations")
+            logger.warning(
+                "aiofiles not available, falling back to sync file operations"
+            )
             self.async_available = False
         else:
             self.async_available = True
@@ -74,14 +79,16 @@ class AsyncFileManager:
             return self._read_json_sync(file_path)
 
         try:
-            async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
+            async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
                 content = await f.read()
                 return json.loads(content)
         except Exception as e:
             logger.error(f"Failed to read JSON file {file_path}: {e}")
             return None
 
-    async def write_json(self, file_path: Union[str, Path], data: Dict[str, Any], indent: int = 2) -> bool:
+    async def write_json(
+        self, file_path: Union[str, Path], data: Dict[str, Any], indent: int = 2
+    ) -> bool:
         """Write JSON file asynchronously"""
         if not self.async_available or aiofiles is None:
             return self._write_json_sync(file_path, data, indent)
@@ -90,7 +97,7 @@ class AsyncFileManager:
             # Ensure directory exists
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-            async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
                 content = json.dumps(data, indent=indent, default=str)
                 await f.write(content)
             return True
@@ -104,7 +111,7 @@ class AsyncFileManager:
             return self._read_text_sync(file_path)
 
         try:
-            async with aiofiles.open(file_path, 'r', encoding='utf-8') as f:
+            async with aiofiles.open(file_path, "r", encoding="utf-8") as f:
                 return await f.read()
         except Exception as e:
             logger.error(f"Failed to read text file {file_path}: {e}")
@@ -119,7 +126,7 @@ class AsyncFileManager:
             # Ensure directory exists
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-            async with aiofiles.open(file_path, 'w', encoding='utf-8') as f:
+            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
                 await f.write(content)
             return True
         except Exception as e:
@@ -130,17 +137,19 @@ class AsyncFileManager:
     def _read_json_sync(self, file_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
         """Sync fallback for reading JSON"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
         except Exception as e:
             logger.error(f"Failed to read JSON file {file_path}: {e}")
             return None
 
-    def _write_json_sync(self, file_path: Union[str, Path], data: Dict[str, Any], indent: int = 2) -> bool:
+    def _write_json_sync(
+        self, file_path: Union[str, Path], data: Dict[str, Any], indent: int = 2
+    ) -> bool:
         """Sync fallback for writing JSON"""
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, indent=indent, default=str)
             return True
         except Exception as e:
@@ -150,7 +159,7 @@ class AsyncFileManager:
     def _read_text_sync(self, file_path: Union[str, Path]) -> Optional[str]:
         """Sync fallback for reading text"""
         try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(file_path, "r", encoding="utf-8") as f:
                 return f.read()
         except Exception as e:
             logger.error(f"Failed to read text file {file_path}: {e}")
@@ -160,7 +169,7 @@ class AsyncFileManager:
         """Sync fallback for writing text"""
         try:
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, 'w', encoding='utf-8') as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 f.write(content)
             return True
         except Exception as e:
@@ -174,7 +183,9 @@ class AsyncDatabaseManager:
     def __init__(self, db_path: str):
         self.db_path = db_path
         if not AIOSQLITE_AVAILABLE:
-            logger.warning("aiosqlite not available, falling back to sync database operations")
+            logger.warning(
+                "aiosqlite not available, falling back to sync database operations"
+            )
             self.async_available = False
         else:
             self.async_available = True
@@ -197,7 +208,9 @@ class AsyncDatabaseManager:
         finally:
             await conn.close()
 
-    async def execute_query(self, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
+    async def execute_query(
+        self, query: str, params: tuple = ()
+    ) -> List[Dict[str, Any]]:
         """Execute SELECT query and return results as list of dicts"""
         if not self.async_available or aiosqlite is None:
             return self._execute_query_sync(query, params)
@@ -245,7 +258,9 @@ class AsyncDatabaseManager:
                 return False
 
     # Sync fallback methods
-    def _execute_query_sync(self, query: str, params: tuple = ()) -> List[Dict[str, Any]]:
+    def _execute_query_sync(
+        self, query: str, params: tuple = ()
+    ) -> List[Dict[str, Any]]:
         """Sync fallback for SELECT queries"""
         conn = sqlite3.connect(self.db_path)
         try:
@@ -299,7 +314,9 @@ class AsyncHTTPClient:
     def __init__(self, timeout: int = 30):
         self.timeout = timeout
         if not AIOHTTP_AVAILABLE:
-            logger.warning("aiohttp not available, falling back to sync HTTP operations")
+            logger.warning(
+                "aiohttp not available, falling back to sync HTTP operations"
+            )
             self.async_available = False
         else:
             self.async_available = True
@@ -307,23 +324,34 @@ class AsyncHTTPClient:
 
     async def __aenter__(self):
         if self.async_available and aiohttp is not None:
-            self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout))
+            self._session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(total=self.timeout)
+            )
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self._session:
             await self._session.close()
 
-    async def get(self, url: str, headers: Optional[Dict[str, str]] = None, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    async def get(
+        self,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Async GET request"""
         if not self.async_available or aiohttp is None:
             return self._get_sync(url, headers, params)
 
         if not self._session:
-            raise RuntimeError("HTTP client not properly initialized. Use 'async with' context manager.")
+            raise RuntimeError(
+                "HTTP client not properly initialized. Use 'async with' context manager."
+            )
 
         try:
-            async with self._session.get(url, headers=headers, params=params) as response:
+            async with self._session.get(
+                url, headers=headers, params=params
+            ) as response:
                 if response.status == 200:
                     return await response.json()
                 else:
@@ -333,13 +361,20 @@ class AsyncHTTPClient:
             logger.error(f"HTTP GET error for {url}: {e}")
             return None
 
-    async def post(self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Optional[Dict[str, Any]]:
+    async def post(
+        self,
+        url: str,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Async POST request"""
         if not self.async_available or aiohttp is None:
             return self._post_sync(url, data, headers)
 
         if not self._session:
-            raise RuntimeError("HTTP client not properly initialized. Use 'async with' context manager.")
+            raise RuntimeError(
+                "HTTP client not properly initialized. Use 'async with' context manager."
+            )
 
         try:
             async with self._session.post(url, json=data, headers=headers) as response:
@@ -353,10 +388,17 @@ class AsyncHTTPClient:
             return None
 
     # Sync fallback methods
-    def _get_sync(self, url: str, headers: Optional[Dict[str, str]] = None, params: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+    def _get_sync(
+        self,
+        url: str,
+        headers: Optional[Dict[str, str]] = None,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Sync fallback for GET requests"""
         try:
-            response = requests.get(url, headers=headers, params=params, timeout=self.timeout)
+            response = requests.get(
+                url, headers=headers, params=params, timeout=self.timeout
+            )
             if response.status_code == 200:
                 return response.json()
             else:
@@ -366,10 +408,17 @@ class AsyncHTTPClient:
             logger.error(f"HTTP GET error for {url}: {e}")
             return None
 
-    def _post_sync(self, url: str, data: Optional[Dict[str, Any]] = None, headers: Optional[Dict[str, str]] = None) -> Optional[Dict[str, Any]]:
+    def _post_sync(
+        self,
+        url: str,
+        data: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, str]] = None,
+    ) -> Optional[Dict[str, Any]]:
         """Sync fallback for POST requests"""
         try:
-            response = requests.post(url, json=data, headers=headers, timeout=self.timeout)
+            response = requests.post(
+                url, json=data, headers=headers, timeout=self.timeout
+            )
             if response.status_code in [200, 201]:
                 return response.json()
             else:
@@ -398,35 +447,47 @@ class AsyncIOManager:
         async with self.http:
             yield self.http
 
-    async def concurrent_http_requests(self, requests_list: List[Dict[str, Any]]) -> List[Any]:
+    async def concurrent_http_requests(
+        self, requests_list: List[Dict[str, Any]]
+    ) -> List[Any]:
         """Execute multiple HTTP requests concurrently"""
         async with self.http:
             tasks = []
             for req in requests_list:
-                if req['method'].upper() == 'GET':
-                    task = self.http.get(req['url'], req.get('headers'), req.get('params'))
-                elif req['method'].upper() == 'POST':
-                    task = self.http.post(req['url'], req.get('data'), req.get('headers'))
+                if req["method"].upper() == "GET":
+                    task = self.http.get(
+                        req["url"], req.get("headers"), req.get("params")
+                    )
+                elif req["method"].upper() == "POST":
+                    task = self.http.post(
+                        req["url"], req.get("data"), req.get("headers")
+                    )
                 else:
-                    task = asyncio.create_task(asyncio.sleep(0))  # No-op for unsupported methods
+                    task = asyncio.create_task(
+                        asyncio.sleep(0)
+                    )  # No-op for unsupported methods
                 tasks.append(task)
 
             return await asyncio.gather(*tasks, return_exceptions=True)
 
-    async def concurrent_file_operations(self, operations: List[Dict[str, Any]]) -> List[bool]:
+    async def concurrent_file_operations(
+        self, operations: List[Dict[str, Any]]
+    ) -> List[bool]:
         """Execute multiple file operations concurrently"""
         tasks = []
         for op in operations:
-            if op['type'] == 'read_json':
-                task = self.file.read_json(op['path'])
-            elif op['type'] == 'write_json':
-                task = self.file.write_json(op['path'], op['data'], op.get('indent', 2))
-            elif op['type'] == 'read_text':
-                task = self.file.read_text(op['path'])
-            elif op['type'] == 'write_text':
-                task = self.file.write_text(op['path'], op['content'])
+            if op["type"] == "read_json":
+                task = self.file.read_json(op["path"])
+            elif op["type"] == "write_json":
+                task = self.file.write_json(op["path"], op["data"], op.get("indent", 2))
+            elif op["type"] == "read_text":
+                task = self.file.read_text(op["path"])
+            elif op["type"] == "write_text":
+                task = self.file.write_text(op["path"], op["content"])
             else:
-                task = asyncio.create_task(asyncio.sleep(0))  # No-op for unsupported operations
+                task = asyncio.create_task(
+                    asyncio.sleep(0)
+                )  # No-op for unsupported operations
             tasks.append(task)
 
         results = await asyncio.gather(*tasks, return_exceptions=True)

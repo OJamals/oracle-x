@@ -24,6 +24,7 @@ def main() -> int:
     os.environ.setdefault("PYTHONWARNINGS", "ignore")
     try:
         import logging
+
         logging.getLogger().setLevel(logging.ERROR)
         logging.getLogger("httpx").setLevel(logging.ERROR)
         logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -36,7 +37,9 @@ def main() -> int:
 
     # Window: ~2y
     try:
-        start = (dt.date.today().replace(day=1) - dt.timedelta(days=730)).strftime("%Y-%m-%d")
+        start = (dt.date.today().replace(day=1) - dt.timedelta(days=730)).strftime(
+            "%Y-%m-%d"
+        )
     except Exception:
         start = (dt.date.today() - dt.timedelta(days=730)).strftime("%Y-%m-%d")
     end = dt.date.today().strftime("%Y-%m-%d")
@@ -55,7 +58,11 @@ def main() -> int:
 
         # Chronological order and unique dates
         try:
-            df = df.sort_values("date").drop_duplicates(subset=["date"], keep="last").reset_index(drop=True)
+            df = (
+                df.sort_values("date")
+                .drop_duplicates(subset=["date"], keep="last")
+                .reset_index(drop=True)
+            )
         except Exception:
             pass
 
@@ -75,7 +82,9 @@ def main() -> int:
         end_open = _num(df.loc[df.index[-1], "open"])
         end_close = _num(df.loc[df.index[-1], "close"])
 
-        out[sym] = f"{first_dt} o:{start_open}, c:{start_close} - {last_dt} o:{end_open}, c:{end_close}"
+        out[sym] = (
+            f"{first_dt} o:{start_open}, c:{start_close} - {last_dt} o:{end_open}, c:{end_close}"
+        )
 
     # Output: { "SYMBOL": "$startdate o:$open, c:$close - $enddate o:$open, c:$close", ... }
     print(json.dumps(out, separators=(",", ":")))

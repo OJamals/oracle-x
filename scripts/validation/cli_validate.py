@@ -11,9 +11,12 @@ Do not add any heavy logic here; keep behavior centralized in tests/cli_validate
 
 from typing import List, Optional
 
+
 def main(argv: Optional[List[str]] = None) -> None:
     from tests.cli_validate import main as _main
+
     _main(argv)
+
 
 if __name__ == "__main__":
     main()

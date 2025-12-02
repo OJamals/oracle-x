@@ -25,37 +25,33 @@ Examples:
   python main.py --mode optimized          # Run optimized pipeline
   python main.py --mode advanced           # Run advanced pipeline
   python main.py --config config.json     # Run with custom config
-        """
+        """,
     )
-    
+
     parser.add_argument(
-        "--mode", 
+        "--mode",
         choices=["standard", "optimized", "advanced"],
         default="standard",
-        help="Pipeline execution mode (default: standard)"
-    )  
-    parser.add_argument(
-        "--config",
-        type=str,
-        help="Path to configuration file (JSON)"
+        help="Pipeline execution mode (default: standard)",
     )
-    
+    parser.add_argument("--config", type=str, help="Path to configuration file (JSON)")
+
     args = parser.parse_args()
-    
+
     # Load config if provided
     config = {}
     if args.config and Path(args.config).exists():
         try:
-            with open(args.config, 'r') as f:
+            with open(args.config, "r") as f:
                 config = json.load(f)
             print(f"✅ Loaded configuration from {args.config}")
         except Exception as e:
             print(f"⚠️  Failed to load config: {e}")
-    
+
     # Initialize and run pipeline
     pipeline = OracleXPipeline(mode=args.mode, config=config)
     result = pipeline.run()
-    
+
     if result:
         print(f"\n🎉 Oracle-X {args.mode.title()} Pipeline completed successfully!")
         print(f"Results saved to: {result}")

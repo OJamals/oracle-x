@@ -10,6 +10,7 @@ All public functions mirror the original signatures but forward to the Chroma
 implementation.  Results are normalised into ``QdrantLikeHit`` instances so
 existing code that expects ``hit.payload`` style access continues to work.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -95,7 +96,9 @@ def query_similar(text: str, top_k: int = 3) -> List[QdrantLikeHit]:
     return _convert(results)
 
 
-def batch_query_similar(texts: Sequence[str], top_k: int = 3) -> List[List[QdrantLikeHit]]:
+def batch_query_similar(
+    texts: Sequence[str], top_k: int = 3
+) -> List[List[QdrantLikeHit]]:
     """Batch variant mirroring the Qdrant API."""
 
     batched_results = _local.batch_query_similar(list(texts), top_k)

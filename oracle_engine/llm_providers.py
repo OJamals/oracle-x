@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 
 class ProviderType(Enum):
     """Supported LLM providers"""
+
     OPENAI = "openai"
     ANTHROPIC = "anthropic"
     GOOGLE = "google"
@@ -37,10 +38,11 @@ class ProviderType(Enum):
 
 class ModelCapability(Enum):
     """Model capabilities for intelligent selection"""
-    FAST = "fast"           # Quick responses, lower quality
-    BALANCED = "balanced"   # Good balance of speed and quality
+
+    FAST = "fast"  # Quick responses, lower quality
+    BALANCED = "balanced"  # Good balance of speed and quality
     HIGH_QUALITY = "high_quality"  # Best quality, slower
-    CREATIVE = "creative"   # Good for creative tasks
+    CREATIVE = "creative"  # Good for creative tasks
     ANALYTICAL = "analytical"  # Good for analysis tasks
     LONG_CONTEXT = "long_context"  # Can handle long contexts
 
@@ -48,6 +50,7 @@ class ModelCapability(Enum):
 @dataclass
 class ModelInfo:
     """Information about a specific model"""
+
     name: str
     provider: ProviderType
     capabilities: List[ModelCapability]
@@ -61,17 +64,19 @@ class ModelInfo:
 @dataclass
 class ProviderConfig:
     """Configuration for a specific provider"""
+
     api_key: str
     base_url: Optional[str] = None
     timeout: int = 30
     max_retries: int = 3
     rate_limit_requests: int = 60  # requests per minute
-    rate_limit_window: int = 60   # seconds
+    rate_limit_window: int = 60  # seconds
 
 
 @dataclass
 class LLMRequest:
     """Request structure for LLM calls"""
+
     messages: List[Dict[str, str]]
     max_tokens: Optional[int] = None
     temperature: float = 0.7
@@ -83,6 +88,7 @@ class LLMRequest:
 @dataclass
 class LLMResponse:
     """Response structure from LLM calls"""
+
     content: str
     model_used: str
     provider_used: ProviderType
@@ -128,7 +134,7 @@ class BaseLLMProvider(ABC):
                 cost=0.0,
                 response_time=time.time() - start_time,
                 success=False,
-                error_message=str(e)
+                error_message=str(e),
             )
             self._log_request(response)
             return response
@@ -163,7 +169,7 @@ class BaseLLMProvider(ABC):
             "response_time": response.response_time,
             "cost": response.cost,
             "tokens_used": response.tokens_used,
-            "error_message": response.error_message
+            "error_message": response.error_message,
         }
         self.request_history.append(log_entry)
 
@@ -182,7 +188,7 @@ class OpenAIProvider(BaseLLMProvider):
             client = OpenAI(
                 api_key=self.config.api_key,
                 base_url=self.config.base_url or "https://api.openai.com/v1",
-                timeout=self.config.timeout
+                timeout=self.config.timeout,
             )
 
             max_tokens = request.max_tokens or min(4096, model.max_tokens)
@@ -191,28 +197,38 @@ class OpenAIProvider(BaseLLMProvider):
                 model=model.name,
                 messages=request.messages,
                 max_tokens=max_tokens,
-                temperature=request.temperature
+                temperature=request.temperature,
             )
 
             content = response.choices[0].message.content or ""
 
             # Estimate token usage if not provided
-            input_tokens = response.usage.prompt_tokens if response.usage else len(str(request.messages)) // 4
-            output_tokens = response.usage.completion_tokens if response.usage else len(content) // 4
-
-            cost = (
-                (input_tokens / 1000) * model.cost_per_1k_input +
-                (output_tokens / 1000) * model.cost_per_1k_output
+            input_tokens = (
+                response.usage.prompt_tokens
+                if response.usage
+                else len(str(request.messages)) // 4
             )
+            output_tokens = (
+                response.usage.completion_tokens
+                if response.usage
+                else len(content) // 4
+            )
+
+            cost = (input_tokens / 1000) * model.cost_per_1k_input + (
+                output_tokens / 1000
+            ) * model.cost_per_1k_output
 
             return LLMResponse(
                 content=content,
                 model_used=model.name,
                 provider_used=ProviderType.OPENAI,
-                tokens_used={"input_tokens": input_tokens, "output_tokens": output_tokens},
+                tokens_used={
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                },
                 cost=cost,
                 response_time=0.0,  # Will be set by parent
-                success=True
+                success=True,
             )
 
         except Exception as e:
@@ -227,8 +243,7 @@ class AnthropicProvider(BaseLLMProvider):
             import anthropic
 
             client = anthropic.Anthropic(
-                api_key=self.config.api_key,
-                timeout=self.config.timeout
+                api_key=self.config.api_key, timeout=self.config.timeout
             )
 
             # Convert OpenAI format to Anthropic format
@@ -239,10 +254,9 @@ class AnthropicProvider(BaseLLMProvider):
                 if msg["role"] == "system":
                     system_message = msg["content"]
                 else:
-                    anthropic_messages.append({
-                        "role": msg["role"],
-                        "content": msg["content"]
-                    })
+                    anthropic_messages.append(
+                        {"role": msg["role"], "content": msg["content"]}
+                    )
 
             max_tokens = request.max_tokens or min(4096, model.max_tokens)
 
@@ -251,7 +265,7 @@ class AnthropicProvider(BaseLLMProvider):
                 messages=anthropic_messages,
                 system=system_message,
                 max_tokens=max_tokens,
-                temperature=request.temperature
+                temperature=request.temperature,
             )
 
             content = response.content[0].text if response.content else ""
@@ -260,19 +274,21 @@ class AnthropicProvider(BaseLLMProvider):
             input_tokens = len(str(request.messages)) // 4
             output_tokens = len(content) // 4
 
-            cost = (
-                (input_tokens / 1000) * model.cost_per_1k_input +
-                (output_tokens / 1000) * model.cost_per_1k_output
-            )
+            cost = (input_tokens / 1000) * model.cost_per_1k_input + (
+                output_tokens / 1000
+            ) * model.cost_per_1k_output
 
             return LLMResponse(
                 content=content,
                 model_used=model.name,
                 provider_used=ProviderType.ANTHROPIC,
-                tokens_used={"input_tokens": input_tokens, "output_tokens": output_tokens},
+                tokens_used={
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                },
                 cost=cost,
                 response_time=0.0,  # Will be set by parent
-                success=True
+                success=True,
             )
 
         except Exception as e:
@@ -301,9 +317,8 @@ class GoogleProvider(BaseLLMProvider):
             response = google_model.generate_content(
                 prompt,
                 generation_config=genai.types.GenerationConfig(
-                    max_output_tokens=max_tokens,
-                    temperature=request.temperature
-                )
+                    max_output_tokens=max_tokens, temperature=request.temperature
+                ),
             )
 
             content = response.text if response.text else ""
@@ -312,19 +327,21 @@ class GoogleProvider(BaseLLMProvider):
             input_tokens = len(prompt) // 4
             output_tokens = len(content) // 4
 
-            cost = (
-                (input_tokens / 1000) * model.cost_per_1k_input +
-                (output_tokens / 1000) * model.cost_per_1k_output
-            )
+            cost = (input_tokens / 1000) * model.cost_per_1k_input + (
+                output_tokens / 1000
+            ) * model.cost_per_1k_output
 
             return LLMResponse(
                 content=content,
                 model_used=model.name,
                 provider_used=ProviderType.GOOGLE,
-                tokens_used={"input_tokens": input_tokens, "output_tokens": output_tokens},
+                tokens_used={
+                    "input_tokens": input_tokens,
+                    "output_tokens": output_tokens,
+                },
                 cost=cost,
                 response_time=0.0,  # Will be set by parent
-                success=True
+                success=True,
             )
 
         except Exception as e:
@@ -345,13 +362,18 @@ class LLMProviderManager:
         for model in provider.models:
             self.models[model.name] = model
 
-    def get_available_models(self, capabilities: Optional[List[ModelCapability]] = None) -> List[ModelInfo]:
+    def get_available_models(
+        self, capabilities: Optional[List[ModelCapability]] = None
+    ) -> List[ModelInfo]:
         """Get available models, optionally filtered by capabilities"""
-        available_models = [model for model in self.models.values() if model.is_available]
+        available_models = [
+            model for model in self.models.values() if model.is_available
+        ]
 
         if capabilities:
             available_models = [
-                model for model in available_models
+                model
+                for model in available_models
                 if any(cap in model.capabilities for cap in capabilities)
             ]
 
@@ -363,7 +385,9 @@ class LLMProviderManager:
 
         if not available_models:
             # Fallback to any available model
-            available_models = [model for model in self.models.values() if model.is_available]
+            available_models = [
+                model for model in self.models.values() if model.is_available
+            ]
             if not available_models:
                 raise Exception("No models available")
 
@@ -373,7 +397,9 @@ class LLMProviderManager:
 
         # Prefer higher quality models for analytical tasks
         if request.task_type == "analytical":
-            available_models.sort(key=lambda x: ModelCapability.HIGH_QUALITY not in x.capabilities)
+            available_models.sort(
+                key=lambda x: ModelCapability.HIGH_QUALITY not in x.capabilities
+            )
 
         return available_models[0]
 
@@ -416,7 +442,7 @@ class LLMProviderManager:
             cost=0.0,
             response_time=0.0,
             success=False,
-            error_message=f"All providers failed. Last error: {last_error}"
+            error_message=f"All providers failed. Last error: {last_error}",
         )
 
     def get_analytics(self) -> Dict[str, Any]:
@@ -428,7 +454,7 @@ class LLMProviderManager:
             "total_cost": 0.0,
             "average_response_time": 0.0,
             "provider_stats": {},
-            "model_stats": {}
+            "model_stats": {},
         }
 
         for provider in self.providers.values():
@@ -437,7 +463,7 @@ class LLMProviderManager:
                 "successful": 0,
                 "failed": 0,
                 "total_cost": 0.0,
-                "average_response_time": 0.0
+                "average_response_time": 0.0,
             }
 
             for log_entry in provider.request_history:
@@ -455,18 +481,25 @@ class LLMProviderManager:
                 provider_stats["total_cost"] += log_entry["cost"]
 
             if provider_stats["requests"] > 0:
-                provider_stats["average_response_time"] = sum(
-                    log_entry["response_time"] for log_entry in provider.request_history
-                ) / provider_stats["requests"]
+                provider_stats["average_response_time"] = (
+                    sum(
+                        log_entry["response_time"]
+                        for log_entry in provider.request_history
+                    )
+                    / provider_stats["requests"]
+                )
 
             analytics["provider_stats"][provider.__class__.__name__] = provider_stats
 
         if analytics["total_requests"] > 0:
-            analytics["average_response_time"] = sum(
-                log_entry["response_time"]
-                for provider in self.providers.values()
-                for log_entry in provider.request_history
-            ) / analytics["total_requests"]
+            analytics["average_response_time"] = (
+                sum(
+                    log_entry["response_time"]
+                    for provider in self.providers.values()
+                    for log_entry in provider.request_history
+                )
+                / analytics["total_requests"]
+            )
 
         return analytics
 
@@ -489,14 +522,46 @@ def initialize_providers():
     if openai_key:
         openai_config = ProviderConfig(
             api_key=openai_key,
-            base_url=os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+            base_url=os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1"),
         )
 
         openai_models = [
-            ModelInfo("gpt-4o", ProviderType.OPENAI, [ModelCapability.BALANCED, ModelCapability.ANALYTICAL], 0.005, 0.015, 4096, 128000),
-            ModelInfo("gpt-4o-mini", ProviderType.OPENAI, [ModelCapability.FAST, ModelCapability.BALANCED], 0.00015, 0.0006, 4096, 128000),
-            ModelInfo("gpt-4", ProviderType.OPENAI, [ModelCapability.HIGH_QUALITY, ModelCapability.ANALYTICAL], 0.03, 0.06, 4096, 8192),
-            ModelInfo("gpt-3.5-turbo", ProviderType.OPENAI, [ModelCapability.FAST], 0.0005, 0.0015, 4096, 16385)
+            ModelInfo(
+                "gpt-4o",
+                ProviderType.OPENAI,
+                [ModelCapability.BALANCED, ModelCapability.ANALYTICAL],
+                0.005,
+                0.015,
+                4096,
+                128000,
+            ),
+            ModelInfo(
+                "gpt-4o-mini",
+                ProviderType.OPENAI,
+                [ModelCapability.FAST, ModelCapability.BALANCED],
+                0.00015,
+                0.0006,
+                4096,
+                128000,
+            ),
+            ModelInfo(
+                "gpt-4",
+                ProviderType.OPENAI,
+                [ModelCapability.HIGH_QUALITY, ModelCapability.ANALYTICAL],
+                0.03,
+                0.06,
+                4096,
+                8192,
+            ),
+            ModelInfo(
+                "gpt-3.5-turbo",
+                ProviderType.OPENAI,
+                [ModelCapability.FAST],
+                0.0005,
+                0.0015,
+                4096,
+                16385,
+            ),
         ]
 
         openai_provider = OpenAIProvider(openai_config, openai_models)
@@ -506,14 +571,41 @@ def initialize_providers():
     anthropic_key = os.getenv("ANTHROPIC_API_KEY")
     if anthropic_key:
         anthropic_config = ProviderConfig(
-            api_key=anthropic_key,
-            base_url="https://api.anthropic.com"
+            api_key=anthropic_key, base_url="https://api.anthropic.com"
         )
 
         anthropic_models = [
-            ModelInfo("claude-3-opus-20240229", ProviderType.ANTHROPIC, [ModelCapability.HIGH_QUALITY, ModelCapability.ANALYTICAL, ModelCapability.LONG_CONTEXT], 0.015, 0.075, 4096, 200000),
-            ModelInfo("claude-3-sonnet-20240229", ProviderType.ANTHROPIC, [ModelCapability.BALANCED, ModelCapability.ANALYTICAL], 0.003, 0.015, 4096, 200000),
-            ModelInfo("claude-3-haiku-20240307", ProviderType.ANTHROPIC, [ModelCapability.FAST, ModelCapability.BALANCED], 0.00025, 0.00125, 4096, 200000)
+            ModelInfo(
+                "claude-3-opus-20240229",
+                ProviderType.ANTHROPIC,
+                [
+                    ModelCapability.HIGH_QUALITY,
+                    ModelCapability.ANALYTICAL,
+                    ModelCapability.LONG_CONTEXT,
+                ],
+                0.015,
+                0.075,
+                4096,
+                200000,
+            ),
+            ModelInfo(
+                "claude-3-sonnet-20240229",
+                ProviderType.ANTHROPIC,
+                [ModelCapability.BALANCED, ModelCapability.ANALYTICAL],
+                0.003,
+                0.015,
+                4096,
+                200000,
+            ),
+            ModelInfo(
+                "claude-3-haiku-20240307",
+                ProviderType.ANTHROPIC,
+                [ModelCapability.FAST, ModelCapability.BALANCED],
+                0.00025,
+                0.00125,
+                4096,
+                200000,
+            ),
         ]
 
         anthropic_provider = AnthropicProvider(anthropic_config, anthropic_models)
@@ -523,13 +615,32 @@ def initialize_providers():
     google_key = os.getenv("GOOGLE_API_KEY")
     if google_key:
         google_config = ProviderConfig(
-            api_key=google_key,
-            base_url="https://generativelanguage.googleapis.com"
+            api_key=google_key, base_url="https://generativelanguage.googleapis.com"
         )
 
         google_models = [
-            ModelInfo("gemini-1.5-pro", ProviderType.GOOGLE, [ModelCapability.HIGH_QUALITY, ModelCapability.ANALYTICAL, ModelCapability.LONG_CONTEXT], 0.00125, 0.005, 8192, 2097152),
-            ModelInfo("gemini-1.5-flash", ProviderType.GOOGLE, [ModelCapability.FAST, ModelCapability.BALANCED], 0.000075, 0.0003, 8192, 1048576)
+            ModelInfo(
+                "gemini-1.5-pro",
+                ProviderType.GOOGLE,
+                [
+                    ModelCapability.HIGH_QUALITY,
+                    ModelCapability.ANALYTICAL,
+                    ModelCapability.LONG_CONTEXT,
+                ],
+                0.00125,
+                0.005,
+                8192,
+                2097152,
+            ),
+            ModelInfo(
+                "gemini-1.5-flash",
+                ProviderType.GOOGLE,
+                [ModelCapability.FAST, ModelCapability.BALANCED],
+                0.000075,
+                0.0003,
+                8192,
+                1048576,
+            ),
         ]
 
         google_provider = GoogleProvider(google_config, google_models)

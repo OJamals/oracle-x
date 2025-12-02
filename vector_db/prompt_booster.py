@@ -37,7 +37,9 @@ def build_boosted_prompt(base_prompt: str, trade_thesis: str) -> str:
     return f"{base_prompt}\n\n{boost_text}"
 
 
-def batch_build_boosted_prompts(base_prompts: List[str], trade_theses: List[str]) -> List[str]:
+def batch_build_boosted_prompts(
+    base_prompts: List[str], trade_theses: List[str]
+) -> List[str]:
     """
     Batch version of build_boosted_prompt for multiple prompts/theses.
     Returns a list of boosted prompts.

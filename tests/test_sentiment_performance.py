@@ -15,7 +15,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from data_feeds.enhanced_sentiment_pipeline import get_enhanced_sentiment_pipeline
 
-def run_performance_test(symbols: List[str], num_iterations: int = 3, include_reddit: bool = True) -> Dict[str, Any]:
+
+def run_performance_test(
+    symbols: List[str], num_iterations: int = 3, include_reddit: bool = True
+) -> Dict[str, Any]:
     """
     Run comprehensive performance test for the sentiment pipeline
 
@@ -55,7 +58,9 @@ def run_performance_test(symbols: List[str], num_iterations: int = 3, include_re
 
             start_time = time.time()
             try:
-                result = pipeline.get_sentiment_analysis(symbol, include_reddit=include_reddit)
+                result = pipeline.get_sentiment_analysis(
+                    symbol, include_reddit=include_reddit
+                )
                 end_time = time.time()
                 processing_time = end_time - start_time
 
@@ -63,25 +68,29 @@ def run_performance_test(symbols: List[str], num_iterations: int = 3, include_re
                 all_times.append(processing_time)
 
                 # Show result summary
-                sources = result.get('sources_count', 0)
-                sentiment = result.get('overall_sentiment', 0.0)
-                confidence = result.get('confidence', 0.0)
-                cached = result.get('cached', False)
+                sources = result.get("sources_count", 0)
+                sentiment = result.get("overall_sentiment", 0.0)
+                confidence = result.get("confidence", 0.0)
+                cached = result.get("cached", False)
 
-                print(f"✅ {processing_time:.2f}s "
-                      f"({sources} sources, sentiment: {sentiment:.3f}, "
-                      f"confidence: {confidence:.3f})"
-                      f"{' [CACHED]' if cached else ''}")
+                print(
+                    f"✅ {processing_time:.2f}s "
+                    f"({sources} sources, sentiment: {sentiment:.3f}, "
+                    f"confidence: {confidence:.3f})"
+                    f"{' [CACHED]' if cached else ''}"
+                )
 
-                all_results.append({
-                    'symbol': symbol,
-                    'iteration': i + 1,
-                    'processing_time': processing_time,
-                    'sources_count': sources,
-                    'sentiment': sentiment,
-                    'confidence': confidence,
-                    'cached': cached
-                })
+                all_results.append(
+                    {
+                        "symbol": symbol,
+                        "iteration": i + 1,
+                        "processing_time": processing_time,
+                        "sources_count": sources,
+                        "sentiment": sentiment,
+                        "confidence": confidence,
+                        "cached": cached,
+                    }
+                )
 
             except Exception as e:
                 end_time = time.time()
@@ -91,19 +100,23 @@ def run_performance_test(symbols: List[str], num_iterations: int = 3, include_re
 
                 print(f"❌ {processing_time:.2f}s (Error: {e})")
 
-                all_results.append({
-                    'symbol': symbol,
-                    'iteration': i + 1,
-                    'processing_time': processing_time,
-                    'error': str(e)
-                })
+                all_results.append(
+                    {
+                        "symbol": symbol,
+                        "iteration": i + 1,
+                        "processing_time": processing_time,
+                        "error": str(e),
+                    }
+                )
 
         # Show symbol summary
         if symbol_times:
             avg_time = statistics.mean(symbol_times)
             min_time = min(symbol_times)
             max_time = max(symbol_times)
-            print(f"   📊 {symbol} Summary: Avg={avg_time:.2f}s, Min={min_time:.2f}s, Max={max_time:.2f}s")
+            print(
+                f"   📊 {symbol} Summary: Avg={avg_time:.2f}s, Min={min_time:.2f}s, Max={max_time:.2f}s"
+            )
             print()
 
     # Overall performance analysis
@@ -128,8 +141,12 @@ def run_performance_test(symbols: List[str], num_iterations: int = 3, include_re
         target_under_1s = sum(1 for t in all_times if t < 1.0)
 
         print(f"🎯 Target Achievement:")
-        print(f"   • Under 2 seconds: {target_under_2s}/{len(all_times)} ({target_under_2s/len(all_times)*100:.1f}%)")
-        print(f"   • Under 1 second: {target_under_1s}/{len(all_times)} ({target_under_1s/len(all_times)*100:.1f}%)")
+        print(
+            f"   • Under 2 seconds: {target_under_2s}/{len(all_times)} ({target_under_2s/len(all_times)*100:.1f}%)"
+        )
+        print(
+            f"   • Under 1 second: {target_under_1s}/{len(all_times)} ({target_under_1s/len(all_times)*100:.1f}%)"
+        )
 
         # Performance rating
         if avg_time < 1.0:
@@ -149,7 +166,9 @@ def run_performance_test(symbols: List[str], num_iterations: int = 3, include_re
             color = "❌"
 
         print(f"   • Performance Rating: {color} {rating}")
-        print(f"   • Improvement from 6+ seconds: {((6.0 - avg_time) / 6.0) * 100:.1f}% faster")
+        print(
+            f"   • Improvement from 6+ seconds: {((6.0 - avg_time) / 6.0) * 100:.1f}% faster"
+        )
 
         # Success criteria
         success = avg_time < 2.0
@@ -164,17 +183,18 @@ def run_performance_test(symbols: List[str], num_iterations: int = 3, include_re
     print(f"   • Performance Stats: {health['performance_stats']}")
 
     return {
-        'results': all_results,
-        'performance_stats': {
-            'average_time': statistics.mean(all_times) if all_times else 0,
-            'median_time': statistics.median(all_times) if all_times else 0,
-            'min_time': min(all_times) if all_times else 0,
-            'max_time': max(all_times) if all_times else 0,
-            'total_requests': len(all_times),
-            'target_met': statistics.mean(all_times) < 2.0 if all_times else False
+        "results": all_results,
+        "performance_stats": {
+            "average_time": statistics.mean(all_times) if all_times else 0,
+            "median_time": statistics.median(all_times) if all_times else 0,
+            "min_time": min(all_times) if all_times else 0,
+            "max_time": max(all_times) if all_times else 0,
+            "total_requests": len(all_times),
+            "target_met": statistics.mean(all_times) < 2.0 if all_times else False,
         },
-        'pipeline_health': health
+        "pipeline_health": health,
     }
+
 
 def main():
     """Main function to run performance tests"""
@@ -191,13 +211,12 @@ def main():
 
     # Run the performance test
     results = run_performance_test(
-        symbols=test_symbols,
-        num_iterations=3,
-        include_reddit=True
+        symbols=test_symbols, num_iterations=3, include_reddit=True
     )
 
     # Save results to file
     import json
+
     with open("sentiment_performance_results.json", "w") as f:
         json.dump(results, f, indent=2, default=str)
 
@@ -205,13 +224,18 @@ def main():
     print("📄 Results saved to: sentiment_performance_results.json")
 
     # Final summary
-    stats = results['performance_stats']
-    if stats['target_met']:
-        print("🎉 SUCCESS: Performance target achieved! Processing time reduced to <2 seconds.")
+    stats = results["performance_stats"]
+    if stats["target_met"]:
+        print(
+            "🎉 SUCCESS: Performance target achieved! Processing time reduced to <2 seconds."
+        )
     else:
-        print(f"⚠️  WARNING: Target not fully achieved. Average time: {stats['average_time']:.2f}s")
+        print(
+            f"⚠️  WARNING: Target not fully achieved. Average time: {stats['average_time']:.2f}s"
+        )
 
-    return stats['target_met']
+    return stats["target_met"]
+
 
 if __name__ == "__main__":
     success = main()

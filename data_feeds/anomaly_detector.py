@@ -2,7 +2,10 @@ import pandas as pd
 import numpy as np
 from typing import List, Dict, Union
 
-def _as_numeric_series(signal: Union[pd.Series, pd.DataFrame, List[Dict], List[float], List[int]]) -> pd.Series:
+
+def _as_numeric_series(
+    signal: Union[pd.Series, pd.DataFrame, List[Dict], List[float], List[int]],
+) -> pd.Series:
     """
     Normalize input into a numeric pandas Series for anomaly detection.
     Accepts:
@@ -15,38 +18,44 @@ def _as_numeric_series(signal: Union[pd.Series, pd.DataFrame, List[Dict], List[f
     """
     # Series
     if isinstance(signal, pd.Series):
-        return pd.to_numeric(signal, errors='coerce').dropna()
+        return pd.to_numeric(signal, errors="coerce").dropna()
 
     # DataFrame
     if isinstance(signal, pd.DataFrame):
-        for col in ('volume', 'Volume'):
+        for col in ("volume", "Volume"):
             if col in signal.columns:
-                return pd.to_numeric(signal[col], errors='coerce').dropna()
+                return pd.to_numeric(signal[col], errors="coerce").dropna()
         numeric_cols = signal.select_dtypes(include=[np.number]).columns.tolist()
         if len(numeric_cols) == 1:
-            return pd.to_numeric(signal[numeric_cols[0]], errors='coerce').dropna()
-        raise ValueError("No suitable numeric series found in DataFrame (expected 'volume'/'Volume' or a single numeric column).")
+            return pd.to_numeric(signal[numeric_cols[0]], errors="coerce").dropna()
+        raise ValueError(
+            "No suitable numeric series found in DataFrame (expected 'volume'/'Volume' or a single numeric column)."
+        )
 
     # List[Dict]
     if isinstance(signal, list) and signal and isinstance(signal[0], dict):
-        if 'volume' in signal[0] or 'Volume' in signal[0]:
+        if "volume" in signal[0] or "Volume" in signal[0]:
             vals = []
             for item in signal:
                 if isinstance(item, dict):
-                    vals.append(item.get('volume', item.get('Volume')))
+                    vals.append(item.get("volume", item.get("Volume")))
                 else:
                     # Skip non-dict items defensively
                     continue
-            return pd.to_numeric(pd.Series(vals), errors='coerce').dropna()
+            return pd.to_numeric(pd.Series(vals), errors="coerce").dropna()
         raise ValueError("List[Dict] provided but no 'volume'/'Volume' key found.")
 
     # List[numeric]
     if isinstance(signal, list):
-        return pd.to_numeric(pd.Series(signal), errors='coerce').dropna()
+        return pd.to_numeric(pd.Series(signal), errors="coerce").dropna()
 
     raise TypeError("Unsupported input type for anomaly detection")
 
-def detect_price_volume_anomalies(signal: Union[pd.Series, pd.DataFrame, List[Dict], List[float], List[int]], threshold: float = 3.0) -> List[int]:
+
+def detect_price_volume_anomalies(
+    signal: Union[pd.Series, pd.DataFrame, List[Dict], List[float], List[int]],
+    threshold: float = 3.0,
+) -> List[int]:
     """
     Detect anomalies using Z-score method on a numeric time series.
 
@@ -60,7 +69,9 @@ def detect_price_volume_anomalies(signal: Union[pd.Series, pd.DataFrame, List[Di
     s = _as_numeric_series(signal)
     if len(s) < 3:  # Reduced from 5 to 3 to handle series with NaN values
         return []
-    std = s.std(ddof=0)  # Use population standard deviation for more sensitive anomaly detection
+    std = s.std(
+        ddof=0
+    )  # Use population standard deviation for more sensitive anomaly detection
     if std == 0 or np.isnan(std):
         return []
     z = ((s - s.mean()) / std).abs()

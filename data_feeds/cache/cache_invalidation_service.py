@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class InvalidationRule:
     """Rule for cache invalidation"""
+
     name: str
     data_type: str
     max_age_seconds: int
@@ -31,6 +32,7 @@ class InvalidationRule:
 @dataclass
 class InvalidationStats:
     """Statistics for cache invalidation operations"""
+
     total_invalidated: int = 0
     rules_executed: int = 0
     last_run_time: Optional[datetime] = None
@@ -54,26 +56,26 @@ class CacheInvalidationService:
                 name="stale_quotes",
                 data_type="ticker_data",
                 max_age_seconds=300,  # 5 minutes
-                priority=8
+                priority=8,
             ),
             InvalidationRule(
                 name="old_market_data",
                 data_type="market_data",
                 max_age_seconds=1800,  # 30 minutes
-                priority=6
+                priority=6,
             ),
             InvalidationRule(
                 name="outdated_sentiment",
                 data_type="sentiment",
                 max_age_seconds=3600,  # 1 hour
-                priority=5
+                priority=5,
             ),
             InvalidationRule(
                 name="news_cleanup",
                 data_type="news",
                 max_age_seconds=7200,  # 2 hours
-                priority=4
-            )
+                priority=4,
+            ),
         ]
 
         # Scheduler for automated invalidation (disabled if schedule is unavailable)
@@ -82,7 +84,9 @@ class CacheInvalidationService:
     def start(self):
         """Start the cache invalidation service"""
         if not self.scheduler:
-            logger.warning("Cache invalidation service not started (schedule dependency missing)")
+            logger.warning(
+                "Cache invalidation service not started (schedule dependency missing)"
+            )
             return
         if self.is_running:
             return
@@ -169,7 +173,9 @@ class CacheInvalidationService:
         self.stats.last_run_time = datetime.now()
 
         if total_invalidated > 0:
-            logger.info(f"Cache invalidation completed: {total_invalidated} items invalidated")
+            logger.info(
+                f"Cache invalidation completed: {total_invalidated} items invalidated"
+            )
 
     def _apply_rule(self, rule: InvalidationRule) -> int:
         """Apply a single invalidation rule"""
@@ -178,7 +184,9 @@ class CacheInvalidationService:
         try:
             # Get all keys for this data type
             pattern = f"*{rule.data_type}*"
-            keys = self.redis_cache._redis.keys(pattern) if self.redis_cache._redis else []
+            keys = (
+                self.redis_cache._redis.keys(pattern) if self.redis_cache._redis else []
+            )
 
             for key in keys:
                 try:
@@ -199,7 +207,7 @@ class CacheInvalidationService:
     def _should_invalidate_key(self, key: bytes, rule: InvalidationRule) -> bool:
         """Check if a key should be invalidated based on rule"""
         try:
-            key_str = key.decode('utf-8')
+            key_str = key.decode("utf-8")
 
             # Check age if Redis supports it
             if self.redis_cache._redis:
@@ -226,7 +234,7 @@ class CacheInvalidationService:
         try:
             if self.redis_cache and self.redis_cache._redis:
                 # Get all keys
-                keys = self.redis_cache._redis.keys('*')
+                keys = self.redis_cache._redis.keys("*")
 
                 for key in keys:
                     try:
@@ -236,9 +244,11 @@ class CacheInvalidationService:
                         # If key has no expiration or TTL > 24 hours, consider it for cleanup
                         if ttl == -1 or ttl > 86400:  # 24 hours
                             # Additional check: if key contains old data patterns
-                            key_str = key.decode('utf-8')
-                            if any(old_pattern in key_str.lower() for old_pattern in
-                                   ['old', 'stale', 'expired', 'temp']):
+                            key_str = key.decode("utf-8")
+                            if any(
+                                old_pattern in key_str.lower()
+                                for old_pattern in ["old", "stale", "expired", "temp"]
+                            ):
                                 self.redis_cache._redis.delete(key)
                                 logger.debug(f"Deep cleanup: removed key {key_str}")
 
@@ -295,7 +305,9 @@ class CacheInvalidationService:
             logger.error(f"Error invalidating data type {data_type}: {e}")
 
         if invalidated > 0:
-            logger.info(f"Invalidated {invalidated} cache entries for data type {data_type}")
+            logger.info(
+                f"Invalidated {invalidated} cache entries for data type {data_type}"
+            )
 
         return invalidated
 
@@ -306,7 +318,7 @@ class CacheInvalidationService:
 
         invalidated = 0
         try:
-            keys = self.redis_cache._redis.keys('*')
+            keys = self.redis_cache._redis.keys("*")
 
             for key in keys:
                 try:
@@ -328,29 +340,34 @@ class CacheInvalidationService:
     def get_invalidation_stats(self) -> Dict[str, Any]:
         """Get invalidation service statistics"""
         return {
-            'is_running': self.is_running,
-            'stats': {
-                'total_invalidated': self.stats.total_invalidated,
-                'rules_executed': self.stats.rules_executed,
-                'errors': self.stats.errors,
-                'last_run_time': self.stats.last_run_time.isoformat() if self.stats.last_run_time else None,
-                'by_data_type': dict(self.stats.by_data_type)
+            "is_running": self.is_running,
+            "stats": {
+                "total_invalidated": self.stats.total_invalidated,
+                "rules_executed": self.stats.rules_executed,
+                "errors": self.stats.errors,
+                "last_run_time": (
+                    self.stats.last_run_time.isoformat()
+                    if self.stats.last_run_time
+                    else None
+                ),
+                "by_data_type": dict(self.stats.by_data_type),
             },
-            'rules': [
+            "rules": [
                 {
-                    'name': rule.name,
-                    'data_type': rule.data_type,
-                    'max_age_seconds': rule.max_age_seconds,
-                    'priority': rule.priority
+                    "name": rule.name,
+                    "data_type": rule.data_type,
+                    "max_age_seconds": rule.max_age_seconds,
+                    "priority": rule.priority,
                 }
                 for rule in self.rules
             ],
-            'timestamp': datetime.now().isoformat()
+            "timestamp": datetime.now().isoformat(),
         }
 
 
 # Global instance
 _invalidation_service = None
+
 
 def get_cache_invalidation_service(redis_cache_manager, orchestrator=None):
     """Get or create global cache invalidation service instance"""
@@ -358,7 +375,9 @@ def get_cache_invalidation_service(redis_cache_manager, orchestrator=None):
 
     if _invalidation_service is None:
         if not schedule:
-            logger.info("Cache invalidation disabled: schedule dependency not installed")
+            logger.info(
+                "Cache invalidation disabled: schedule dependency not installed"
+            )
             return None
         _invalidation_service = CacheInvalidationService(
             redis_cache_manager, orchestrator
@@ -366,11 +385,13 @@ def get_cache_invalidation_service(redis_cache_manager, orchestrator=None):
 
     return _invalidation_service
 
+
 def start_cache_invalidation(redis_cache_manager, orchestrator=None):
     """Start cache invalidation service"""
     service = get_cache_invalidation_service(redis_cache_manager, orchestrator)
     if service and not service.is_running:
         service.start()
+
 
 def stop_cache_invalidation():
     """Stop cache invalidation service"""

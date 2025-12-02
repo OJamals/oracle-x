@@ -17,6 +17,7 @@ import threading
 
 try:
     import redis
+
     REDIS_AVAILABLE = True
 except ImportError:
     REDIS_AVAILABLE = False
@@ -38,11 +39,11 @@ class CacheAnalytics:
 
     def record_hit(self, key: str):
         self.hits += 1
-        self._track_access_pattern(key, 'hit')
+        self._track_access_pattern(key, "hit")
 
     def record_miss(self, key: str):
         self.misses += 1
-        self._track_access_pattern(key, 'miss')
+        self._track_access_pattern(key, "miss")
 
     def record_eviction(self, key: str):
         self.evictions += 1
@@ -52,14 +53,18 @@ class CacheAnalytics:
         symbol = self._extract_symbol_from_key(key)
         if symbol:
             if symbol not in self.access_patterns:
-                self.access_patterns[symbol] = {'hits': 0, 'misses': 0, 'last_access': 0}
-            self.access_patterns[symbol][access_type + 's'] += 1
-            self.access_patterns[symbol]['last_access'] = time.time()
+                self.access_patterns[symbol] = {
+                    "hits": 0,
+                    "misses": 0,
+                    "last_access": 0,
+                }
+            self.access_patterns[symbol][access_type + "s"] += 1
+            self.access_patterns[symbol]["last_access"] = time.time()
 
     def _extract_symbol_from_key(self, key: str) -> Optional[str]:
         """Extract ticker symbol from cache key"""
         # Common patterns: quote_AAPL, sentiment_AAPL, market_data_AAPL_1d_1d
-        parts = key.split('_')
+        parts = key.split("_")
         if len(parts) >= 2:
             potential_symbol = parts[1]
             if potential_symbol.isupper() and 1 <= len(potential_symbol) <= 5:
@@ -74,28 +79,35 @@ class CacheAnalytics:
         # Get most accessed symbols
         most_accessed = sorted(
             self.access_patterns.items(),
-            key=lambda x: x[1]['hits'] + x[1]['misses'],
-            reverse=True
+            key=lambda x: x[1]["hits"] + x[1]["misses"],
+            reverse=True,
         )[:10]
 
         return {
-            'hit_rate': hit_rate,
-            'total_requests': total_requests,
-            'hits': self.hits,
-            'misses': self.misses,
-            'evictions': self.evictions,
-            'compression_savings_bytes': self.compression_savings,
-            'uptime_seconds': time.time() - self.start_time,
-            'most_accessed_symbols': most_accessed,
-            'total_tracked_symbols': len(self.access_patterns)
+            "hit_rate": hit_rate,
+            "total_requests": total_requests,
+            "hits": self.hits,
+            "misses": self.misses,
+            "evictions": self.evictions,
+            "compression_savings_bytes": self.compression_savings,
+            "uptime_seconds": time.time() - self.start_time,
+            "most_accessed_symbols": most_accessed,
+            "total_tracked_symbols": len(self.access_patterns),
         }
 
 
 class RedisCacheManager:
     """Intelligent Redis-based cache manager with multi-level caching"""
 
-    def __init__(self, host: str = 'localhost', port: int = 6379, db: int = 0,
-                 password: str = None, ssl: bool = False, socket_timeout: int = 5):
+    def __init__(
+        self,
+        host: str = "localhost",
+        port: int = 6379,
+        db: int = 0,
+        password: str = None,
+        ssl: bool = False,
+        socket_timeout: int = 5,
+    ):
         self.host = host
         self.port = port
         self.db = db
@@ -110,11 +122,11 @@ class RedisCacheManager:
 
         # Configuration
         self.ttl_config = {
-            'ticker_data': int(os.getenv('REDIS_TICKER_DATA_TTL', 86400)),  # 24h
-            'market_data': int(os.getenv('REDIS_MARKET_DATA_TTL', 3600)),   # 1h
-            'sentiment': int(os.getenv('REDIS_SENTIMENT_TTL', 1800)),      # 30m
-            'news': int(os.getenv('REDIS_NEWS_TTL', 900)),                 # 15m
-            'default': 3600
+            "ticker_data": int(os.getenv("REDIS_TICKER_DATA_TTL", 86400)),  # 24h
+            "market_data": int(os.getenv("REDIS_MARKET_DATA_TTL", 3600)),  # 1h
+            "sentiment": int(os.getenv("REDIS_SENTIMENT_TTL", 1800)),  # 30m
+            "news": int(os.getenv("REDIS_NEWS_TTL", 900)),  # 15m
+            "default": 3600,
         }
 
         self.compression_enabled = True
@@ -123,8 +135,22 @@ class RedisCacheManager:
 
         # Popular symbols for cache warming
         self.popular_symbols = [
-            'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX',
-            'BABA', 'ORCL', 'CRM', 'AMD', 'INTC', 'UBER', 'SPY', 'QQQ'
+            "AAPL",
+            "MSFT",
+            "GOOGL",
+            "AMZN",
+            "TSLA",
+            "NVDA",
+            "META",
+            "NFLX",
+            "BABA",
+            "ORCL",
+            "CRM",
+            "AMD",
+            "INTC",
+            "UBER",
+            "SPY",
+            "QQQ",
         ]
 
         self._connect()
@@ -143,7 +169,7 @@ class RedisCacheManager:
                 password=self.password,
                 ssl=self.ssl,
                 socket_timeout=self.socket_timeout,
-                decode_responses=False  # We'll handle encoding/decoding
+                decode_responses=False,  # We'll handle encoding/decoding
             )
             # Test connection
             self.redis_client.ping()
@@ -184,7 +210,7 @@ class RedisCacheManager:
 
     def _get_data_type_ttl(self, data_type: str) -> int:
         """Get TTL for data type"""
-        return self.ttl_config.get(data_type, self.ttl_config['default'])
+        return self.ttl_config.get(data_type, self.ttl_config["default"])
 
     def _cleanup_memory_cache(self):
         """Clean up expired items from memory cache"""
@@ -211,7 +237,9 @@ class RedisCacheManager:
                 self.memory_cache_ttl.pop(key, None)
                 self.analytics.record_eviction(key)
 
-    def get(self, namespace: str, identifier: str, data_type: str = 'default') -> Optional[Any]:
+    def get(
+        self, namespace: str, identifier: str, data_type: str = "default"
+    ) -> Optional[Any]:
         """Get data from multi-level cache"""
         cache_key = self._get_cache_key(namespace, identifier)
 
@@ -236,7 +264,9 @@ class RedisCacheManager:
                     # Store in memory cache
                     with self._lock:
                         self.memory_cache[cache_key] = data
-                        self.memory_cache_ttl[cache_key] = time.time() + 300  # 5 min in memory
+                        self.memory_cache_ttl[cache_key] = (
+                            time.time() + 300
+                        )  # 5 min in memory
 
                     self.analytics.record_hit(cache_key)
                     return data
@@ -249,8 +279,14 @@ class RedisCacheManager:
         self.analytics.record_miss(cache_key)
         return None
 
-    def set(self, namespace: str, identifier: str, data: Any,
-            data_type: str = 'default', quality_score: float = 100.0) -> bool:
+    def set(
+        self,
+        namespace: str,
+        identifier: str,
+        data: Any,
+        data_type: str = "default",
+        quality_score: float = 100.0,
+    ) -> bool:
         """Set data in multi-level cache"""
         cache_key = self._get_cache_key(namespace, identifier)
         ttl = self._get_data_type_ttl(data_type)
@@ -272,7 +308,9 @@ class RedisCacheManager:
             # Store in memory (L1)
             with self._lock:
                 self.memory_cache[cache_key] = data
-                self.memory_cache_ttl[cache_key] = time.time() + min(ttl, 300)  # Max 5 min in memory
+                self.memory_cache_ttl[cache_key] = time.time() + min(
+                    ttl, 300
+                )  # Max 5 min in memory
 
                 # Cleanup if necessary
                 self._cleanup_memory_cache()
@@ -303,7 +341,7 @@ class RedisCacheManager:
 
         return success
 
-    def invalidate_pattern(self, namespace: str, pattern: str = '*') -> int:
+    def invalidate_pattern(self, namespace: str, pattern: str = "*") -> int:
         """Invalidate multiple cache entries by pattern"""
         invalidated = 0
 
@@ -312,7 +350,7 @@ class RedisCacheManager:
             keys_to_remove = []
             for key in self.memory_cache.keys():
                 if key.startswith(f"{namespace}:"):
-                    if pattern == '*' or pattern in key:
+                    if pattern == "*" or pattern in key:
                         keys_to_remove.append(key)
 
             for key in keys_to_remove:
@@ -324,8 +362,8 @@ class RedisCacheManager:
         if self.redis_client:
             try:
                 redis_pattern = f"{namespace}:*"
-                if pattern != '*':
-                    redis_pattern = redis_pattern.replace('*', pattern)
+                if pattern != "*":
+                    redis_pattern = redis_pattern.replace("*", pattern)
 
                 keys = self.redis_client.keys(redis_pattern)
                 if keys:
@@ -360,15 +398,15 @@ class RedisCacheManager:
             memory_items = len(self.memory_cache)
 
         return {
-            'redis_available': self.redis_client is not None,
-            'redis_info': redis_info,
-            'memory_cache_items': memory_items,
-            'analytics': self.analytics.get_stats(),
-            'config': {
-                'ttl_settings': self.ttl_config,
-                'compression_enabled': self.compression_enabled,
-                'max_memory_items': self.max_memory_items
-            }
+            "redis_available": self.redis_client is not None,
+            "redis_info": redis_info,
+            "memory_cache_items": memory_items,
+            "analytics": self.analytics.get_stats(),
+            "config": {
+                "ttl_settings": self.ttl_config,
+                "compression_enabled": self.compression_enabled,
+                "max_memory_items": self.max_memory_items,
+            },
         }
 
     def clear_cache(self):
@@ -394,19 +432,23 @@ class RedisCacheManager:
 # Global instance
 _redis_cache_manager = None
 
+
 def get_redis_cache_manager() -> Optional[RedisCacheManager]:
     """Get or create global Redis cache manager instance"""
     global _redis_cache_manager
 
-    if _redis_cache_manager is None and os.getenv('ENABLE_REDIS_CACHE', 'true').lower() == 'true':
+    if (
+        _redis_cache_manager is None
+        and os.getenv("ENABLE_REDIS_CACHE", "true").lower() == "true"
+    ):
         try:
             _redis_cache_manager = RedisCacheManager(
-                host=os.getenv('REDIS_HOST', 'localhost'),
-                port=int(os.getenv('REDIS_PORT', 6379)),
-                db=int(os.getenv('REDIS_DB', 0)),
-                password=os.getenv('REDIS_PASSWORD', None),
-                ssl=os.getenv('REDIS_SSL', 'false').lower() == 'true',
-                socket_timeout=int(os.getenv('REDIS_TIMEOUT', 5))
+                host=os.getenv("REDIS_HOST", "localhost"),
+                port=int(os.getenv("REDIS_PORT", 6379)),
+                db=int(os.getenv("REDIS_DB", 0)),
+                password=os.getenv("REDIS_PASSWORD", None),
+                ssl=os.getenv("REDIS_SSL", "false").lower() == "true",
+                socket_timeout=int(os.getenv("REDIS_TIMEOUT", 5)),
             )
         except Exception as e:
             logger.error(f"Failed to initialize Redis cache manager: {e}")

@@ -28,6 +28,7 @@ Provides:
 Reuses the same DB path as CacheService for consistency:
 DEFAULT_DB_PATH = os.getenv("CACHE_DB_PATH", "./model_monitoring.db")
 """
+
 from __future__ import annotations
 
 import os
@@ -41,8 +42,10 @@ DatabasePool = None
 USE_POOL = False
 try:
     import sys
+
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from core.database_pool import DatabasePool
+
     USE_POOL = True
 except ImportError:
     pass
@@ -52,8 +55,10 @@ AsyncDatabaseManager = None
 ASYNC_IO_AVAILABLE = False
 try:
     import sys
+
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from core.async_io_utils import AsyncDatabaseManager
+
     ASYNC_IO_AVAILABLE = True
 except ImportError:
     pass
@@ -140,8 +145,16 @@ def upsert_snapshot_row(db_path: Optional[str], row: Dict[str, Any]) -> None:
                     float(row["bid"]) if row.get("bid") is not None else None,
                     float(row["ask"]) if row.get("ask") is not None else None,
                     int(row["volume"]) if row.get("volume") is not None else None,
-                    int(row["open_interest"]) if row.get("open_interest") is not None else None,
-                    float(row["underlying"]) if row.get("underlying") is not None else None,
+                    (
+                        int(row["open_interest"])
+                        if row.get("open_interest") is not None
+                        else None
+                    ),
+                    (
+                        float(row["underlying"])
+                        if row.get("underlying") is not None
+                        else None
+                    ),
                     row.get("source"),
                 ),
             )
@@ -175,8 +188,16 @@ def upsert_snapshot_row(db_path: Optional[str], row: Dict[str, Any]) -> None:
                     float(row["bid"]) if row.get("bid") is not None else None,
                     float(row["ask"]) if row.get("ask") is not None else None,
                     int(row["volume"]) if row.get("volume") is not None else None,
-                    int(row["open_interest"]) if row.get("open_interest") is not None else None,
-                    float(row["underlying"]) if row.get("underlying") is not None else None,
+                    (
+                        int(row["open_interest"])
+                        if row.get("open_interest") is not None
+                        else None
+                    ),
+                    (
+                        float(row["underlying"])
+                        if row.get("underlying") is not None
+                        else None
+                    ),
                     row.get("source"),
                 ),
             )
@@ -197,20 +218,34 @@ def upsert_snapshot_many(db_path: Optional[str], rows: List[Dict[str, Any]]) -> 
             cur = con.cursor()
             data = []
             for row in rows:
-                data.append((
-                    row.get("symbol"),
-                    row.get("expiry"),
-                    int(row["chain_date"]) if row.get("chain_date") is not None else 0,
-                    row.get("put_call"),
-                    float(row["strike"]) if row.get("strike") is not None else 0.0,
-                    float(row["last"]) if row.get("last") is not None else None,
-                    float(row["bid"]) if row.get("bid") is not None else None,
-                    float(row["ask"]) if row.get("ask") is not None else None,
-                    int(row["volume"]) if row.get("volume") is not None else None,
-                    int(row["open_interest"]) if row.get("open_interest") is not None else None,
-                    float(row["underlying"]) if row.get("underlying") is not None else None,
-                    row.get("source"),
-                ))
+                data.append(
+                    (
+                        row.get("symbol"),
+                        row.get("expiry"),
+                        (
+                            int(row["chain_date"])
+                            if row.get("chain_date") is not None
+                            else 0
+                        ),
+                        row.get("put_call"),
+                        float(row["strike"]) if row.get("strike") is not None else 0.0,
+                        float(row["last"]) if row.get("last") is not None else None,
+                        float(row["bid"]) if row.get("bid") is not None else None,
+                        float(row["ask"]) if row.get("ask") is not None else None,
+                        int(row["volume"]) if row.get("volume") is not None else None,
+                        (
+                            int(row["open_interest"])
+                            if row.get("open_interest") is not None
+                            else None
+                        ),
+                        (
+                            float(row["underlying"])
+                            if row.get("underlying") is not None
+                            else None
+                        ),
+                        row.get("source"),
+                    )
+                )
 
             cur.executemany(
                 """
@@ -236,20 +271,34 @@ def upsert_snapshot_many(db_path: Optional[str], rows: List[Dict[str, Any]]) -> 
             cur = con.cursor()
             data = []
             for row in rows:
-                data.append((
-                    row.get("symbol"),
-                    row.get("expiry"),
-                    int(row["chain_date"]) if row.get("chain_date") is not None else 0,
-                    row.get("put_call"),
-                    float(row["strike"]) if row.get("strike") is not None else 0.0,
-                    float(row["last"]) if row.get("last") is not None else None,
-                    float(row["bid"]) if row.get("bid") is not None else None,
-                    float(row["ask"]) if row.get("ask") is not None else None,
-                    int(row["volume"]) if row.get("volume") is not None else None,
-                    int(row["open_interest"]) if row.get("open_interest") is not None else None,
-                    float(row["underlying"]) if row.get("underlying") is not None else None,
-                    row.get("source"),
-                ))
+                data.append(
+                    (
+                        row.get("symbol"),
+                        row.get("expiry"),
+                        (
+                            int(row["chain_date"])
+                            if row.get("chain_date") is not None
+                            else 0
+                        ),
+                        row.get("put_call"),
+                        float(row["strike"]) if row.get("strike") is not None else 0.0,
+                        float(row["last"]) if row.get("last") is not None else None,
+                        float(row["bid"]) if row.get("bid") is not None else None,
+                        float(row["ask"]) if row.get("ask") is not None else None,
+                        int(row["volume"]) if row.get("volume") is not None else None,
+                        (
+                            int(row["open_interest"])
+                            if row.get("open_interest") is not None
+                            else None
+                        ),
+                        (
+                            float(row["underlying"])
+                            if row.get("underlying") is not None
+                            else None
+                        ),
+                        row.get("source"),
+                    )
+                )
 
             cur.executemany(
                 """
@@ -272,7 +321,9 @@ def upsert_snapshot_many(db_path: Optional[str], rows: List[Dict[str, Any]]) -> 
             con.close()
 
 
-def load_latest_snapshot(db_path: Optional[str], symbol: str, expiry: str) -> List[Dict[str, Any]]:
+def load_latest_snapshot(
+    db_path: Optional[str], symbol: str, expiry: str
+) -> List[Dict[str, Any]]:
     """
     Load the latest snapshot for a given symbol and expiry.
     """
@@ -319,7 +370,9 @@ def load_latest_snapshot(db_path: Optional[str], symbol: str, expiry: str) -> Li
             con.close()
 
 
-def compute_oi_delta(db_path: Optional[str], symbol: str, expiry: str) -> List[Dict[str, Any]]:
+def compute_oi_delta(
+    db_path: Optional[str], symbol: str, expiry: str
+) -> List[Dict[str, Any]]:
     """
     Compute per-contract OI delta between the two most recent snapshot times for symbol/expiry.
     """
@@ -350,7 +403,10 @@ def compute_oi_delta(db_path: Optional[str], symbol: str, expiry: str) -> List[D
                 """,
                 (symbol, expiry, latest),
             )
-            latest_map = {(row[0], float(row[1])): int(row[2]) if row[2] is not None else 0 for row in cur.fetchall()}
+            latest_map = {
+                (row[0], float(row[1])): int(row[2]) if row[2] is not None else 0
+                for row in cur.fetchall()
+            }
 
             cur.execute(
                 """
@@ -359,7 +415,10 @@ def compute_oi_delta(db_path: Optional[str], symbol: str, expiry: str) -> List[D
                 """,
                 (symbol, expiry, prev),
             )
-            prev_map = {(row[0], float(row[1])): int(row[2]) if row[2] is not None else 0 for row in cur.fetchall()}
+            prev_map = {
+                (row[0], float(row[1])): int(row[2]) if row[2] is not None else 0
+                for row in cur.fetchall()
+            }
 
             keys = set(latest_map.keys()) | set(prev_map.keys())
             out: List[Dict[str, Any]] = []
@@ -367,7 +426,9 @@ def compute_oi_delta(db_path: Optional[str], symbol: str, expiry: str) -> List[D
                 pc, strike = k
                 oi_new = latest_map.get(k, 0)
                 oi_old = prev_map.get(k, 0)
-                out.append({"put_call": pc, "strike": strike, "oi_delta": oi_new - oi_old})
+                out.append(
+                    {"put_call": pc, "strike": strike, "oi_delta": oi_new - oi_old}
+                )
             return out
     else:
         # Fallback to direct connection
@@ -395,7 +456,10 @@ def compute_oi_delta(db_path: Optional[str], symbol: str, expiry: str) -> List[D
                 """,
                 (symbol, expiry, latest),
             )
-            latest_map = {(row[0], float(row[1])): int(row[2]) if row[2] is not None else 0 for row in cur.fetchall()}
+            latest_map = {
+                (row[0], float(row[1])): int(row[2]) if row[2] is not None else 0
+                for row in cur.fetchall()
+            }
 
             cur.execute(
                 """
@@ -404,7 +468,10 @@ def compute_oi_delta(db_path: Optional[str], symbol: str, expiry: str) -> List[D
                 """,
                 (symbol, expiry, prev),
             )
-            prev_map = {(row[0], float(row[1])): int(row[2]) if row[2] is not None else 0 for row in cur.fetchall()}
+            prev_map = {
+                (row[0], float(row[1])): int(row[2]) if row[2] is not None else 0
+                for row in cur.fetchall()
+            }
 
             keys = set(latest_map.keys()) | set(prev_map.keys())
             out: List[Dict[str, Any]] = []
@@ -412,7 +479,9 @@ def compute_oi_delta(db_path: Optional[str], symbol: str, expiry: str) -> List[D
                 pc, strike = k
                 oi_new = latest_map.get(k, 0)
                 oi_old = prev_map.get(k, 0)
-                out.append({"put_call": pc, "strike": strike, "oi_delta": oi_new - oi_old})
+                out.append(
+                    {"put_call": pc, "strike": strike, "oi_delta": oi_new - oi_old}
+                )
             return out
         finally:
             con.close()
@@ -440,7 +509,9 @@ async def ensure_schema_async(db_path: Optional[str] = None) -> None:
         ensure_schema(db_path)
 
 
-async def upsert_snapshot_row_async(db_path: Optional[str], row: Dict[str, Any]) -> None:
+async def upsert_snapshot_row_async(
+    db_path: Optional[str], row: Dict[str, Any]
+) -> None:
     """
     Upsert a single contract row snapshot (async version).
     """
@@ -489,7 +560,9 @@ async def upsert_snapshot_row_async(db_path: Optional[str], row: Dict[str, Any])
         upsert_snapshot_row(db_path, row)
 
 
-async def upsert_snapshot_many_async(db_path: Optional[str], rows: List[Dict[str, Any]]) -> None:
+async def upsert_snapshot_many_async(
+    db_path: Optional[str], rows: List[Dict[str, Any]]
+) -> None:
     """
     Upsert multiple contract row snapshots in a single transaction (async version).
     """
@@ -519,20 +592,30 @@ async def upsert_snapshot_many_async(db_path: Optional[str], rows: List[Dict[str
 
         data = []
         for row in rows:
-            data.append((
-                row.get("symbol"),
-                row.get("expiry"),
-                int(row["chain_date"]) if row.get("chain_date") is not None else 0,
-                row.get("put_call"),
-                float(row["strike"]) if row.get("strike") is not None else 0.0,
-                float(row["last"]) if row.get("last") is not None else None,
-                float(row["bid"]) if row.get("bid") is not None else None,
-                float(row["ask"]) if row.get("ask") is not None else None,
-                int(row["volume"]) if row.get("volume") is not None else None,
-                int(row["open_interest"]) if row.get("open_interest") is not None else None,
-                float(row["underlying"]) if row.get("underlying") is not None else None,
-                row.get("source"),
-            ))
+            data.append(
+                (
+                    row.get("symbol"),
+                    row.get("expiry"),
+                    int(row["chain_date"]) if row.get("chain_date") is not None else 0,
+                    row.get("put_call"),
+                    float(row["strike"]) if row.get("strike") is not None else 0.0,
+                    float(row["last"]) if row.get("last") is not None else None,
+                    float(row["bid"]) if row.get("bid") is not None else None,
+                    float(row["ask"]) if row.get("ask") is not None else None,
+                    int(row["volume"]) if row.get("volume") is not None else None,
+                    (
+                        int(row["open_interest"])
+                        if row.get("open_interest") is not None
+                        else None
+                    ),
+                    (
+                        float(row["underlying"])
+                        if row.get("underlying") is not None
+                        else None
+                    ),
+                    row.get("source"),
+                )
+            )
 
         await manager.execute_many(query, data)
     except Exception as e:
@@ -540,7 +623,9 @@ async def upsert_snapshot_many_async(db_path: Optional[str], rows: List[Dict[str
         upsert_snapshot_many(db_path, rows)
 
 
-async def load_latest_snapshot_async(db_path: Optional[str], symbol: str, expiry: str) -> List[Dict[str, Any]]:
+async def load_latest_snapshot_async(
+    db_path: Optional[str], symbol: str, expiry: str
+) -> List[Dict[str, Any]]:
     """
     Load the latest snapshot for a given symbol and expiry (async version).
     """
@@ -569,7 +654,9 @@ async def load_latest_snapshot_async(db_path: Optional[str], symbol: str, expiry
         return load_latest_snapshot(db_path, symbol, expiry)
 
 
-async def compute_oi_delta_async(db_path: Optional[str], symbol: str, expiry: str) -> List[Dict[str, Any]]:
+async def compute_oi_delta_async(
+    db_path: Optional[str], symbol: str, expiry: str
+) -> List[Dict[str, Any]]:
     """
     Compute per-contract OI delta between the two most recent snapshot times for symbol/expiry (async version).
     """
@@ -591,7 +678,7 @@ async def compute_oi_delta_async(db_path: Optional[str], symbol: str, expiry: st
         """
 
         date_results = await manager.execute_query(date_query, (symbol, expiry))
-        dates = [row['chain_date'] for row in date_results]
+        dates = [row["chain_date"] for row in date_results]
 
         if len(dates) < 2:
             return []
@@ -603,14 +690,24 @@ async def compute_oi_delta_async(db_path: Optional[str], symbol: str, expiry: st
         SELECT put_call, strike, open_interest FROM options_chain_snapshots
         WHERE symbol = ? AND expiry = ? AND chain_date = ?
         """
-        latest_results = await manager.execute_query(latest_query, (symbol, expiry, latest))
-        latest_map = {(row['put_call'], float(row['strike'])): int(row['open_interest']) if row['open_interest'] is not None else 0
-                     for row in latest_results}
+        latest_results = await manager.execute_query(
+            latest_query, (symbol, expiry, latest)
+        )
+        latest_map = {
+            (row["put_call"], float(row["strike"])): (
+                int(row["open_interest"]) if row["open_interest"] is not None else 0
+            )
+            for row in latest_results
+        }
 
         # Get previous data
         prev_results = await manager.execute_query(latest_query, (symbol, expiry, prev))
-        prev_map = {(row['put_call'], float(row['strike'])): int(row['open_interest']) if row['open_interest'] is not None else 0
-                   for row in prev_results}
+        prev_map = {
+            (row["put_call"], float(row["strike"])): (
+                int(row["open_interest"]) if row["open_interest"] is not None else 0
+            )
+            for row in prev_results
+        }
 
         # Compute deltas
         keys = set(latest_map.keys()) | set(prev_map.keys())

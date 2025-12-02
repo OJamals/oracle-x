@@ -10,11 +10,11 @@ from pathlib import Path
 
 def create_test_stub(module_path: str, test_file_path: str) -> bool:
     """Create a basic test stub for a module"""
-    
+
     module_name = Path(module_path).stem
-    import_path = module_path.replace('/', '.').replace('.py', '')
+    import_path = module_path.replace("/", ".").replace(".py", "")
     class_name = f"Test{module_name.title().replace('_', '')}"
-    
+
     test_content = f'''#!/usr/bin/env python3
 """
 Test suite for {module_name}
@@ -77,15 +77,15 @@ class {class_name}(unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 '''
-    
+
     try:
         # Create directory if it doesn't exist
         Path(test_file_path).parent.mkdir(parents=True, exist_ok=True)
-        
+
         # Write test file
-        with open(test_file_path, 'w', encoding='utf-8') as f:
+        with open(test_file_path, "w", encoding="utf-8") as f:
             f.write(test_content)
-        
+
         return True
     except Exception as e:
         print(f"Error creating test file {test_file_path}: {e}")
@@ -95,50 +95,50 @@ if __name__ == '__main__':
 def main():
     """Generate critical test stubs"""
     print("🚀 Generating critical test stubs...")
-    
+
     # Critical modules to create tests for
     critical_modules = [
-        'oracle_options_pipeline.py',
-        'data_feeds/data_feed_orchestrator.py',
-        'oracle_engine/ensemble_ml_engine.py'
+        "oracle_options_pipeline.py",
+        "data_feeds/data_feed_orchestrator.py",
+        "oracle_engine/ensemble_ml_engine.py",
     ]
-    
-    test_dir = Path('./tests/unit')
+
+    test_dir = Path("./tests/unit")
     generated_files = []
-    
+
     for module in critical_modules:
         module_name = Path(module).stem
-        
+
         # Determine test file path
-        if 'data_feeds' in module:
-            test_file = test_dir / 'data_feeds' / f'test_{module_name}.py'
-        elif 'oracle_engine' in module:
-            test_file = test_dir / 'oracle_engine' / f'test_{module_name}.py'
+        if "data_feeds" in module:
+            test_file = test_dir / "data_feeds" / f"test_{module_name}.py"
+        elif "oracle_engine" in module:
+            test_file = test_dir / "oracle_engine" / f"test_{module_name}.py"
         else:
-            test_file = test_dir / f'test_{module_name}.py'
-        
+            test_file = test_dir / f"test_{module_name}.py"
+
         print(f"📝 Creating test for {module} -> {test_file}")
-        
+
         if create_test_stub(module, str(test_file)):
             generated_files.append(str(test_file))
             print(f"✅ Generated: {test_file}")
         else:
             print(f"❌ Failed: {test_file}")
-    
+
     print(f"\\n📊 Summary: Generated {len(generated_files)} test files")
     for file in generated_files:
         print(f"  - {file}")
-    
+
     # Create a simple report
     report = f"""# Critical Test Generation Report
 
 ## Generated Test Files ({len(generated_files)})
 
 """
-    
+
     for file in generated_files:
         report += f"- {file}\\n"
-    
+
     report += """
 ## Next Steps
 
@@ -156,12 +156,12 @@ def main():
 - Test error handling and edge cases
 - Add performance tests for critical paths
 """
-    
-    with open('CRITICAL_TEST_REPORT.md', 'w') as f:
+
+    with open("CRITICAL_TEST_REPORT.md", "w") as f:
         f.write(report)
-    
+
     print("\\n📋 Report saved to CRITICAL_TEST_REPORT.md")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

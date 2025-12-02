@@ -7,8 +7,10 @@ AsyncHTTPClient = None
 ASYNC_IO_AVAILABLE = False
 try:
     import sys
+
     sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     from core.async_io_utils import AsyncHTTPClient
+
     ASYNC_IO_AVAILABLE = True
 except ImportError:
     pass
@@ -19,26 +21,34 @@ from .api_key_validator import execute_with_fallback
 try:
     from core.http_client import optimized_get
 except ImportError:
+
     def optimized_get(url, **kwargs):
         """Fallback to standard requests if optimized client unavailable"""
         return requests.get(url, **kwargs)
 
+
 # Try to import configuration manager
 try:
     from core.config import config
+
     CONFIG_MANAGER_AVAILABLE = True
+
     def get_finnhub_api_key():
         return config.data_feeds.finnhub_api_key
+
 except ImportError:
     CONFIG_MANAGER_AVAILABLE = False
+
     def get_finnhub_api_key():
         return None
+
 
 def fetch_finnhub_quote(symbol: str) -> Dict[str, Any]:
     """
     Fetch real-time quote from Finnhub.io with enhanced error handling and fallback support.
     Returns dict with price and meta info, or empty dict on error.
     """
+
     def _fetch_with_api_key() -> Dict[str, Any]:
         """Primary fetch function using API key"""
         # Get API key from configuration manager if available, otherwise fallback to environment
@@ -57,29 +67,33 @@ def fetch_finnhub_quote(symbol: str) -> Dict[str, Any]:
 
     def _fetch_fallback() -> Dict[str, Any]:
         """Fallback function with demo/limited data"""
-        print(f"[WARNING] Using Finnhub fallback mode for {symbol} - limited functionality")
+        print(
+            f"[WARNING] Using Finnhub fallback mode for {symbol} - limited functionality"
+        )
         # Return empty data structure for fallback
         return {
             "c": 0.0,  # Current price
             "h": 0.0,  # High price
             "l": 0.0,  # Low price
             "o": 0.0,  # Open price
-            "pc": 0.0, # Previous close
-            "t": 0,    # Timestamp
-            "warning": "Using fallback mode - no real-time data available"
+            "pc": 0.0,  # Previous close
+            "t": 0,  # Timestamp
+            "warning": "Using fallback mode - no real-time data available",
         }
 
     try:
-        return execute_with_fallback('finnhub', _fetch_with_api_key, _fetch_fallback)
+        return execute_with_fallback("finnhub", _fetch_with_api_key, _fetch_fallback)
     except Exception as e:
         print(f"[ERROR] Finnhub fetch failed for {symbol}: {e}")
         return _fetch_fallback()
+
 
 def fetch_finnhub_news(symbol: str) -> list:
     """
     Fetch latest news for a symbol from Finnhub.io with enhanced error handling.
     Returns a list of news dicts, or empty list on error.
     """
+
     def _fetch_news_with_api_key() -> list:
         """Primary news fetch function using API key"""
         # Get API key from configuration manager if available, otherwise fallback to environment
@@ -93,6 +107,7 @@ def fetch_finnhub_news(symbol: str) -> list:
 
         # Use dynamic date range
         from datetime import datetime, timedelta
+
         end_date = datetime.now()
         start_date = end_date - timedelta(days=7)
 
@@ -103,7 +118,9 @@ def fetch_finnhub_news(symbol: str) -> list:
 
     def _fetch_news_fallback() -> list:
         """Fallback function with demo/limited news data"""
-        print(f"[WARNING] Using Finnhub news fallback mode for {symbol} - limited functionality")
+        print(
+            f"[WARNING] Using Finnhub news fallback mode for {symbol} - limited functionality"
+        )
         return [
             {
                 "category": "general",
@@ -115,12 +132,14 @@ def fetch_finnhub_news(symbol: str) -> list:
                 "source": "fallback",
                 "summary": "Real-time news data is not available. Please configure FINNHUB_API_KEY for live news feeds.",
                 "url": "",
-                "warning": "Using fallback mode - no real-time news available"
+                "warning": "Using fallback mode - no real-time news available",
             }
         ]
 
     try:
-        return execute_with_fallback('finnhub', _fetch_news_with_api_key, _fetch_news_fallback)
+        return execute_with_fallback(
+            "finnhub", _fetch_news_with_api_key, _fetch_news_fallback
+        )
     except Exception as e:
         print(f"[ERROR] Finnhub news fetch failed for {symbol}: {e}")
         return _fetch_news_fallback()

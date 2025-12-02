@@ -13,10 +13,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
+
 
 def test_pipeline_initialization():
     """Test 1: Pipeline Initialization and Configuration Loading"""
@@ -26,6 +26,7 @@ def test_pipeline_initialization():
 
     try:
         from oracle_engine.agent_optimized import get_optimized_agent
+
         print("✓ Successfully imported OracleAgentOptimized")
 
         # Test factory function
@@ -38,15 +39,19 @@ def test_pipeline_initialization():
 
         # Test configuration loading
         print(f"✓ Optimization enabled: {agent.optimization_enabled}")
-        print(f"✓ Engine instance: {type(agent.engine).__name__ if agent.engine else 'None'}")
+        print(
+            f"✓ Engine instance: {type(agent.engine).__name__ if agent.engine else 'None'}"
+        )
 
         return True, agent
 
     except Exception as e:
         print(f"❌ Initialization failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False, None
+
 
 def test_database_creation(agent):
     """Test 2: Database Creation and Connection"""
@@ -64,6 +69,7 @@ def test_database_creation(agent):
         print(f"✓ Database path: {db_path}")
 
         import os
+
         if os.path.exists(db_path):
             print(f"✓ Database file exists: {db_path}")
         else:
@@ -71,6 +77,7 @@ def test_database_creation(agent):
 
         # Test database connection
         import sqlite3
+
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
@@ -82,8 +89,10 @@ def test_database_creation(agent):
     except Exception as e:
         print(f"❌ Database test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_self_learning_integration(agent):
     """Test 3: Self-Learning Integration"""
@@ -103,7 +112,7 @@ def test_self_learning_integration(agent):
         test_signals = {
             "market_internals": "Market showing bullish momentum",
             "sentiment_llm": "Positive sentiment detected",
-            "options_flow": []
+            "options_flow": [],
         }
 
         market_condition = engine.classify_market_condition(test_signals)
@@ -126,8 +135,10 @@ def test_self_learning_integration(agent):
     except Exception as e:
         print(f"❌ Self-learning integration test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_ab_testing_framework(agent):
     """Test 4: A/B Testing Framework"""
@@ -144,11 +155,12 @@ def test_ab_testing_framework(agent):
 
         # Test A/B test creation
         from oracle_engine.prompt_optimization import MarketCondition
+
         experiment_id = engine.start_ab_test(
             "conservative_balanced",
             "aggressive_momentum",
             MarketCondition.BULLISH,
-            1  # 1 hour for testing
+            1,  # 1 hour for testing
         )
 
         if experiment_id:
@@ -169,8 +181,10 @@ def test_ab_testing_framework(agent):
     except Exception as e:
         print(f"❌ A/B testing framework test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_template_selection(agent):
     """Test 5: Template Selection Optimization"""
@@ -186,7 +200,7 @@ def test_template_selection(agent):
         # Test batch template selection
         template_performance = {
             "conservative_balanced": {"successes": 5, "total": 7},
-            "aggressive_momentum": {"successes": 3, "total": 5}
+            "aggressive_momentum": {"successes": 3, "total": 5},
         }
 
         selected = agent._select_template_for_batch(template_performance, 5)
@@ -201,8 +215,10 @@ def test_template_selection(agent):
     except Exception as e:
         print(f"❌ Template selection test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_performance_tracking(agent):
     """Test 6: Performance Tracking Mechanisms"""
@@ -217,21 +233,17 @@ def test_performance_tracking(agent):
 
         # Test performance recording
         test_metadata = {
-            'performance_metrics': {
-                'success': True,
-                'total_duration': 2.5,
-                'stages_completed': 4
+            "performance_metrics": {
+                "success": True,
+                "total_duration": 2.5,
+                "stages_completed": 4,
             },
-            'stages': {
-                'playbook_generation': {
-                    'optimization_metadata': {
-                        'template_used': 'conservative_balanced'
-                    }
+            "stages": {
+                "playbook_generation": {
+                    "optimization_metadata": {"template_used": "conservative_balanced"}
                 },
-                'signal_collection': {
-                    'market_condition': 'bullish'
-                }
-            }
+                "signal_collection": {"market_condition": "bullish"},
+            },
         }
 
         agent._record_pipeline_performance(test_metadata, "test output")
@@ -256,8 +268,10 @@ def test_performance_tracking(agent):
     except Exception as e:
         print(f"❌ Performance tracking test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_genetic_algorithms(agent):
     """Test 7: Genetic Algorithms for Prompt Evolution"""
@@ -274,7 +288,7 @@ def test_genetic_algorithms(agent):
         print("Testing learning cycle...")
         result = agent.run_learning_cycle(performance_threshold=0.5)
 
-        if 'error' in result:
+        if "error" in result:
             print(f"⚠️  Learning cycle had issues: {result['error']}")
             # This might be expected if there are no top performers yet
             return True
@@ -288,8 +302,10 @@ def test_genetic_algorithms(agent):
     except Exception as e:
         print(f"❌ Genetic algorithm test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_batch_processing(agent):
     """Test 8: Batch Processing with Template Selection"""
@@ -307,8 +323,8 @@ def test_batch_processing(agent):
         print(f"✓ Batch processing completed for {len(results)} items")
 
         for i, (playbook, metadata) in enumerate(results):
-            success = metadata.get('performance_metrics', {}).get('success', False)
-            duration = metadata.get('performance_metrics', {}).get('total_duration', 0)
+            success = metadata.get("performance_metrics", {}).get("success", False)
+            duration = metadata.get("performance_metrics", {}).get("total_duration", 0)
             print(f"  - Item {i+1}: Success={success}, Duration={duration:.2f}s")
 
         return True
@@ -316,8 +332,10 @@ def test_batch_processing(agent):
     except Exception as e:
         print(f"❌ Batch processing test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def test_factory_function():
     """Test 9: Factory Function Singleton Pattern"""
@@ -348,8 +366,10 @@ def test_factory_function():
     except Exception as e:
         print(f"❌ Factory function test failed: {e}")
         import traceback
+
         traceback.print_exc()
         return False
+
 
 def run_comprehensive_test():
     """Run all tests and provide comprehensive report"""
@@ -361,35 +381,35 @@ def run_comprehensive_test():
 
     # Test 1: Pipeline Initialization
     success, agent = test_pipeline_initialization()
-    test_results['initialization'] = success
+    test_results["initialization"] = success
 
     if not success or not agent:
         print("\n❌ Critical failure in initialization. Cannot continue testing.")
         return test_results
 
     # Test 2: Database Creation
-    test_results['database'] = test_database_creation(agent)
+    test_results["database"] = test_database_creation(agent)
 
     # Test 3: Self-Learning Integration
-    test_results['self_learning'] = test_self_learning_integration(agent)
+    test_results["self_learning"] = test_self_learning_integration(agent)
 
     # Test 4: A/B Testing Framework
-    test_results['ab_testing'] = test_ab_testing_framework(agent)
+    test_results["ab_testing"] = test_ab_testing_framework(agent)
 
     # Test 5: Template Selection
-    test_results['template_selection'] = test_template_selection(agent)
+    test_results["template_selection"] = test_template_selection(agent)
 
     # Test 6: Performance Tracking
-    test_results['performance_tracking'] = test_performance_tracking(agent)
+    test_results["performance_tracking"] = test_performance_tracking(agent)
 
     # Test 7: Genetic Algorithms
-    test_results['genetic_algorithms'] = test_genetic_algorithms(agent)
+    test_results["genetic_algorithms"] = test_genetic_algorithms(agent)
 
     # Test 8: Batch Processing
-    test_results['batch_processing'] = test_batch_processing(agent)
+    test_results["batch_processing"] = test_batch_processing(agent)
 
     # Test 9: Factory Function
-    test_results['factory_function'] = test_factory_function()
+    test_results["factory_function"] = test_factory_function()
 
     # Final Report
     print("\n" + "=" * 80)
@@ -406,6 +426,7 @@ def run_comprehensive_test():
     print(f"\nOverall Score: {passed}/{total} tests passed ({passed/total*100:.1f}%)")
 
     return test_results
+
 
 if __name__ == "__main__":
     results = run_comprehensive_test()

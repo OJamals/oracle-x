@@ -23,14 +23,14 @@ from .local_store import (
 )
 
 __all__ = [
-    'embed_text',
-    'batch_embed_text',
-    'store_trade_vector',
-    'query_similar',
-    'batch_query_similar',
-    'ensure_collection',
-    'clear_cache',
-    'get_collection_stats',
-    'reset_collection',
-    'COLLECTION_NAME',
+    "embed_text",
+    "batch_embed_text",
+    "store_trade_vector",
+    "query_similar",
+    "batch_query_similar",
+    "ensure_collection",
+    "clear_cache",
+    "get_collection_stats",
+    "reset_collection",
+    "COLLECTION_NAME",
 ]

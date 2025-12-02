@@ -10,9 +10,9 @@ from .cnn_business_adapter import CNNBusinessAdapter
 from .financial_times_adapter import FinancialTimesAdapter
 
 __all__ = [
-    'BaseNewsAdapter',
-    'ReutersAdapter', 
-    'MarketWatchAdapter',
-    'CNNBusinessAdapter',
-    'FinancialTimesAdapter'
+    "BaseNewsAdapter",
+    "ReutersAdapter",
+    "MarketWatchAdapter",
+    "CNNBusinessAdapter",
+    "FinancialTimesAdapter",
 ]

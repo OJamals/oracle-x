@@ -1,22 +1,29 @@
 """
 Black–Scholes utilities with dividend yield q, prices, Greeks, and implied volatility solver.
 """
+
 from __future__ import annotations
 import math
 from typing import Tuple, Dict, Optional
 
 SQRT_2PI = math.sqrt(2.0 * math.pi)
 
+
 def _norm_cdf(x: float) -> float:
     return 0.5 * (1.0 + math.erf(x / math.sqrt(2.0)))
+
 
 def _norm_pdf(x: float) -> float:
     return math.exp(-0.5 * x * x) / SQRT_2PI
 
+
 def bs_d1(S: float, K: float, r: float, q: float, sigma: float, T: float) -> float:
     if S <= 0 or K <= 0 or sigma <= 0 or T <= 0:
         return float("nan")
-    return (math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (sigma * math.sqrt(T))
+    return (math.log(S / K) + (r - q + 0.5 * sigma * sigma) * T) / (
+        sigma * math.sqrt(T)
+    )
+
 
 def bs_d2(S: float, K: float, r: float, q: float, sigma: float, T: float) -> float:
     d1 = bs_d1(S, K, r, q, sigma, T)
@@ -24,7 +31,16 @@ def bs_d2(S: float, K: float, r: float, q: float, sigma: float, T: float) -> flo
         return float("nan")
     return d1 - sigma * math.sqrt(T)
 
-def bs_price(S: float, K: float, r: float, q: float, sigma: float, T: float, put_call: str = "call") -> float:
+
+def bs_price(
+    S: float,
+    K: float,
+    r: float,
+    q: float,
+    sigma: float,
+    T: float,
+    put_call: str = "call",
+) -> float:
     if T <= 0:
         return max(0.0, S - K) if put_call == "call" else max(0.0, K - S)
     if sigma <= 0:
@@ -33,10 +49,21 @@ def bs_price(S: float, K: float, r: float, q: float, sigma: float, T: float, put
     d1 = bs_d1(S, K, r, q, sigma, T)
     d2 = d1 - sigma * math.sqrt(T)
     if put_call == "call":
-        return S * math.exp(-q * T) * _norm_cdf(d1) - K * math.exp(-r * T) * _norm_cdf(d2)
+        return S * math.exp(-q * T) * _norm_cdf(d1) - K * math.exp(-r * T) * _norm_cdf(
+            d2
+        )
     return K * math.exp(-r * T) * _norm_cdf(-d2) - S * math.exp(-q * T) * _norm_cdf(-d1)
 
-def bs_greeks(S: float, K: float, r: float, q: float, sigma: float, T: float, put_call: str = "call") -> Dict[str, float]:
+
+def bs_greeks(
+    S: float,
+    K: float,
+    r: float,
+    q: float,
+    sigma: float,
+    T: float,
+    put_call: str = "call",
+) -> Dict[str, float]:
     if T <= 0 or sigma <= 0 or S <= 0 or K <= 0:
         return {"delta": 0.0, "gamma": 0.0, "vega": 0.0, "theta": 0.0, "rho": 0.0}
     d1 = bs_d1(S, K, r, q, sigma, T)
@@ -49,13 +76,17 @@ def bs_greeks(S: float, K: float, r: float, q: float, sigma: float, T: float, pu
     gamma = math.exp(-q * T) * pdf_d1 / (S * sigma * math.sqrt(T))
     vega = S * math.exp(-q * T) * pdf_d1 * math.sqrt(T)
     if put_call == "call":
-        theta = (-S * math.exp(-q * T) * pdf_d1 * sigma / (2.0 * math.sqrt(T))
-                 - r * K * math.exp(-r * T) * _norm_cdf(d2)
-                 + q * S * math.exp(-q * T) * _norm_cdf(d1))
+        theta = (
+            -S * math.exp(-q * T) * pdf_d1 * sigma / (2.0 * math.sqrt(T))
+            - r * K * math.exp(-r * T) * _norm_cdf(d2)
+            + q * S * math.exp(-q * T) * _norm_cdf(d1)
+        )
     else:
-        theta = (-S * math.exp(-q * T) * pdf_d1 * sigma / (2.0 * math.sqrt(T))
-                 + r * K * math.exp(-r * T) * _norm_cdf(-d2)
-                 - q * S * math.exp(-q * T) * _norm_cdf(-d1))
+        theta = (
+            -S * math.exp(-q * T) * pdf_d1 * sigma / (2.0 * math.sqrt(T))
+            + r * K * math.exp(-r * T) * _norm_cdf(-d2)
+            - q * S * math.exp(-q * T) * _norm_cdf(-d1)
+        )
     if put_call == "call":
         rho = K * T * math.exp(-r * T) * _norm_cdf(d2)
     else:
@@ -69,11 +100,32 @@ def bs_greeks(S: float, K: float, r: float, q: float, sigma: float, T: float, pu
         "contract_multiplier": 100.0,
     }
 
-def _iv_objective(sigma: float, target: float, S: float, K: float, r: float, q: float, T: float, put_call: str) -> float:
+
+def _iv_objective(
+    sigma: float,
+    target: float,
+    S: float,
+    K: float,
+    r: float,
+    q: float,
+    T: float,
+    put_call: str,
+) -> float:
     return bs_price(S, K, r, q, sigma, T, put_call) - target
 
-def implied_vol(price_mkt: float, S: float, K: float, r: float, q: float, T: float, put_call: str = "call",
-                bracket: Tuple[float, float] = (1e-6, 5.0), tol: float = 1e-6, maxiter: int = 100) -> Optional[float]:
+
+def implied_vol(
+    price_mkt: float,
+    S: float,
+    K: float,
+    r: float,
+    q: float,
+    T: float,
+    put_call: str = "call",
+    bracket: Tuple[float, float] = (1e-6, 5.0),
+    tol: float = 1e-6,
+    maxiter: int = 100,
+) -> Optional[float]:
     if price_mkt is None or price_mkt < 0 or S <= 0 or K <= 0 or T <= 0:
         return None
     disc_q = math.exp(-q * T)

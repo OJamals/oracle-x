@@ -7,7 +7,8 @@ import sys
 import json
 
 # Add parent dir to sys.path for backend import
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 
 def test_dashboard_auto_generate():
     """Test the dashboard's auto-generate functionality"""
@@ -47,6 +48,7 @@ def test_dashboard_auto_generate():
         print(f"❌ Dashboard integration test failed: {e}")
         return False
 
+
 def test_pipeline_results_parsing():
     """Test parsing pipeline results in dashboard format"""
     print("\n=== Testing Pipeline Results Parsing ===")
@@ -55,8 +57,8 @@ def test_pipeline_results_parsing():
         # Simulate pipeline results format
         pipeline_results = {
             "date": "2025-08-21",
-            "playbook": "{\"trades\": [{\"ticker\": \"GOOG\", \"direction\": \"long\", \"instrument\": \"shares\", \"entry_range\": \"190-193\", \"profit_target\": \"200\", \"stop_loss\": \"185\", \"thesis\": \"Strong institutional support\", \"scenario_tree\": {\"base_case\": \"50% - Consolidates\", \"bull_case\": \"30% - Rally\", \"bear_case\": \"20% - Weakness\"}}], \"tomorrows_tape\": \"Markets are poised for a mixed session\"}",
-            "logs": "Pipeline completed successfully"
+            "playbook": '{"trades": [{"ticker": "GOOG", "direction": "long", "instrument": "shares", "entry_range": "190-193", "profit_target": "200", "stop_loss": "185", "thesis": "Strong institutional support", "scenario_tree": {"base_case": "50% - Consolidates", "bull_case": "30% - Rally", "bear_case": "20% - Weakness"}}], "tomorrows_tape": "Markets are poised for a mixed session"}',
+            "logs": "Pipeline completed successfully",
         }
 
         # Test parsing the playbook JSON string
@@ -72,7 +74,9 @@ def test_pipeline_results_parsing():
 
                 if trades:
                     sample_trade = trades[0]
-                    print(f"✅ Sample trade: {sample_trade.get('ticker')} {sample_trade.get('direction')}")
+                    print(
+                        f"✅ Sample trade: {sample_trade.get('ticker')} {sample_trade.get('direction')}"
+                    )
 
                 return True
 
@@ -86,6 +90,7 @@ def test_pipeline_results_parsing():
     except Exception as e:
         print(f"❌ Pipeline results parsing test failed: {e}")
         return False
+
 
 def main():
     """Run all integration tests"""
@@ -112,6 +117,7 @@ def main():
         print("⚠️  Some integration tests failed - check output above")
 
     return tests_passed == total_tests
+
 
 if __name__ == "__main__":
     success = main()

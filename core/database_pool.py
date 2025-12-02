@@ -31,21 +31,26 @@ import weakref
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class ConnectionInfo:
     """Tracks connection metadata and health"""
+
     connection: sqlite3.Connection
     last_used: float
     created_at: float
     thread_id: int
     in_use: bool = False
 
+
 @dataclass
 class PreparedStatement:
     """Cached prepared statement with usage tracking"""
+
     query: str
     last_used: float
     use_count: int = 0
+
 
 class DatabasePool:
     """
@@ -57,14 +62,16 @@ class DatabasePool:
     """
 
     # Global connection pools by database path
-    _pools: Dict[str, 'DatabasePool'] = {}
+    _pools: Dict[str, "DatabasePool"] = {}
     _pools_lock = threading.RLock()
 
     # Global prepared statement cache
     _stmt_cache: Dict[str, PreparedStatement] = {}
     _stmt_cache_lock = threading.RLock()
 
-    def __init__(self, db_path: str, max_connections: int = 10, max_idle_time: int = 300):
+    def __init__(
+        self, db_path: str, max_connections: int = 10, max_idle_time: int = 300
+    ):
         self.db_path = db_path
         self.max_connections = max_connections
         self.max_idle_time = max_idle_time
@@ -78,10 +85,12 @@ class DatabasePool:
         self._total_connections_reused = 0
         self._total_operations = 0
 
-        logger.info(f"DatabasePool initialized for {db_path} (max_conn={max_connections})")
+        logger.info(
+            f"DatabasePool initialized for {db_path} (max_conn={max_connections})"
+        )
 
     @classmethod
-    def get_pool(cls, db_path: str, max_connections: int = 10) -> 'DatabasePool':
+    def get_pool(cls, db_path: str, max_connections: int = 10) -> "DatabasePool":
         """Get or create a connection pool for the database path"""
         with cls._pools_lock:
             if db_path not in cls._pools:
@@ -130,7 +139,7 @@ class DatabasePool:
                     last_used=current_time,
                     created_at=current_time,
                     thread_id=thread_id,
-                    in_use=True
+                    in_use=True,
                 )
                 self._connections.append(conn_info)
                 self._total_connections_created += 1
@@ -155,7 +164,7 @@ class DatabasePool:
             self.db_path,
             timeout=30.0,  # Longer timeout for busy databases
             isolation_level=None,  # Enable autocommit mode for better performance
-            check_same_thread=False  # Allow multi-threaded access
+            check_same_thread=False,  # Allow multi-threaded access
         )
 
         # Enable WAL mode for better concurrent access
@@ -180,8 +189,10 @@ class DatabasePool:
         """Clean up expired idle connections"""
         expired = []
         for conn_info in self._connections:
-            if (not conn_info.in_use and
-                current_time - conn_info.last_used > self.max_idle_time):
+            if (
+                not conn_info.in_use
+                and current_time - conn_info.last_used > self.max_idle_time
+            ):
                 expired.append(conn_info)
 
         for conn_info in expired:
@@ -228,9 +239,7 @@ class DatabasePool:
 
             # Create new prepared statement entry
             cls._stmt_cache[cache_key] = PreparedStatement(
-                query=query,
-                last_used=time.time(),
-                use_count=1
+                query=query, last_used=time.time(), use_count=1
             )
             return query
 
@@ -264,9 +273,15 @@ class DatabasePool:
                 "total_connections": total_connections,
                 "total_created": self._total_connections_created,
                 "total_reused": self._total_connections_reused,
-                "reuse_rate": (self._total_connections_reused /
-                             max(1, self._total_connections_created + self._total_connections_reused)),
-                "total_operations": self._total_operations
+                "reuse_rate": (
+                    self._total_connections_reused
+                    / max(
+                        1,
+                        self._total_connections_created
+                        + self._total_connections_reused,
+                    )
+                ),
+                "total_operations": self._total_operations,
             }
 
     @classmethod
@@ -280,12 +295,14 @@ class DatabasePool:
         return {
             "pools": stats,
             "total_pools": len(stats),
-            "cached_statements": len(cls._stmt_cache)
+            "cached_statements": len(cls._stmt_cache),
         }
 
 
 # Convenience functions for easy migration
-def execute_query(db_path: str, query: str, params: Optional[Tuple[Any, ...]] = None) -> List[Tuple[Any, ...]]:
+def execute_query(
+    db_path: str, query: str, params: Optional[Tuple[Any, ...]] = None
+) -> List[Tuple[Any, ...]]:
     """Execute a SELECT query with connection pooling"""
     with DatabasePool.get_connection(db_path) as conn:
         cursor = conn.cursor()
@@ -295,7 +312,10 @@ def execute_query(db_path: str, query: str, params: Optional[Tuple[Any, ...]] = 
             cursor.execute(query)
         return cursor.fetchall()
 
-def execute_update(db_path: str, query: str, params: Optional[Tuple[Any, ...]] = None) -> int:
+
+def execute_update(
+    db_path: str, query: str, params: Optional[Tuple[Any, ...]] = None
+) -> int:
     """Execute an INSERT/UPDATE/DELETE query with connection pooling"""
     with DatabasePool.get_connection(db_path) as conn:
         cursor = conn.cursor()
@@ -305,6 +325,7 @@ def execute_update(db_path: str, query: str, params: Optional[Tuple[Any, ...]] =
             cursor.execute(query)
         conn.commit()
         return cursor.rowcount
+
 
 def execute_many(db_path: str, query: str, params_list: List[Tuple[Any, ...]]) -> None:
     """Execute multiple queries with connection pooling"""
@@ -316,4 +337,5 @@ def execute_many(db_path: str, query: str, params_list: List[Tuple[Any, ...]]) -
 
 # Auto-cleanup on module unload
 import atexit
+
 atexit.register(DatabasePool.cleanup_cache)

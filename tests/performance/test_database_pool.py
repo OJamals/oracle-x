@@ -19,7 +19,7 @@ class TestDatabasePool:
     @pytest.fixture
     def temp_db(self):
         """Create temporary database for testing"""
-        fd, path = tempfile.mkstemp(suffix='.db')
+        fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         yield path
         os.unlink(path)
@@ -51,14 +51,16 @@ class TestDatabasePool:
         final_stats = DatabasePool.get_pool(temp_db).get_performance_stats()
 
         # Should have reused connections
-        assert final_stats['total_created'] >= 1
-        assert final_stats['total_reused'] >= 1
+        assert final_stats["total_created"] >= 1
+        assert final_stats["total_reused"] >= 1
 
     def test_prepared_statement_caching(self, temp_db):
         """Test prepared statement caching"""
         # Create table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER)")
+            conn.execute(
+                "CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT, value INTEGER)"
+            )
             conn.commit()
 
         # Insert multiple records with same query pattern
@@ -140,7 +142,9 @@ class TestDatabasePool:
         bulk_data = [(i, f"data_{i}") for i in range(1000)]
 
         # Execute bulk insert
-        execute_many(temp_db, "INSERT INTO bulk_test (id, data) VALUES (?, ?)", bulk_data)
+        execute_many(
+            temp_db, "INSERT INTO bulk_test (id, data) VALUES (?, ?)", bulk_data
+        )
 
         # Verify all records inserted
         result = execute_query(temp_db, "SELECT COUNT(*) FROM bulk_test")
@@ -150,15 +154,19 @@ class TestDatabasePool:
         """Test concurrent database operations"""
         # Create table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("CREATE TABLE concurrent_test (id INTEGER PRIMARY KEY, thread_id INTEGER, value INTEGER)")
+            conn.execute(
+                "CREATE TABLE concurrent_test (id INTEGER PRIMARY KEY, thread_id INTEGER, value INTEGER)"
+            )
             conn.commit()
 
         def worker_thread(thread_id):
             """Worker function for concurrent operations"""
             for i in range(50):
-                execute_update(temp_db,
-                             "INSERT INTO concurrent_test (thread_id, value) VALUES (?, ?)",
-                             (thread_id, i))
+                execute_update(
+                    temp_db,
+                    "INSERT INTO concurrent_test (thread_id, value) VALUES (?, ?)",
+                    (thread_id, i),
+                )
 
         # Run concurrent operations
         with ThreadPoolExecutor(max_workers=10) as executor:
@@ -181,7 +189,9 @@ class TestDatabasePool:
         start_time = time.time()
 
         for i in range(100):
-            execute_update(temp_db, "INSERT INTO perf_test (data) VALUES (?)", (f"perf_data_{i}",))
+            execute_update(
+                temp_db, "INSERT INTO perf_test (data) VALUES (?)", (f"perf_data_{i}",)
+            )
 
         end_time = time.time()
         duration = end_time - start_time
@@ -226,6 +236,7 @@ class TestDatabasePool:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
     def test_automatic_cleanup(self, temp_db):
         """Test automatic cleanup of expired connections"""
         pool = DatabasePool.get_pool(temp_db)
@@ -237,7 +248,9 @@ if __name__ == "__main__":
 
         # Manually set last_used to old time to simulate expiration
         for conn_info in pool._connections:
-            conn_info.last_used = time.time() - 400  # Older than default max_idle_time (300)
+            conn_info.last_used = (
+                time.time() - 400
+            )  # Older than default max_idle_time (300)
 
         # Trigger cleanup by calling _cleanup_expired_connections
         pool._cleanup_expired_connections(time.time())
@@ -275,9 +288,9 @@ if __name__ == "__main__":
         """Test fallback when DatabasePool import fails"""
         from unittest.mock import patch
 
-        with patch('core.database_pool.DatabasePool', None):
+        with patch("core.database_pool.DatabasePool", None):
             # Simulate import failure
-            with patch.dict('sys.modules', {'core.database_pool': None}):
+            with patch.dict("sys.modules", {"core.database_pool": None}):
                 # This should trigger fallback in dependent modules
                 # Test that direct sqlite3 operations still work
                 conn = sqlite3.connect(temp_db)
@@ -293,12 +306,14 @@ if __name__ == "__main__":
         """Compare performance of pooled vs direct connections"""
         # Setup test data
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE perf_compare (
                     id INTEGER PRIMARY KEY,
                     data TEXT
                 )
-            """)
+            """
+            )
             conn.commit()
 
         # Test pooled performance
@@ -332,13 +347,15 @@ if __name__ == "__main__":
         """Test performance under concurrent load"""
         # Setup test data
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE concurrent_perf (
                     id INTEGER PRIMARY KEY,
                     thread_id INTEGER,
                     data TEXT
                 )
-            """)
+            """
+            )
             conn.commit()
 
         def concurrent_worker(thread_id):
@@ -346,7 +363,7 @@ if __name__ == "__main__":
                 with DatabasePool.get_connection(temp_db) as conn:
                     conn.execute(
                         "INSERT INTO concurrent_perf (thread_id, data) VALUES (?, ?)",
-                        (thread_id, f"data_{thread_id}_{i}")
+                        (thread_id, f"data_{thread_id}_{i}"),
                     )
                     conn.commit()
 
@@ -379,7 +396,9 @@ if __name__ == "__main__":
         assert cache_key in DatabasePool._stmt_cache
 
         # Manually expire it
-        DatabasePool._stmt_cache[cache_key].last_used = time.time() - 7200  # 2 hours ago
+        DatabasePool._stmt_cache[cache_key].last_used = (
+            time.time() - 7200
+        )  # 2 hours ago
 
         # Trigger cleanup
         DatabasePool.cleanup_cache()
@@ -403,8 +422,8 @@ if __name__ == "__main__":
         # Get global stats
         global_stats = DatabasePool.get_global_stats()
 
-        assert global_stats['total_pools'] >= 2
-        assert len(global_stats['pools']) >= 2
+        assert global_stats["total_pools"] >= 2
+        assert len(global_stats["pools"]) >= 2
 
     def test_connection_timeout_handling(self, temp_db):
         """Test handling of connection timeouts"""
@@ -422,7 +441,9 @@ if __name__ == "__main__":
         except sqlite3.OperationalError as e:
             assert "timeout" in str(e).lower() or "busy" in str(e).lower()
             elapsed = time.time() - start_time
-            assert elapsed >= 25  # Should wait at least 25 seconds (half of 30s timeout)
+            assert (
+                elapsed >= 25
+            )  # Should wait at least 25 seconds (half of 30s timeout)
 
         # Release first connection
         pool._release_connection(conn1)
@@ -434,7 +455,7 @@ class TestConvenienceFunctions:
     @pytest.fixture
     def temp_db(self):
         """Create temporary database for testing"""
-        fd, path = tempfile.mkstemp(suffix='.db')
+        fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         yield path
         os.unlink(path)
@@ -443,12 +464,14 @@ class TestConvenienceFunctions:
         """Test execute_query convenience function"""
         # Setup table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE test_query (
                     id INTEGER PRIMARY KEY,
                     name TEXT
                 )
-            """)
+            """
+            )
             conn.execute("INSERT INTO test_query (name) VALUES (?)", ("test",))
             conn.commit()
 
@@ -461,20 +484,20 @@ class TestConvenienceFunctions:
         """Test execute_update convenience function"""
         # Setup table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE test_update (
                     id INTEGER PRIMARY KEY,
                     value INTEGER
                 )
-            """)
+            """
+            )
             conn.execute("INSERT INTO test_update (value) VALUES (?)", (10,))
             conn.commit()
 
         # Test update execution
         rows_affected = execute_update(
-            temp_db,
-            "UPDATE test_update SET value = ? WHERE id = ?",
-            (20, 1)
+            temp_db, "UPDATE test_update SET value = ? WHERE id = ?", (20, 1)
         )
         assert rows_affected == 1
 
@@ -486,12 +509,14 @@ class TestConvenienceFunctions:
         """Test execute_many convenience function"""
         # Setup table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE test_many (
                     id INTEGER PRIMARY KEY,
                     data TEXT
                 )
-            """)
+            """
+            )
             conn.commit()
 
         # Test batch insert
@@ -517,7 +542,9 @@ if __name__ == "__main__":
 
         # Manually set last_used to old time to simulate expiration
         for conn_info in pool._connections:
-            conn_info.last_used = time.time() - 400  # Older than default max_idle_time (300)
+            conn_info.last_used = (
+                time.time() - 400
+            )  # Older than default max_idle_time (300)
 
         # Trigger cleanup by calling _cleanup_expired_connections
         pool._cleanup_expired_connections(time.time())
@@ -555,9 +582,9 @@ if __name__ == "__main__":
         """Test fallback when DatabasePool import fails"""
         from unittest.mock import patch
 
-        with patch('core.database_pool.DatabasePool', None):
+        with patch("core.database_pool.DatabasePool", None):
             # Simulate import failure
-            with patch.dict('sys.modules', {'core.database_pool': None}):
+            with patch.dict("sys.modules", {"core.database_pool": None}):
                 # This should trigger fallback in dependent modules
                 # Test that direct sqlite3 operations still work
                 conn = sqlite3.connect(temp_db)
@@ -573,12 +600,14 @@ if __name__ == "__main__":
         """Compare performance of pooled vs direct connections"""
         # Setup test data
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE perf_compare (
                     id INTEGER PRIMARY KEY,
                     data TEXT
                 )
-            """)
+            """
+            )
             conn.commit()
 
         # Test pooled performance
@@ -612,13 +641,15 @@ if __name__ == "__main__":
         """Test performance under concurrent load"""
         # Setup test data
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE concurrent_perf (
                     id INTEGER PRIMARY KEY,
                     thread_id INTEGER,
                     data TEXT
                 )
-            """)
+            """
+            )
             conn.commit()
 
         def concurrent_worker(thread_id):
@@ -626,7 +657,7 @@ if __name__ == "__main__":
                 with DatabasePool.get_connection(temp_db) as conn:
                     conn.execute(
                         "INSERT INTO concurrent_perf (thread_id, data) VALUES (?, ?)",
-                        (thread_id, f"data_{thread_id}_{i}")
+                        (thread_id, f"data_{thread_id}_{i}"),
                     )
                     conn.commit()
 
@@ -659,7 +690,9 @@ if __name__ == "__main__":
         assert cache_key in DatabasePool._stmt_cache
 
         # Manually expire it
-        DatabasePool._stmt_cache[cache_key].last_used = time.time() - 7200  # 2 hours ago
+        DatabasePool._stmt_cache[cache_key].last_used = (
+            time.time() - 7200
+        )  # 2 hours ago
 
         # Trigger cleanup
         DatabasePool.cleanup_cache()
@@ -683,8 +716,8 @@ if __name__ == "__main__":
         # Get global stats
         global_stats = DatabasePool.get_global_stats()
 
-        assert global_stats['total_pools'] >= 2
-        assert len(global_stats['pools']) >= 2
+        assert global_stats["total_pools"] >= 2
+        assert len(global_stats["pools"]) >= 2
 
     def test_connection_timeout_handling(self, temp_db):
         """Test handling of connection timeouts"""
@@ -702,7 +735,9 @@ if __name__ == "__main__":
         except sqlite3.OperationalError as e:
             assert "timeout" in str(e).lower() or "busy" in str(e).lower()
             elapsed = time.time() - start_time
-            assert elapsed >= 25  # Should wait at least 25 seconds (half of 30s timeout)
+            assert (
+                elapsed >= 25
+            )  # Should wait at least 25 seconds (half of 30s timeout)
 
         # Release first connection
         pool._release_connection(conn1)
@@ -714,7 +749,7 @@ class TestConvenienceFunctions:
     @pytest.fixture
     def temp_db(self):
         """Create temporary database for testing"""
-        fd, path = tempfile.mkstemp(suffix='.db')
+        fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         yield path
         os.unlink(path)
@@ -723,12 +758,14 @@ class TestConvenienceFunctions:
         """Test execute_query convenience function"""
         # Setup table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE test_query (
                     id INTEGER PRIMARY KEY,
                     name TEXT
                 )
-            """)
+            """
+            )
             conn.execute("INSERT INTO test_query (name) VALUES (?)", ("test",))
             conn.commit()
 
@@ -741,20 +778,20 @@ class TestConvenienceFunctions:
         """Test execute_update convenience function"""
         # Setup table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE test_update (
                     id INTEGER PRIMARY KEY,
                     value INTEGER
                 )
-            """)
+            """
+            )
             conn.execute("INSERT INTO test_update (value) VALUES (?)", (10,))
             conn.commit()
 
         # Test update execution
         rows_affected = execute_update(
-            temp_db,
-            "UPDATE test_update SET value = ? WHERE id = ?",
-            (20, 1)
+            temp_db, "UPDATE test_update SET value = ? WHERE id = ?", (20, 1)
         )
         assert rows_affected == 1
 
@@ -766,12 +803,14 @@ class TestConvenienceFunctions:
         """Test execute_many convenience function"""
         # Setup table
         with DatabasePool.get_connection(temp_db) as conn:
-            conn.execute("""
+            conn.execute(
+                """
                 CREATE TABLE test_many (
                     id INTEGER PRIMARY KEY,
                     data TEXT
                 )
-            """)
+            """
+            )
             conn.commit()
 
         # Test batch insert

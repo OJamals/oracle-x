@@ -6,10 +6,13 @@ from oracle_engine.model_attempt_logger import log_attempt
 import time
 
 API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config.model.openai_api_base or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+API_BASE = config.model.openai_api_base or os.environ.get(
+    "OPENAI_API_BASE", "https://api.githubcopilot.com/v1"
+)
 MODEL_NAME = config.model.openai_model
 
 client = OpenAI(api_key=API_KEY, base_url=API_BASE)
+
 
 def _iter_fallback_models(primary: str):
     try:
@@ -22,6 +25,7 @@ def _iter_fallback_models(primary: str):
         if m not in seen:
             seen.add(m)
             yield m
+
 
 def generate_oracle_prompt(data: Dict) -> str:
     """
@@ -53,6 +57,7 @@ def generate_oracle_prompt(data: Dict) -> str:
     6. Encourage variety in trade types and tickers if possible.
     """
 
+
 def get_oracle_playbook(prompt: str) -> str:
     for model in _iter_fallback_models(MODEL_NAME):
         start = time.time()
@@ -64,18 +69,43 @@ def get_oracle_playbook(prompt: str) -> str:
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.3,
-                max_completion_tokens=1024
+                max_completion_tokens=1024,
             )
             content = (resp.choices[0].message.content or "").strip()
             if content:
                 if model != MODEL_NAME:
-                    print(f"[INFO] Fallback model '{model}' succeeded for oracle_prompt.")
-                log_attempt("oracle_prompt", model, start_time=start, success=True, empty=False, error=None)
+                    print(
+                        f"[INFO] Fallback model '{model}' succeeded for oracle_prompt."
+                    )
+                log_attempt(
+                    "oracle_prompt",
+                    model,
+                    start_time=start,
+                    success=True,
+                    empty=False,
+                    error=None,
+                )
                 return content
-            log_attempt("oracle_prompt", model, start_time=start, success=False, empty=True, error=None)
-            print(f"[DEBUG] Model {model} returned empty content – falling back (oracle_prompt).")
+            log_attempt(
+                "oracle_prompt",
+                model,
+                start_time=start,
+                success=False,
+                empty=True,
+                error=None,
+            )
+            print(
+                f"[DEBUG] Model {model} returned empty content – falling back (oracle_prompt)."
+            )
         except Exception as e:
-            log_attempt("oracle_prompt", model, start_time=start, success=False, empty=False, error=str(e))
+            log_attempt(
+                "oracle_prompt",
+                model,
+                start_time=start,
+                success=False,
+                empty=False,
+                error=str(e),
+            )
             print(f"[DEBUG] Model {model} failed (oracle_prompt): {e}")
             continue
     print("[WARN] All models failed for oracle_prompt.")
