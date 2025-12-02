@@ -43,7 +43,6 @@ except ImportError:
 
 from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
 from data_feeds.finviz_adapter import FinVizAdapter  # New import
-from data_feeds.gnews_adapter import GNewsAdapter  # GNews sentiment adapter
 from data_feeds.fallback_manager import FallbackManager, FallbackConfig, FallbackReason  # New import for intelligent fallback
 # Delegate models and feed for consolidation parity
 from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem  # absolute imports as required (avoid Quote name clash)
@@ -243,7 +242,6 @@ class DataSource(Enum):
     SEC_EDGAR = "sec_edgar"
     TWELVE_DATA = "twelve_data"  # Deprecated (legacy placeholder)
     FINVIZ = "finviz"
-    GNEWS = "gnews"
 
 class DataQuality(Enum):
     """Data quality levels"""
@@ -1255,7 +1253,7 @@ class AdvancedSentimentAdapter:
         try:
             # Lazy load the engine
             if self._engine is None:
-                from data_feeds.advanced_sentiment import get_sentiment_engine
+                from sentiment.sentiment_engine import get_sentiment_engine
                 self._engine = get_sentiment_engine()
             
             # Analyze sentiment with advanced engine
@@ -1384,7 +1382,6 @@ class DataFeedOrchestrator:
             DataSource.TWITTER: TwitterAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.YAHOO_NEWS: YahooNewsSentimentAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.FINVIZ: FinVizAdapter(),
-            DataSource.GNEWS: GNewsAdapter(),  # Google News sentiment adapter
         }
         # Attempt to add FinVizNewsSentimentAdapter using existing FINVIZ headlines if available
         try:

@@ -16,6 +16,11 @@
 			"label": "Extract class names from oracle_options_pipeline.py",
 			"type": "shell",
 			"command": "cd /Users/omar/Documents/Projects/oracle-x && python -c \"import ast; content=open('oracle_options_pipeline.py').read(); tree=ast.parse(content); classes=[node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]; print('Classes found:', classes[:10])\""
+		},
+		{
+			"label": "Create advanced_sentiment.py redirect file",
+			"type": "shell",
+			"command": "cd /Users/omar/Documents/Projects/oracle-x && touch data_feeds/advanced_sentiment.py"
 		}
 	]
 }

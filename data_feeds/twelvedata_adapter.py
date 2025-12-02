@@ -613,3 +613,18 @@ class TwelveDataAdapter:
             quality_score=100.0,  # Validator in orchestrator will adjust if needed
         )
         return md
+    def capabilities(self) -> set[str]:
+        """SourceAdapterProtocol capabilities"""
+        return {"quote", "historical"}
+
+    def health(self) -> dict[str, Any]:
+        """SourceAdapterProtocol health check"""
+        return {"status": "operational", "source": "twelvedata"}
+
+    def fetch_quote(self, symbol: str) -> Any:
+        """SourceAdapterProtocol quote fetch"""
+        return self.get_quote(symbol)
+
+    def fetch_historical(self, symbol: str, **kwargs) -> Any:
+        """SourceAdapterProtocol historical data fetch"""
+        return self.get_market_data(symbol, **kwargs)

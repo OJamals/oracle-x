@@ -226,3 +226,16 @@ Do not respond with anything else."""
 
 # Backward compatibility
 GrokEnhancedTwitterAdapter = GrokTwitterAdapter
+
+    def capabilities(self) -> set[str]:
+        """SourceAdapterProtocol capabilities"""
+        return {"sentiment"}
+
+    def health(self) -> dict[str, Any]:
+        """SourceAdapterProtocol health check"""
+        return self.get_health_status()
+
+    def fetch_sentiment(self, symbol: str, **kwargs) -> SentimentData:
+        """SourceAdapterProtocol sentiment fetch"""
+        limit = kwargs.get("limit", 20)
+        return self.get_sentiment(symbol, limit)

@@ -32,7 +32,7 @@ from oracle_engine.ml_prediction_engine import PredictionType
 # Import required dependencies for EnsemblePredictionEngine
 try:
     from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-    from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+    from sentiment.sentiment_engine import AdvancedSentimentEngine
     DEPENDENCIES_AVAILABLE = True
 except ImportError as e:
     logger.warning(f"Ensemble dependencies not available: {e}")

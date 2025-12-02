@@ -9,7 +9,11 @@ import threading
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional, Set
 from dataclasses import dataclass, field
-import schedule
+
+try:
+    import schedule  # type: ignore
+except Exception:
+    schedule = None  # Optional dependency; service will be disabled if missing
 
 logger = logging.getLogger(__name__)
 
@@ -72,11 +76,14 @@ class CacheInvalidationService:
             )
         ]
 
-        # Scheduler for automated invalidation
-        self.scheduler = schedule.Scheduler()
+        # Scheduler for automated invalidation (disabled if schedule is unavailable)
+        self.scheduler = schedule.Scheduler() if schedule else None
 
     def start(self):
         """Start the cache invalidation service"""
+        if not self.scheduler:
+            logger.warning("Cache invalidation service not started (schedule dependency missing)")
+            return
         if self.is_running:
             return
 
@@ -98,7 +105,7 @@ class CacheInvalidationService:
 
     def stop(self):
         """Stop the cache invalidation service"""
-        if not self.is_running:
+        if not self.is_running or not self.scheduler:
             return
 
         self.is_running = False
@@ -107,7 +114,7 @@ class CacheInvalidationService:
 
     def _run_scheduler(self):
         """Run the scheduler in background thread"""
-        while self.is_running:
+        while self.is_running and self.scheduler:
             try:
                 self.scheduler.run_pending()
                 time.sleep(60)  # Check every minute
@@ -350,6 +357,9 @@ def get_cache_invalidation_service(redis_cache_manager, orchestrator=None):
     global _invalidation_service
 
     if _invalidation_service is None:
+        if not schedule:
+            logger.info("Cache invalidation disabled: schedule dependency not installed")
+            return None
         _invalidation_service = CacheInvalidationService(
             redis_cache_manager, orchestrator
         )
@@ -359,7 +369,7 @@ def get_cache_invalidation_service(redis_cache_manager, orchestrator=None):
 def start_cache_invalidation(redis_cache_manager, orchestrator=None):
     """Start cache invalidation service"""
     service = get_cache_invalidation_service(redis_cache_manager, orchestrator)
-    if not service.is_running:
+    if service and not service.is_running:
         service.start()
 
 def stop_cache_invalidation():

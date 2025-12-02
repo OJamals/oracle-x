@@ -249,21 +249,21 @@ def test_fmp():
     """Test Financial Modeling Prep API (PREMIUM with free tier)"""
     print("\n🔍 Testing FMP API (PREMIUM with free tier)...")
     try:
-        from data_feeds.enhanced_fmp_integration import EnhancedFMPAdapter
-        
-        fmp = EnhancedFMPAdapter()
+        from data_feeds.consolidated_data_feed import FMPAdapter
+
+        fmp = FMPAdapter()
         if not fmp.api_key:
             print(f"⚠️  FMP: SKIPPED - No API key (FREE tier available)")
             test_results["premium_feeds"].append("fmp")
             return None
-            
+
         start = time.time()
-        data = fmp.get_financial_ratios("AAPL")
+        data = fmp.get_quote("AAPL")
         elapsed = time.time() - start
-        
-        if data and len(data) > 0:
+
+        if data and hasattr(data, 'price') and data.price:
             print(f"✅ FMP: SUCCESS ({elapsed:.2f}s)")
-            print(f"   PE Ratio: {data[0].pe_ratio if data[0].pe_ratio else 'N/A'}")
+            print(f"   Price: ${data.price}")
             test_results["successful_feeds"].append("fmp")
             test_results["premium_feeds"].append("fmp")
             return True

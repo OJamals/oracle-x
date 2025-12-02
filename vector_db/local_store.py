@@ -26,13 +26,14 @@ from typing import List, Dict, Optional, Any
 from pathlib import Path
 
 try:
-    import chromadb
-    from chromadb.config import Settings
-except ImportError:
-    raise ImportError(
-        "ChromaDB is required for local vector storage. "
-        "Install with: pip install chromadb>=0.4.0"
-    )
+    import chromadb  # type: ignore
+    from chromadb.config import Settings  # type: ignore
+    CHROMADB_AVAILABLE = True
+except Exception as exc:
+    chromadb = None  # type: ignore
+    Settings = None  # type: ignore
+    CHROMADB_AVAILABLE = False
+    _CHROMADB_IMPORT_ERROR = exc
 
 from core.config import config
 
@@ -64,11 +65,20 @@ class VectorStore:
         self.query_cache: Dict[tuple, List[Dict]] = {}
         self._chroma_legacy_mode = False
         self._disabled_notice_shown = False
+        self._import_error: Optional[Exception] = None
 
-        if not DISABLE_VECTOR_DB:
-            self._load_embedding_model()
-            self._initialize_client()
-            self._ensure_collection()
+        if DISABLE_VECTOR_DB:
+            self._mark_disabled("Vector DB disabled via ORACLEX_DISABLE_VECTOR_DB")
+            return
+
+        if not CHROMADB_AVAILABLE:
+            reason = f"ChromaDB unavailable; vector DB disabled ({_CHROMADB_IMPORT_ERROR})"
+            self._disable_vector_db(reason)
+            return
+
+        self._load_embedding_model()
+        self._initialize_client()
+        self._ensure_collection()
 
     def _mark_disabled(self, message: str) -> None:
         """Print a single warning when vector DB features are unavailable."""

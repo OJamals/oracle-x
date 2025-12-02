@@ -7,10 +7,14 @@ import os
 import time
 import logging
 import threading
-import schedule
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any, Set
 from dataclasses import dataclass, field
+
+try:
+    import schedule  # type: ignore
+except Exception:
+    schedule = None  # Schedule is optional; warming will be disabled if missing
 
 logger = logging.getLogger(__name__)
 
@@ -92,11 +96,14 @@ class CacheWarmingService:
         self.access_patterns = {}  # Track frequently accessed symbols
         self.last_warmup_time = None
 
-        # Scheduler for automated warming
-        self.scheduler = schedule.Scheduler()
+        # Scheduler for automated warming (disabled if schedule is unavailable)
+        self.scheduler = schedule.Scheduler() if schedule else None
 
     def start(self):
         """Start the cache warming service"""
+        if not self.scheduler:
+            logger.warning("Cache warming service not started (schedule dependency missing)")
+            return
         if self.is_running:
             logger.warning("Cache warming service is already running")
             return
@@ -124,7 +131,7 @@ class CacheWarmingService:
 
     def stop(self):
         """Stop the cache warming service"""
-        if not self.is_running:
+        if not self.is_running or not self.scheduler:
             return
 
         self.is_running = False
@@ -133,7 +140,7 @@ class CacheWarmingService:
 
     def _run_scheduler(self):
         """Run the scheduler in background thread"""
-        while self.is_running:
+        while self.is_running and self.scheduler:
             try:
                 self.scheduler.run_pending()
                 time.sleep(30)  # Check every 30 seconds
@@ -283,6 +290,10 @@ class CacheWarmingService:
 
 def create_cache_warming_service(orchestrator) -> CacheWarmingService:
     """Create and configure cache warming service"""
+    if not schedule:
+        logger.info("Cache warming disabled: schedule dependency not installed")
+        return None
+
     config = CacheWarmupConfig.from_env()
     service = CacheWarmingService(orchestrator, config)
 
@@ -307,7 +318,7 @@ def get_cache_warming_service(orchestrator=None):
 def start_cache_warming(orchestrator):
     """Start cache warming service"""
     service = get_cache_warming_service(orchestrator)
-    if service and not service.is_running:
+    if service and service.scheduler and not service.is_running:
         service.start()
 
 def stop_cache_warming():

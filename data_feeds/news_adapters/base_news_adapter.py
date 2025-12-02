@@ -20,7 +20,7 @@ from data_feeds.data_feed_orchestrator import SentimentData
 
 # Import advanced sentiment analysis engine
 try:
-    from data_feeds.advanced_sentiment import get_sentiment_engine, analyze_symbol_sentiment, SentimentSummary
+    from sentiment.sentiment_engine import get_sentiment_engine, analyze_symbol_sentiment, SentimentSummary
     ADVANCED_SENTIMENT_AVAILABLE = True
     _get_sentiment_engine = get_sentiment_engine
     _analyze_symbol_sentiment = analyze_symbol_sentiment

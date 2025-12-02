@@ -25,7 +25,7 @@ sys.path.insert(0, str(project_root))
 
 from data_feeds.api_key_validator import validate_all_api_keys, execute_with_fallback
 from data_feeds.finnhub import fetch_finnhub_quote
-from data_feeds.enhanced_fmp_integration import EnhancedFMPAdapter
+from data_feeds.consolidated_data_feed import FMPAdapter
 import requests
 
 def test_finnhub_connectivity() -> Dict[str, Any]:
@@ -58,7 +58,7 @@ def test_fmp_connectivity() -> Dict[str, Any]:
     print("💰 Testing Financial Modeling Prep API connectivity...")
 
     try:
-        fmp = EnhancedFMPAdapter()
+        fmp = FMPAdapter()
         if not fmp.api_key:
             return {
                 'status': 'error',
@@ -67,16 +67,13 @@ def test_fmp_connectivity() -> Dict[str, Any]:
             }
 
         # Test with a simple quote endpoint
-        endpoint = f"quote/AAPL"
-        data = fmp._make_request(endpoint)
+        data = fmp.get_quote('AAPL')
 
-        if data and isinstance(data, list) and len(data) > 0:
-            quote = data[0]
-            price = quote.get('price', 'N/A')
+        if data and hasattr(data, 'price') and data.price:
             return {
                 'status': 'success',
-                'message': f"Successfully fetched AAPL quote: ${price}",
-                'data': quote
+                'message': f"Successfully fetched AAPL quote: ${data.price}",
+                'data': {'price': data.price, 'symbol': data.symbol}
             }
         else:
             return {
