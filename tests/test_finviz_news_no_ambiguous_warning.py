@@ -10,6 +10,7 @@ Network / scraping environments can vary; if the adapter is unavailable or
 no news is returned, the test will pass as long as no ambiguous ValueError
 occurs. Any occurrence of the specific ValueError message is a failure.
 """
+
 import logging
 import os
 
@@ -39,11 +40,17 @@ def test_finviz_news_no_ambiguous_truth_value():
         _ = adapter.get_sentiment("AAPL")
     except ValueError as ve:  # Explicitly catch to inspect message
         msg = str(ve).lower()
-        assert "ambiguous" not in msg, "Encountered pandas ambiguous truth-value error again"
+        assert (
+            "ambiguous" not in msg
+        ), "Encountered pandas ambiguous truth-value error again"
         # Re-raise other ValueErrors for visibility
         raise
-    except Exception as e:  # Other exceptions are not considered regression for this specific issue
-        logging.warning("FinViz news sentiment fetch raised non-ambiguous exception: %s", e)
+    except (
+        Exception
+    ) as e:  # Other exceptions are not considered regression for this specific issue
+        logging.warning(
+            "FinViz news sentiment fetch raised non-ambiguous exception: %s", e
+        )
         # Do not fail; only the ambiguous truth-value regression is critical
         return
 

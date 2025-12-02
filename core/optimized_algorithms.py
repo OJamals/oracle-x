@@ -15,9 +15,11 @@ from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class DataCharacteristics:
     """Data characteristics for algorithm selection"""
+
     size: int
     dimensionality: int
     data_type: str
@@ -27,19 +29,24 @@ class DataCharacteristics:
     is_time_series: bool
     distribution_type: str
 
+
 @dataclass
 class AlgorithmPerformance:
     """Performance metrics for algorithm evaluation"""
+
     execution_time: float
     memory_usage: int
     accuracy_score: float
     scalability_score: float
     timestamp: float
 
+
 class AlgorithmProfile:
     """Profile for a specific algorithm implementation"""
 
-    def __init__(self, name: str, algorithm_func: Callable, optimal_conditions: Dict[str, Any]):
+    def __init__(
+        self, name: str, algorithm_func: Callable, optimal_conditions: Dict[str, Any]
+    ):
         self.name = name
         self.algorithm_func = algorithm_func
         self.optimal_conditions = optimal_conditions
@@ -52,8 +59,8 @@ class AlgorithmProfile:
         conditions = self.optimal_conditions
 
         # Size matching
-        if 'size_range' in conditions:
-            min_size, max_size = conditions['size_range']
+        if "size_range" in conditions:
+            min_size, max_size = conditions["size_range"]
             if min_size <= characteristics.size <= max_size:
                 score += 0.3
             elif characteristics.size < min_size:
@@ -62,38 +69,49 @@ class AlgorithmProfile:
                 score += 0.05
 
         # Data type matching
-        if 'data_types' in conditions and characteristics.data_type in conditions['data_types']:
+        if (
+            "data_types" in conditions
+            and characteristics.data_type in conditions["data_types"]
+        ):
             score += 0.2
 
         # Sparsity matching
-        if 'sparsity_range' in conditions:
-            min_sparse, max_sparse = conditions['sparsity_range']
+        if "sparsity_range" in conditions:
+            min_sparse, max_sparse = conditions["sparsity_range"]
             if min_sparse <= characteristics.sparsity <= max_sparse:
                 score += 0.15
 
         # Memory efficiency
-        if 'memory_efficient' in conditions and conditions['memory_efficient']:
+        if "memory_efficient" in conditions and conditions["memory_efficient"]:
             if characteristics.memory_usage < psutil.virtual_memory().available * 0.5:
                 score += 0.15
 
         # Time series optimization
-        if 'time_series_optimized' in conditions and conditions['time_series_optimized'] == characteristics.is_time_series:
+        if (
+            "time_series_optimized" in conditions
+            and conditions["time_series_optimized"] == characteristics.is_time_series
+        ):
             score += 0.1
 
         # Distribution matching
-        if 'distribution_types' in conditions and characteristics.distribution_type in conditions['distribution_types']:
+        if (
+            "distribution_types" in conditions
+            and characteristics.distribution_type in conditions["distribution_types"]
+        ):
             score += 0.1
 
         return min(score, 1.0)
 
-    def record_performance(self, execution_time: float, memory_usage: int, accuracy_score: float = 1.0):
+    def record_performance(
+        self, execution_time: float, memory_usage: int, accuracy_score: float = 1.0
+    ):
         """Record performance metrics for this algorithm"""
         performance = AlgorithmPerformance(
             execution_time=execution_time,
             memory_usage=memory_usage,
             accuracy_score=accuracy_score,
             scalability_score=self._calculate_scalability_score(),
-            timestamp=time.time()
+            timestamp=time.time(),
         )
         self.performance_history.append(performance)
         self.usage_count += 1
@@ -121,16 +139,21 @@ class AlgorithmProfile:
 
         avg_time = float(np.mean([p.execution_time for p in self.performance_history]))
         avg_memory = int(np.mean([p.memory_usage for p in self.performance_history]))
-        avg_accuracy = float(np.mean([p.accuracy_score for p in self.performance_history]))
-        avg_scalability = float(np.mean([p.scalability_score for p in self.performance_history]))
+        avg_accuracy = float(
+            np.mean([p.accuracy_score for p in self.performance_history])
+        )
+        avg_scalability = float(
+            np.mean([p.scalability_score for p in self.performance_history])
+        )
 
         return AlgorithmPerformance(
             execution_time=avg_time,
             memory_usage=int(avg_memory),
             accuracy_score=avg_accuracy,
             scalability_score=avg_scalability,
-            timestamp=time.time()
+            timestamp=time.time(),
         )
+
 
 class DynamicAlgorithmSelector:
     """Advanced dynamic algorithm selection engine with performance profiling"""
@@ -140,7 +163,9 @@ class DynamicAlgorithmSelector:
         self.performance_cache: Dict[str, AlgorithmPerformance] = {}
         self.selection_history: List[Dict[str, Any]] = []
 
-    def register_algorithm(self, name: str, algorithm_func: Callable, optimal_conditions: Dict[str, Any]):
+    def register_algorithm(
+        self, name: str, algorithm_func: Callable, optimal_conditions: Dict[str, Any]
+    ):
         """Register a new algorithm with its optimal conditions"""
         profile = AlgorithmProfile(name, algorithm_func, optimal_conditions)
         self.algorithms[name] = profile
@@ -165,11 +190,11 @@ class DynamicAlgorithmSelector:
         # Determine data type
         numeric_cols = df.select_dtypes(include=[np.number]).columns
         if len(numeric_cols) > len(df.columns) * 0.7:
-            data_type = 'numeric'
-        elif len(df.select_dtypes(include=['datetime']).columns) > 0:
-            data_type = 'time_series'
+            data_type = "numeric"
+        elif len(df.select_dtypes(include=["datetime"]).columns) > 0:
+            data_type = "time_series"
         else:
-            data_type = 'mixed'
+            data_type = "mixed"
 
         # Calculate sparsity
         total_cells = size * dimensionality
@@ -181,11 +206,11 @@ class DynamicAlgorithmSelector:
 
         # Check for time series characteristics
         is_time_series = False
-        if 'timestamp' in df.columns or 'date' in df.columns:
+        if "timestamp" in df.columns or "date" in df.columns:
             is_time_series = True
 
         # Analyze distribution
-        distribution_type = 'unknown'
+        distribution_type = "unknown"
         if len(numeric_cols) > 0:
             sample_col = df[numeric_cols[0]].dropna()
             if len(sample_col) > 10:
@@ -193,7 +218,7 @@ class DynamicAlgorithmSelector:
                     skewness_val = sample_col.skew()
 
                     # Handle pandas Series - extract first value if it's a series
-                    if hasattr(skewness_val, 'iloc'):
+                    if hasattr(skewness_val, "iloc"):
                         try:
                             skewness_val = skewness_val.iloc[0]
                         except (IndexError, AttributeError):
@@ -208,11 +233,11 @@ class DynamicAlgorithmSelector:
                     skewness = 0.0
 
                 if skewness < 0.5:
-                    distribution_type = 'normal'
+                    distribution_type = "normal"
                 elif skewness > 1:
-                    distribution_type = 'skewed'
+                    distribution_type = "skewed"
                 else:
-                    distribution_type = 'uniform'
+                    distribution_type = "uniform"
 
         return DataCharacteristics(
             size=size,
@@ -222,7 +247,7 @@ class DynamicAlgorithmSelector:
             memory_usage=memory_usage,
             has_nulls=null_cells > 0,
             is_time_series=is_time_series,
-            distribution_type=distribution_type
+            distribution_type=distribution_type,
         )
 
     def _analyze_array(self, arr: np.ndarray) -> DataCharacteristics:
@@ -230,7 +255,7 @@ class DynamicAlgorithmSelector:
         size = arr.size
         dimensionality = arr.ndim
 
-        data_type = 'numeric' if np.issubdtype(arr.dtype, np.number) else 'mixed'
+        data_type = "numeric" if np.issubdtype(arr.dtype, np.number) else "mixed"
         sparsity = np.isnan(arr).sum() / size if size > 0 else 0
         memory_usage = arr.nbytes
 
@@ -240,9 +265,13 @@ class DynamicAlgorithmSelector:
             data_type=data_type,
             sparsity=sparsity,
             memory_usage=memory_usage,
-            has_nulls=bool(np.isnan(arr).any()) if np.issubdtype(arr.dtype, np.number) else False,
+            has_nulls=(
+                bool(np.isnan(arr).any())
+                if np.issubdtype(arr.dtype, np.number)
+                else False
+            ),
             is_time_series=False,
-            distribution_type='unknown'
+            distribution_type="unknown",
         )
 
     def _analyze_list(self, data_list: list) -> DataCharacteristics:
@@ -250,13 +279,13 @@ class DynamicAlgorithmSelector:
         size = len(data_list)
         dimensionality = 1
 
-        sample = data_list[:min(10, size)]
+        sample = data_list[: min(10, size)]
         if all(isinstance(x, (int, float)) for x in sample):
-            data_type = 'numeric'
+            data_type = "numeric"
         elif all(isinstance(x, str) for x in sample):
-            data_type = 'text'
+            data_type = "text"
         else:
-            data_type = 'mixed'
+            data_type = "mixed"
 
         sparsity = sum(1 for x in data_list if x is None) / size if size > 0 else 0
         memory_usage = sum(len(str(x)) for x in data_list)
@@ -269,35 +298,38 @@ class DynamicAlgorithmSelector:
             memory_usage=memory_usage,
             has_nulls=any(x is None for x in data_list),
             is_time_series=False,
-            distribution_type='unknown'
+            distribution_type="unknown",
         )
 
     def _analyze_generic(self, data: Any) -> DataCharacteristics:
         """Fallback analysis for unknown data types"""
         try:
-            size = len(data) if hasattr(data, '__len__') else 1
+            size = len(data) if hasattr(data, "__len__") else 1
         except (TypeError, AttributeError):
             size = 1
 
         return DataCharacteristics(
             size=size,
             dimensionality=1,
-            data_type='unknown',
+            data_type="unknown",
             sparsity=0.0,
             memory_usage=0,
             has_nulls=False,
             is_time_series=False,
-            distribution_type='unknown'
+            distribution_type="unknown",
         )
 
-    def select_optimal_algorithm(self, data: Any, algorithm_type: str = 'general') -> Tuple[str, Callable, float]:
+    def select_optimal_algorithm(
+        self, data: Any, algorithm_type: str = "general"
+    ) -> Tuple[str, Callable, float]:
         """Select the optimal algorithm for given data"""
         characteristics = self.analyze_data_characteristics(data)
 
         # Filter algorithms by type if specified
         candidates = {
-            name: profile for name, profile in self.algorithms.items()
-            if algorithm_type in name or algorithm_type == 'general'
+            name: profile
+            for name, profile in self.algorithms.items()
+            if algorithm_type in name or algorithm_type == "general"
         }
 
         if not candidates:
@@ -318,22 +350,32 @@ class DynamicAlgorithmSelector:
 
         # Record selection for learning
         selection_record = {
-            'timestamp': time.time(),
-            'data_characteristics': characteristics,
-            'selected_algorithm': best_algorithm,
-            'confidence': confidence,
-            'algorithm_type': algorithm_type,
-            'available_candidates': list(candidates.keys())
+            "timestamp": time.time(),
+            "data_characteristics": characteristics,
+            "selected_algorithm": best_algorithm,
+            "confidence": confidence,
+            "algorithm_type": algorithm_type,
+            "available_candidates": list(candidates.keys()),
         }
         self.selection_history.append(selection_record)
 
-        logger.info(f"Selected algorithm '{best_algorithm}' with confidence {confidence:.2f}")
+        logger.info(
+            f"Selected algorithm '{best_algorithm}' with confidence {confidence:.2f}"
+        )
 
-        return best_algorithm, self.algorithms[best_algorithm].algorithm_func, confidence
+        return (
+            best_algorithm,
+            self.algorithms[best_algorithm].algorithm_func,
+            confidence,
+        )
 
-    def execute_with_adaptive_selection(self, data: Any, algorithm_type: str = 'general', **kwargs) -> Any:
+    def execute_with_adaptive_selection(
+        self, data: Any, algorithm_type: str = "general", **kwargs
+    ) -> Any:
         """Execute algorithm with automatic selection and performance monitoring"""
-        algorithm_name, algorithm_func, confidence = self.select_optimal_algorithm(data, algorithm_type)
+        algorithm_name, algorithm_func, confidence = self.select_optimal_algorithm(
+            data, algorithm_type
+        )
 
         # Monitor execution
         start_time = time.time()
@@ -350,10 +392,12 @@ class DynamicAlgorithmSelector:
             self.algorithms[algorithm_name].record_performance(
                 execution_time=execution_time,
                 memory_usage=memory_usage,
-                accuracy_score=1.0
+                accuracy_score=1.0,
             )
 
-            logger.info(f"Algorithm '{algorithm_name}' executed in {execution_time:.3f}s")
+            logger.info(
+                f"Algorithm '{algorithm_name}' executed in {execution_time:.3f}s"
+            )
 
             return result
 
@@ -366,7 +410,7 @@ class DynamicAlgorithmSelector:
             self.algorithms[algorithm_name].record_performance(
                 execution_time=execution_time,
                 memory_usage=memory_usage,
-                accuracy_score=0.0
+                accuracy_score=0.0,
             )
 
             logger.error(f"Algorithm '{algorithm_name}' failed: {e}")
@@ -374,11 +418,15 @@ class DynamicAlgorithmSelector:
             # Try fallback algorithm if available
             if confidence < 0.7 and len(self.algorithms) > 1:
                 logger.info("Attempting fallback algorithm...")
-                fallback_candidates = {k: v for k, v in self.algorithms.items() if k != algorithm_name}
+                fallback_candidates = {
+                    k: v for k, v in self.algorithms.items() if k != algorithm_name
+                }
                 if fallback_candidates:
                     fallback_name = list(fallback_candidates.keys())[0]
                     logger.info(f"Using fallback algorithm: {fallback_name}")
-                    return fallback_candidates[fallback_name].algorithm_func(data, **kwargs)
+                    return fallback_candidates[fallback_name].algorithm_func(
+                        data, **kwargs
+                    )
 
             raise e
 
@@ -390,14 +438,15 @@ class DynamicAlgorithmSelector:
             avg_performance = profile.get_average_performance()
             if avg_performance:
                 analytics[name] = {
-                    'usage_count': profile.usage_count,
-                    'avg_execution_time': avg_performance.execution_time,
-                    'avg_memory_usage': avg_performance.memory_usage,
-                    'avg_accuracy': avg_performance.accuracy_score,
-                    'scalability_score': avg_performance.scalability_score
+                    "usage_count": profile.usage_count,
+                    "avg_execution_time": avg_performance.execution_time,
+                    "avg_memory_usage": avg_performance.memory_usage,
+                    "avg_accuracy": avg_performance.accuracy_score,
+                    "scalability_score": avg_performance.scalability_score,
                 }
 
         return analytics
+
 
 class VectorizedOptionsEngine:
     """Vectorized implementation of options pricing models for improved performance"""
@@ -405,9 +454,17 @@ class VectorizedOptionsEngine:
     def __init__(self, steps: int = 100):
         self.steps = steps
 
-    def price_binomial_vectorized(self, S: float, K: float, T: float, r: float,
-                                  sigma: float, option_type: str = 'call',
-                                  style: str = 'european', q: float = 0.0) -> float:
+    def price_binomial_vectorized(
+        self,
+        S: float,
+        K: float,
+        T: float,
+        r: float,
+        sigma: float,
+        option_type: str = "call",
+        style: str = "european",
+        q: float = 0.0,
+    ) -> float:
         """
         Vectorized binomial option pricing model
         3-5x faster than loop-based implementation
@@ -423,20 +480,22 @@ class VectorizedOptionsEngine:
         j_indices = np.arange(self.steps + 1)  # Price levels
 
         # Create meshgrid for vectorized computation
-        I, J = np.meshgrid(i_indices, j_indices, indexing='ij')
+        I, J = np.meshgrid(i_indices, j_indices, indexing="ij")
 
         # Vectorized stock price calculation
         # Only compute valid positions (j <= i)
         valid_mask = J <= I
         stock_tree = np.zeros_like(I, dtype=float)
-        stock_tree[valid_mask] = S * np.power(u, I[valid_mask] - J[valid_mask]) * np.power(d, J[valid_mask])
+        stock_tree[valid_mask] = (
+            S * np.power(u, I[valid_mask] - J[valid_mask]) * np.power(d, J[valid_mask])
+        )
 
         # Vectorized option value tree
         option_tree = np.zeros_like(stock_tree)
 
         # Terminal payoffs - vectorized
         terminal_mask = (I == self.steps) & valid_mask
-        if option_type.lower() == 'call':
+        if option_type.lower() == "call":
             option_tree[terminal_mask] = np.maximum(0, stock_tree[terminal_mask] - K)
         else:  # put
             option_tree[terminal_mask] = np.maximum(0, K - stock_tree[terminal_mask])
@@ -454,23 +513,26 @@ class VectorizedOptionsEngine:
 
             # Get option values at next step
             next_up_values = option_tree[next_up_mask]
-            next_down_values = option_tree[next_down_mask][1:]  # Shift for down movement
+            next_down_values = option_tree[next_down_mask][
+                1:
+            ]  # Shift for down movement
 
             # Calculate expected value
             if len(next_up_values) > 0 and len(next_down_values) > 0:
                 min_len = min(len(next_up_values), len(next_down_values))
                 expected_value = discount_factor * (
-                    p * next_up_values[:min_len] +
-                    (1 - p) * next_down_values[:min_len]
+                    p * next_up_values[:min_len] + (1 - p) * next_down_values[:min_len]
                 )
 
                 # American option early exercise check
-                if style.lower() == 'american':
-                    if option_type.lower() == 'call':
+                if style.lower() == "american":
+                    if option_type.lower() == "call":
                         intrinsic = stock_tree[current_mask] - K
                     else:
                         intrinsic = K - stock_tree[current_mask]
-                    option_tree[current_mask] = np.maximum(expected_value, intrinsic[:len(expected_value)])
+                    option_tree[current_mask] = np.maximum(
+                        expected_value, intrinsic[: len(expected_value)]
+                    )
                 else:
                     option_tree[current_mask] = expected_value
             else:
@@ -479,9 +541,16 @@ class VectorizedOptionsEngine:
 
         return option_tree[0, 0]
 
-    def price_monte_carlo_vectorized(self, S: float, K: float, T: float, r: float,
-                                     sigma: float, option_type: str = 'call',
-                                     simulations: int = 10000) -> Tuple[float, float]:
+    def price_monte_carlo_vectorized(
+        self,
+        S: float,
+        K: float,
+        T: float,
+        r: float,
+        sigma: float,
+        option_type: str = "call",
+        simulations: int = 10000,
+    ) -> Tuple[float, float]:
         """
         Vectorized Monte Carlo option pricing
         Significantly faster than loop-based implementation
@@ -497,7 +566,7 @@ class VectorizedOptionsEngine:
         ST = S * np.exp(drift + diffusion * rand_nums)
 
         # Vectorized payoff calculation
-        if option_type.lower() == 'call':
+        if option_type.lower() == "call":
             payoffs = np.maximum(ST - K, 0)
         else:
             payoffs = np.maximum(K - ST, 0)
@@ -508,22 +577,25 @@ class VectorizedOptionsEngine:
 
         return price, std_error
 
+
 class OptimizedDataProcessor:
     """Optimized data processing with vectorized operations and parallel processing"""
 
     def __init__(self, max_workers: Optional[int] = None):
         self.max_workers = max_workers or mp.cpu_count()
 
-    def vectorized_sentiment_aggregation(self, sentiment_data: List[Dict[str, Any]]) -> Dict[str, float]:
+    def vectorized_sentiment_aggregation(
+        self, sentiment_data: List[Dict[str, Any]]
+    ) -> Dict[str, float]:
         """
         Vectorized sentiment aggregation for improved performance
         """
         if not sentiment_data:
-            return {'sentiment_score': 0.0, 'confidence': 0.0}
+            return {"sentiment_score": 0.0, "confidence": 0.0}
 
         # Convert to numpy arrays for vectorized operations
-        scores = np.array([item.get('sentiment_score', 0.0) for item in sentiment_data])
-        confidences = np.array([item.get('confidence', 1.0) for item in sentiment_data])
+        scores = np.array([item.get("sentiment_score", 0.0) for item in sentiment_data])
+        confidences = np.array([item.get("confidence", 1.0) for item in sentiment_data])
 
         # Vectorized weighted average calculation
         weights = confidences / np.sum(confidences)
@@ -533,12 +605,13 @@ class OptimizedDataProcessor:
         avg_confidence = np.mean(confidences)
 
         return {
-            'sentiment_score': float(weighted_score),
-            'confidence': float(avg_confidence)
+            "sentiment_score": float(weighted_score),
+            "confidence": float(avg_confidence),
         }
 
-    def parallel_data_processing(self, data_items: List[Any],
-                                 processing_func: Callable[[Any], Any]) -> List[Any]:
+    def parallel_data_processing(
+        self, data_items: List[Any], processing_func: Callable[[Any], Any]
+    ) -> List[Any]:
         """
         Parallel processing of data items using thread pools
         """
@@ -547,8 +620,7 @@ class OptimizedDataProcessor:
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
             # Submit all tasks
             future_to_item = {
-                executor.submit(processing_func, item): item
-                for item in data_items
+                executor.submit(processing_func, item): item for item in data_items
             }
 
             # Collect results as they complete
@@ -567,26 +639,27 @@ class OptimizedDataProcessor:
         Optimized DataFrame operations using vectorized methods
         """
         # Convert object columns to categorical for memory efficiency
-        for col in df.select_dtypes(include=['object']):
+        for col in df.select_dtypes(include=["object"]):
             if df[col].nunique() / len(df) < 0.5:  # Less than 50% unique values
-                df[col] = df[col].astype('category')
+                df[col] = df[col].astype("category")
 
         # Use eval for complex operations (faster than iterative approaches)
-        if 'price' in df.columns and 'volume' in df.columns:
+        if "price" in df.columns and "volume" in df.columns:
             # Vectorized calculation of market cap
-            df['market_cap'] = df['price'] * df['volume']
+            df["market_cap"] = df["price"] * df["volume"]
 
         # Vectorized filtering and transformation
-        if 'sentiment_score' in df.columns:
+        if "sentiment_score" in df.columns:
             # Vectorized sentiment classification
             conditions = [
-                (df['sentiment_score'] < -0.1),
-                (df['sentiment_score'] > 0.1),
+                (df["sentiment_score"] < -0.1),
+                (df["sentiment_score"] > 0.1),
             ]
-            choices = ['negative', 'positive']
-            df['sentiment_category'] = np.select(conditions, choices, default='neutral')
+            choices = ["negative", "positive"]
+            df["sentiment_category"] = np.select(conditions, choices, default="neutral")
 
         return df
+
 
 class MemoryEfficientProcessor:
     """Memory-efficient algorithms for large datasets"""
@@ -594,7 +667,9 @@ class MemoryEfficientProcessor:
     def __init__(self, chunk_size: int = 10000):
         self.chunk_size = chunk_size
 
-    def process_large_dataset(self, data_generator, processing_func: Callable[[List[Any]], List[Any]]):
+    def process_large_dataset(
+        self, data_generator, processing_func: Callable[[List[Any]], List[Any]]
+    ):
         """
         Process large datasets in chunks to minimize memory usage
         """
@@ -622,7 +697,9 @@ class MemoryEfficientProcessor:
 
         return results
 
-    def streaming_aggregation(self, data_stream, aggregation_func: Callable[[Any, Any], Any]):
+    def streaming_aggregation(
+        self, data_stream, aggregation_func: Callable[[Any, Any], Any]
+    ):
         """
         Streaming aggregation for memory-efficient processing
         """
@@ -636,6 +713,7 @@ class MemoryEfficientProcessor:
 
         return aggregator
 
+
 # Global instances for reuse
 _vectorized_engine = VectorizedOptionsEngine()
 _optimized_processor = OptimizedDataProcessor()
@@ -644,65 +722,75 @@ _memory_processor = MemoryEfficientProcessor()
 
 # Register existing algorithms with the dynamic selector
 _algorithm_selector.register_algorithm(
-    'vectorized_options_binomial',
+    "vectorized_options_binomial",
     _vectorized_engine.price_binomial_vectorized,
     {
-        'size_range': (1, 1000),
-        'data_types': ['numeric'],
-        'memory_efficient': True,
-        'time_series_optimized': False,
-        'distribution_types': ['normal', 'uniform']
-    }
+        "size_range": (1, 1000),
+        "data_types": ["numeric"],
+        "memory_efficient": True,
+        "time_series_optimized": False,
+        "distribution_types": ["normal", "uniform"],
+    },
 )
 
 _algorithm_selector.register_algorithm(
-    'vectorized_options_monte_carlo',
-    lambda *args, **kwargs: _vectorized_engine.price_monte_carlo_vectorized(*args, **kwargs)[0],
+    "vectorized_options_monte_carlo",
+    lambda *args, **kwargs: _vectorized_engine.price_monte_carlo_vectorized(
+        *args, **kwargs
+    )[0],
     {
-        'size_range': (1000, 100000),
-        'data_types': ['numeric'],
-        'memory_efficient': False,
-        'time_series_optimized': False,
-        'distribution_types': ['normal', 'skewed']
-    }
+        "size_range": (1000, 100000),
+        "data_types": ["numeric"],
+        "memory_efficient": False,
+        "time_series_optimized": False,
+        "distribution_types": ["normal", "skewed"],
+    },
 )
 
 _algorithm_selector.register_algorithm(
-    'parallel_data_processing',
+    "parallel_data_processing",
     _optimized_processor.parallel_data_processing,
     {
-        'size_range': (100, 10000),
-        'data_types': ['mixed', 'numeric'],
-        'memory_efficient': True,
-        'time_series_optimized': False,
-        'distribution_types': ['normal', 'uniform', 'skewed']
-    }
+        "size_range": (100, 10000),
+        "data_types": ["mixed", "numeric"],
+        "memory_efficient": True,
+        "time_series_optimized": False,
+        "distribution_types": ["normal", "uniform", "skewed"],
+    },
 )
 
 _algorithm_selector.register_algorithm(
-    'memory_efficient_processing',
+    "memory_efficient_processing",
     _memory_processor.process_large_dataset,
     {
-        'size_range': (10000, 1000000),
-        'data_types': ['mixed', 'numeric', 'text'],
-        'memory_efficient': True,
-        'time_series_optimized': True,
-        'distribution_types': ['normal', 'uniform', 'skewed']
-    }
+        "size_range": (10000, 1000000),
+        "data_types": ["mixed", "numeric", "text"],
+        "memory_efficient": True,
+        "time_series_optimized": True,
+        "distribution_types": ["normal", "uniform", "skewed"],
+    },
 )
 
-def get_vectorized_options_price(S: float, K: float, T: float, r: float,
-                                 sigma: float, model: str = 'binomial',
-                                 option_type: str = 'call', **kwargs) -> float:
+
+def get_vectorized_options_price(
+    S: float,
+    K: float,
+    T: float,
+    r: float,
+    sigma: float,
+    model: str = "binomial",
+    option_type: str = "call",
+    **kwargs,
+) -> float:
     """
     Get option price using vectorized algorithms
     3-5x faster than traditional implementations
     """
-    if model.lower() == 'binomial':
+    if model.lower() == "binomial":
         return _vectorized_engine.price_binomial_vectorized(
             S, K, T, r, sigma, option_type, **kwargs
         )
-    elif model.lower() == 'monte_carlo':
+    elif model.lower() == "monte_carlo":
         price, _ = _vectorized_engine.price_monte_carlo_vectorized(
             S, K, T, r, sigma, option_type, **kwargs
         )
@@ -710,23 +798,32 @@ def get_vectorized_options_price(S: float, K: float, T: float, r: float,
     else:
         raise ValueError(f"Unsupported model: {model}")
 
+
 def optimize_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     """
     Optimize DataFrame with vectorized operations and memory efficiency
     """
     return _optimized_processor.vectorized_dataframe_operations(df)
 
-def parallel_process_data(data_items: List[Any], processing_func: Callable[[Any], Any]) -> List[Any]:
+
+def parallel_process_data(
+    data_items: List[Any], processing_func: Callable[[Any], Any]
+) -> List[Any]:
     """
     Process data in parallel for improved performance
     """
     return _optimized_processor.parallel_data_processing(data_items, processing_func)
 
-def select_optimal_algorithm(data_size: int, data_type: str = 'batch') -> Callable[[Any], Any]:
+
+def select_optimal_algorithm(
+    data_size: int, data_type: str = "batch"
+) -> Callable[[Any], Any]:
     """
     Select the optimal algorithm based on data characteristics
     """
-    algorithm_name, algorithm_func, confidence = _algorithm_selector.select_optimal_algorithm(
-        data_size, algorithm_type=data_type
+    algorithm_name, algorithm_func, confidence = (
+        _algorithm_selector.select_optimal_algorithm(
+            data_size, algorithm_type=data_type
+        )
     )
     return algorithm_func

@@ -18,6 +18,7 @@ import zlib
 
 logger = logging.getLogger(__name__)
 
+
 class HTTPClientManager:
     """
     Optimized HTTP client manager with connection pooling, keep-alive, and compression.
@@ -31,10 +32,10 @@ class HTTPClientManager:
     - Thread-safe session management
     """
 
-    _instance: Optional['HTTPClientManager'] = None
+    _instance: Optional["HTTPClientManager"] = None
     _lock = threading.Lock()
 
-    def __new__(cls) -> 'HTTPClientManager':
+    def __new__(cls) -> "HTTPClientManager":
         if cls._instance is None:
             with cls._lock:
                 if cls._instance is None:
@@ -42,69 +43,77 @@ class HTTPClientManager:
         return cls._instance
 
     def __init__(self):
-        if hasattr(self, '_initialized'):
+        if hasattr(self, "_initialized"):
             return
 
         self._initialized = True
         self._sessions: Dict[str, requests.Session] = {}
         self._session_lock = threading.Lock()
         self._metrics = {
-            'requests_total': 0,
-            'requests_success': 0,
-            'requests_failed': 0,
-            'avg_response_time': 0.0,
-            'compression_savings': 0,
-            'connection_reuse_count': 0
+            "requests_total": 0,
+            "requests_success": 0,
+            "requests_failed": 0,
+            "avg_response_time": 0.0,
+            "compression_savings": 0,
+            "connection_reuse_count": 0,
         }
 
         # Default configuration
         self.config = {
-            'pool_connections': int(os.getenv('HTTP_POOL_CONNECTIONS', '20')),
-            'pool_maxsize': int(os.getenv('HTTP_POOL_MAXSIZE', '20')),
-            'max_retries': int(os.getenv('HTTP_MAX_RETRIES', '3')),
-            'backoff_factor': float(os.getenv('HTTP_BACKOFF_FACTOR', '0.3')),
-            'timeout': (int(os.getenv('HTTP_CONNECT_TIMEOUT', '5')),
-                       int(os.getenv('HTTP_READ_TIMEOUT', '15'))),
-            'enable_compression': os.getenv('HTTP_ENABLE_COMPRESSION', 'true').lower() == 'true',
-            'user_agent': os.getenv('HTTP_USER_AGENT',
-                'Oracle-X-Trading-Intelligence/1.0 (HTTP-Optimized)')
+            "pool_connections": int(os.getenv("HTTP_POOL_CONNECTIONS", "20")),
+            "pool_maxsize": int(os.getenv("HTTP_POOL_MAXSIZE", "20")),
+            "max_retries": int(os.getenv("HTTP_MAX_RETRIES", "3")),
+            "backoff_factor": float(os.getenv("HTTP_BACKOFF_FACTOR", "0.3")),
+            "timeout": (
+                int(os.getenv("HTTP_CONNECT_TIMEOUT", "5")),
+                int(os.getenv("HTTP_READ_TIMEOUT", "15")),
+            ),
+            "enable_compression": os.getenv("HTTP_ENABLE_COMPRESSION", "true").lower()
+            == "true",
+            "user_agent": os.getenv(
+                "HTTP_USER_AGENT", "Oracle-X-Trading-Intelligence/1.0 (HTTP-Optimized)"
+            ),
         }
 
         logger.info(f"HTTP Client Manager initialized with config: {self.config}")
 
-    def _create_session(self, name: str = 'default') -> requests.Session:
+    def _create_session(self, name: str = "default") -> requests.Session:
         """Create an optimized session with connection pooling and retry logic."""
         session = requests.Session()
 
         # Configure retry strategy
         retry_strategy = Retry(
-            total=self.config['max_retries'],
+            total=self.config["max_retries"],
             status_forcelist=[429, 500, 502, 503, 504],
-            backoff_factor=self.config['backoff_factor'],
-            allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"]
+            backoff_factor=self.config["backoff_factor"],
+            allowed_methods=["HEAD", "GET", "OPTIONS", "POST", "PUT", "DELETE"],
         )
 
         # Create HTTP adapter with connection pooling
         adapter = HTTPAdapter(
-            pool_connections=self.config['pool_connections'],
-            pool_maxsize=self.config['pool_maxsize'],
-            max_retries=retry_strategy
+            pool_connections=self.config["pool_connections"],
+            pool_maxsize=self.config["pool_maxsize"],
+            max_retries=retry_strategy,
         )
 
         # Mount adapters for both HTTP and HTTPS
-        session.mount('http://', adapter)
-        session.mount('https://', adapter)
+        session.mount("http://", adapter)
+        session.mount("https://", adapter)
 
         # Configure headers
-        session.headers.update({
-            'User-Agent': self.config['user_agent'],
-            'Accept-Encoding': 'gzip, deflate' if self.config['enable_compression'] else 'identity',
-            'Connection': 'keep-alive'
-        })
+        session.headers.update(
+            {
+                "User-Agent": self.config["user_agent"],
+                "Accept-Encoding": (
+                    "gzip, deflate" if self.config["enable_compression"] else "identity"
+                ),
+                "Connection": "keep-alive",
+            }
+        )
 
         return session
 
-    def get_session(self, name: str = 'default') -> requests.Session:
+    def get_session(self, name: str = "default") -> requests.Session:
         """Get or create a named session with connection pooling."""
         with self._session_lock:
             if name not in self._sessions:
@@ -113,7 +122,7 @@ class HTTPClientManager:
             return self._sessions[name]
 
     @contextmanager
-    def session_context(self, name: str = 'default'):
+    def session_context(self, name: str = "default"):
         """Context manager for session usage with automatic cleanup."""
         session = self.get_session(name)
         try:
@@ -122,11 +131,9 @@ class HTTPClientManager:
             # Sessions are kept alive for reuse, no cleanup needed
             pass
 
-    def make_request(self,
-                    method: str,
-                    url: str,
-                    session_name: str = 'default',
-                    **kwargs) -> requests.Response:
+    def make_request(
+        self, method: str, url: str, session_name: str = "default", **kwargs
+    ) -> requests.Response:
         """
         Make an optimized HTTP request with performance monitoring.
 
@@ -144,17 +151,21 @@ class HTTPClientManager:
 
         try:
             # Set default timeout if not provided
-            if 'timeout' not in kwargs:
-                kwargs['timeout'] = self.config['timeout']
+            if "timeout" not in kwargs:
+                kwargs["timeout"] = self.config["timeout"]
 
             # Make the request
             response = session.request(method, url, **kwargs)
 
             # Track metrics
             response_time = time.time() - start_time
-            self._update_metrics(success=True, response_time=response_time, response=response)
+            self._update_metrics(
+                success=True, response_time=response_time, response=response
+            )
 
-            logger.debug(f"HTTP {method} {url} - {response.status_code} ({response_time:.3f}s)")
+            logger.debug(
+                f"HTTP {method} {url} - {response.status_code} ({response_time:.3f}s)"
+            )
             return response
 
         except Exception as e:
@@ -163,41 +174,56 @@ class HTTPClientManager:
             logger.error(f"HTTP {method} {url} failed: {e}")
             raise
 
-    def get(self, url: str, session_name: str = 'default', **kwargs) -> requests.Response:
+    def get(
+        self, url: str, session_name: str = "default", **kwargs
+    ) -> requests.Response:
         """Optimized GET request."""
-        return self.make_request('GET', url, session_name, **kwargs)
+        return self.make_request("GET", url, session_name, **kwargs)
 
-    def post(self, url: str, session_name: str = 'default', **kwargs) -> requests.Response:
+    def post(
+        self, url: str, session_name: str = "default", **kwargs
+    ) -> requests.Response:
         """Optimized POST request."""
-        return self.make_request('POST', url, session_name, **kwargs)
+        return self.make_request("POST", url, session_name, **kwargs)
 
-    def put(self, url: str, session_name: str = 'default', **kwargs) -> requests.Response:
+    def put(
+        self, url: str, session_name: str = "default", **kwargs
+    ) -> requests.Response:
         """Optimized PUT request."""
-        return self.make_request('PUT', url, session_name, **kwargs)
+        return self.make_request("PUT", url, session_name, **kwargs)
 
-    def delete(self, url: str, session_name: str = 'default', **kwargs) -> requests.Response:
+    def delete(
+        self, url: str, session_name: str = "default", **kwargs
+    ) -> requests.Response:
         """Optimized DELETE request."""
-        return self.make_request('DELETE', url, session_name, **kwargs)
+        return self.make_request("DELETE", url, session_name, **kwargs)
 
-    def _update_metrics(self, success: bool, response_time: float, response: Optional[requests.Response] = None):
+    def _update_metrics(
+        self,
+        success: bool,
+        response_time: float,
+        response: Optional[requests.Response] = None,
+    ):
         """Update performance metrics."""
         with self._session_lock:
-            self._metrics['requests_total'] += 1
+            self._metrics["requests_total"] += 1
             if success:
-                self._metrics['requests_success'] += 1
+                self._metrics["requests_success"] += 1
             else:
-                self._metrics['requests_failed'] += 1
+                self._metrics["requests_failed"] += 1
 
             # Update average response time
-            total_requests = self._metrics['requests_total']
-            current_avg = self._metrics['avg_response_time']
-            self._metrics['avg_response_time'] = (current_avg * (total_requests - 1) + response_time) / total_requests
+            total_requests = self._metrics["requests_total"]
+            current_avg = self._metrics["avg_response_time"]
+            self._metrics["avg_response_time"] = (
+                current_avg * (total_requests - 1) + response_time
+            ) / total_requests
 
             # Track compression savings
-            if response and hasattr(response, 'headers'):
-                content_encoding = response.headers.get('Content-Encoding', '')
-                if 'gzip' in content_encoding or 'deflate' in content_encoding:
-                    self._metrics['compression_savings'] += 1
+            if response and hasattr(response, "headers"):
+                content_encoding = response.headers.get("Content-Encoding", "")
+                if "gzip" in content_encoding or "deflate" in content_encoding:
+                    self._metrics["compression_savings"] += 1
 
     def get_metrics(self) -> Dict[str, Any]:
         """Get current performance metrics."""
@@ -208,15 +234,15 @@ class HTTPClientManager:
         """Reset performance metrics."""
         with self._session_lock:
             self._metrics = {
-                'requests_total': 0,
-                'requests_success': 0,
-                'requests_failed': 0,
-                'avg_response_time': 0.0,
-                'compression_savings': 0,
-                'connection_reuse_count': 0
+                "requests_total": 0,
+                "requests_success": 0,
+                "requests_failed": 0,
+                "avg_response_time": 0.0,
+                "compression_savings": 0,
+                "connection_reuse_count": 0,
             }
 
-    def close_session(self, name: str = 'default'):
+    def close_session(self, name: str = "default"):
         """Close a specific session."""
         with self._session_lock:
             if name in self._sessions:
@@ -236,8 +262,10 @@ class HTTPClientManager:
                     logger.warning(f"Error closing session {name}: {e}")
             self._sessions.clear()
 
+
 # Global instance for easy access
 _http_client_manager = None
+
 
 def get_http_client_manager() -> HTTPClientManager:
     """Get the global HTTP client manager instance."""
@@ -246,18 +274,26 @@ def get_http_client_manager() -> HTTPClientManager:
         _http_client_manager = HTTPClientManager()
     return _http_client_manager
 
-def optimized_get(url: str, session_name: str = 'default', **kwargs) -> requests.Response:
+
+def optimized_get(
+    url: str, session_name: str = "default", **kwargs
+) -> requests.Response:
     """Convenience function for optimized GET requests."""
     return get_http_client_manager().get(url, session_name, **kwargs)
 
-def optimized_post(url: str, session_name: str = 'default', **kwargs) -> requests.Response:
+
+def optimized_post(
+    url: str, session_name: str = "default", **kwargs
+) -> requests.Response:
     """Convenience function for optimized POST requests."""
     return get_http_client_manager().post(url, session_name, **kwargs)
+
 
 # Backward compatibility functions
 def get_with_pool(url: str, **kwargs) -> requests.Response:
     """Backward compatible function for pooled GET requests."""
     return optimized_get(url, **kwargs)
+
 
 def post_with_pool(url: str, **kwargs) -> requests.Response:
     """Backward compatible function for pooled POST requests."""

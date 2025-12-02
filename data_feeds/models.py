@@ -3,11 +3,13 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Literal
 
+
 def ensure_utc(dt: datetime) -> datetime:
     """Ensure datetime is timezone-aware UTC."""
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
 
 @dataclass
 class MarketBreadth:
@@ -22,6 +24,7 @@ class MarketBreadth:
 
     def __post_init__(self):
         self.as_of = ensure_utc(self.as_of)
+
 
 @dataclass
 class GroupPerformance:

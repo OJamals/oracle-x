@@ -11,26 +11,30 @@ from typing import Dict, Any, List
 
 logger = logging.getLogger(__name__)
 
+
 def create_comprehensive_training_update():
     """Create a comprehensive update for the ensemble ML engine"""
-    
+
     print("=" * 80)
     print("🚀 PHASE 1 COMPLETE: INTEGRATING FIXED TRAINING SYSTEM")
     print("=" * 80)
-    
+
     # Read the current ensemble engine
     try:
-        with open('/Users/omar/Documents/Projects/oracle-x/oracle_engine/ensemble_ml_engine.py', 'r') as f:
+        with open(
+            "/Users/omar/Documents/Projects/oracle-x/oracle_engine/ensemble_ml_engine.py",
+            "r",
+        ) as f:
             current_code = f.read()
-        
+
         print("✅ Read current ensemble engine code")
-        
+
         # Find the train_models method and replace it
         import re
-        
+
         # Find the start and end of the train_models method
-        train_models_pattern = r'(    def train_models\(self[^:]*\):.*?)(    def [^_][^(]*\(|class [^:]*:|$)'
-        
+        train_models_pattern = r"(    def train_models\(self[^:]*\):.*?)(    def [^_][^(]*\(|class [^:]*:|$)"
+
         # Create the fixed train_models method
         fixed_train_models = '''    def train_models(self, symbols: List[str], 
                     lookback_days: int = 252,
@@ -170,89 +174,100 @@ def create_comprehensive_training_update():
             logger.error(traceback.format_exc())
             return {}
 '''
-        
+
         # Replace the train_models method
         def replace_train_models(match):
             method_content = match.group(1)
             next_method = match.group(2)
-            return fixed_train_models + '\n' + next_method
-        
-        updated_code = re.sub(train_models_pattern, replace_train_models, current_code, flags=re.DOTALL)
-        
+            return fixed_train_models + "\n" + next_method
+
+        updated_code = re.sub(
+            train_models_pattern, replace_train_models, current_code, flags=re.DOTALL
+        )
+
         if updated_code == current_code:
             print("⚠️  Could not find train_models method to replace")
             return False
-        
+
         # Write the updated code
-        with open('/Users/omar/Documents/Projects/oracle-x/oracle_engine/ensemble_ml_engine.py', 'w') as f:
+        with open(
+            "/Users/omar/Documents/Projects/oracle-x/oracle_engine/ensemble_ml_engine.py",
+            "w",
+        ) as f:
             f.write(updated_code)
-        
+
         print("✅ Updated ensemble_ml_engine.py with fixed training method")
         return True
-        
+
     except Exception as e:
         print(f"❌ Failed to update ensemble engine: {e}")
         import traceback
+
         print(traceback.format_exc())
         return False
+
 
 def test_integrated_training():
     """Test the integrated training system"""
     print("\n" + "=" * 80)
     print("🧪 TESTING INTEGRATED TRAINING SYSTEM")
     print("=" * 80)
-    
+
     try:
         # Import the updated ensemble engine
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
-        
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
+
         # Initialize components
         orchestrator = DataFeedOrchestrator()
         sentiment_engine = AdvancedSentimentEngine()
         engine = EnsemblePredictionEngine(orchestrator, sentiment_engine)
-        
+
         print(f"📊 Engine initialized with {len(engine.models)} models")
-        
+
         # Test the updated training method
         symbols = ["AAPL"]
         print(f"\n🚀 Testing integrated training on {symbols}")
-        
+
         results = engine.train_models(symbols, lookback_days=60)
-        
+
         print(f"\n📊 Training results keys: {list(results.keys())}")
-        
+
         # Check final model states
         trained_count = 0
         print(f"\n🔍 Model states after training:")
         for model_key, model in engine.models.items():
-            is_trained = getattr(model, 'is_trained', False)
+            is_trained = getattr(model, "is_trained", False)
             print(f"  {model_key}: trained={is_trained}")
             if is_trained:
                 trained_count += 1
-        
-        print(f"\n📈 INTEGRATION TEST SUMMARY: {trained_count}/{len(engine.models)} models trained")
-        
+
+        print(
+            f"\n📈 INTEGRATION TEST SUMMARY: {trained_count}/{len(engine.models)} models trained"
+        )
+
         if trained_count > 0:
             print("✅ Integrated training system is working!")
         else:
             print("❌ Integration test failed - no models trained")
-        
+
         return trained_count > 0
-        
+
     except Exception as e:
         print(f"❌ Integration test failed: {e}")
         import traceback
+
         print(traceback.format_exc())
         return False
+
 
 def create_phase_2_roadmap():
     """Create roadmap for Phase 2 enhancements"""
     print("\n" + "=" * 80)
     print("🗺️  PHASE 2 ROADMAP: ENHANCED LEARNING CAPABILITIES")
     print("=" * 80)
-    
+
     roadmap = """
     ## Phase 2: Enhanced Learning Capabilities
     
@@ -327,36 +342,37 @@ def create_phase_2_roadmap():
     - Data quality validation
     - Performance regression testing
     """
-    
+
     print(roadmap)
-    
+
     # Save roadmap to file
-    with open('/Users/omar/Documents/Projects/oracle-x/PHASE_2_ROADMAP.md', 'w') as f:
+    with open("/Users/omar/Documents/Projects/oracle-x/PHASE_2_ROADMAP.md", "w") as f:
         f.write(roadmap)
-    
+
     print("✅ Saved Phase 2 roadmap to PHASE_2_ROADMAP.md")
+
 
 if __name__ == "__main__":
     print("Starting Phase 1 completion process...")
-    
+
     # Step 1: Update the ensemble engine with fixed training
     success = create_comprehensive_training_update()
-    
+
     if success:
         # Step 2: Test the integrated system
         test_success = test_integrated_training()
-        
+
         if test_success:
             print("\n🎉 PHASE 1 COMPLETE! Training system is now functional.")
-            
+
             # Step 3: Create roadmap for Phase 2
             create_phase_2_roadmap()
-            
+
             print("\n" + "=" * 80)
             print("🏁 MISSION ACCOMPLISHED: Learning System Optimization Phase 1")
             print("=" * 80)
             print("✅ Fixed training pipeline - models now train successfully")
-            print("✅ Eliminated memory crashes and segmentation faults")  
+            print("✅ Eliminated memory crashes and segmentation faults")
             print("✅ Improved error handling and fallback strategies")
             print("✅ Reduced minimum sample requirements for reliability")
             print("✅ Created comprehensive diagnostic tools")

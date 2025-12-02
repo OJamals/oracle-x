@@ -15,14 +15,17 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from oracle_engine.prompt_chain import extract_scenario_tree, _extracted_from_extract_scenario_tree_42
+    from oracle_engine.chains.prompt_chain import (
+        extract_scenario_tree,
+        _extracted_from_extract_scenario_tree_42,
+    )
 except ImportError as e:
     pytest.skip(f"Could not import module: {e}", allow_module_level=True)
 
 
 class TestScenarioTreeExtraction(unittest.TestCase):
     """Test suite for scenario tree extraction functionality"""
-    
+
     def setUp(self):
         """Set up test fixtures before each test method."""
         # Create sample valid JSON output with scenario_tree
@@ -33,7 +36,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
                 "bear_case": "15% - Inflation data disappoints, market sells off."
             }
         }"""
-        
+
         # Create sample markdown with code block containing JSON
         self.markdown_json = """
         Here's my analysis:
@@ -50,7 +53,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
 
         Let me know if you need anything else.
         """
-        
+
         # Create sample output with scenario_tree as a dict pattern
         self.dict_pattern = """
         The market analysis suggests the following probabilities:
@@ -63,7 +66,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
         
         These probabilities reflect current market conditions.
         """
-        
+
         # Create sample output with scenario_tree in a code block
         self.code_block = """
         Based on my analysis:
@@ -80,7 +83,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
 
         This reflects the current technical setup.
         """
-        
+
         # Create sample with trade list containing scenario_tree
         self.trade_list = """{
             "trades": [
@@ -95,7 +98,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
                 }
             ]
         }"""
-        
+
         # Create sample fallback dict-like output (when strict=False)
         self.dict_like = """
         Here's what I think:
@@ -106,7 +109,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
             "bear_case": "15% - Drops lower"
         }
         """
-        
+
         # Invalid or edge cases
         self.malformed_json = """{
             "scenario_tree": {
@@ -115,9 +118,9 @@ class TestScenarioTreeExtraction(unittest.TestCase):
                 "bear_case": "15% - Inflation data disappoints."
             }
         """
-        
+
         self.empty_string = ""
-        
+
         self.no_scenario_tree = """
         {
             "market_analysis": "The market looks positive.",
@@ -134,7 +137,9 @@ class TestScenarioTreeExtraction(unittest.TestCase):
         self.assertIn("base_case", result)
         self.assertIn("bull_case", result)
         self.assertIn("bear_case", result)
-        self.assertEqual(result["base_case"], "60% - Market trades sideways with low volatility.")
+        self.assertEqual(
+            result["base_case"], "60% - Market trades sideways with low volatility."
+        )
 
     def test_extract_from_markdown_json(self):
         """Test extraction from JSON in markdown code block"""
@@ -161,7 +166,9 @@ class TestScenarioTreeExtraction(unittest.TestCase):
         self.assertIsInstance(result, dict)
         self.assertEqual(len(result), 3)
         self.assertIn("base_case", result)
-        self.assertEqual(result["base_case"], "65% - Stock trades sideways within range.")
+        self.assertEqual(
+            result["base_case"], "65% - Stock trades sideways within range."
+        )
 
     def test_extract_from_trade_list(self):
         """Test extraction from trades list containing scenario_tree"""
@@ -181,7 +188,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
         self.assertEqual(len(result), 3)
         self.assertIn("base_case", result)
         self.assertEqual(result["base_case"], "60% - Trades flat")
-        
+
         # Should fail with strict=True
         result = extract_scenario_tree(self.dict_like, strict=True)
         self.assertIsNone(result)
@@ -204,10 +211,11 @@ class TestScenarioTreeExtraction(unittest.TestCase):
     def test_extracted_from_extract_helper(self):
         """Test the helper function that extracts from regex matches"""
         import re
+
         # Create a regex match object
         dict_pattern = r'"scenario_tree"\s*:\s*({.*?})'
         match = re.search(dict_pattern, self.dict_pattern, re.DOTALL)
-        
+
         result = _extracted_from_extract_scenario_tree_42(match, "Test debug message")
         self.assertIsNotNone(result)
         self.assertIsInstance(result, dict)
@@ -230,7 +238,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
                 "fundamental": "Strong earnings season expected"
             }
         }"""
-        
+
         # This should not find the scenario_tree because it's not at the expected paths
         result = extract_scenario_tree(complex_json)
         self.assertIsNone(result)
@@ -244,7 +252,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
                 'bear_case': '20% - Market breaks support'
             }
         }"""
-        
+
         result = extract_scenario_tree(single_quotes)
         self.assertIsNotNone(result)
         self.assertIsInstance(result, dict)
@@ -252,5 +260,5 @@ class TestScenarioTreeExtraction(unittest.TestCase):
         self.assertEqual(result["base_case"], "55% - Market continues sideways")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -23,9 +23,11 @@ logger = logging.getLogger(__name__)
 
 logger = logging.getLogger(__name__)
 
+
 @dataclass
 class MemoryConfig:
     """Configuration for memory-efficient processing"""
+
     chunk_size: int = 1000
     max_memory_mb: int = 500
     compression_level: int = 6
@@ -33,13 +35,16 @@ class MemoryConfig:
     cache_compression: bool = True
     enable_gc_optimization: bool = True
 
+
 class StreamingDataFrame:
     """
     Memory-efficient DataFrame that processes data in chunks
     instead of loading everything into memory at once.
     """
 
-    def __init__(self, data_source: Union[str, pd.DataFrame, Iterator], chunk_size: int = 1000):
+    def __init__(
+        self, data_source: Union[str, pd.DataFrame, Iterator], chunk_size: int = 1000
+    ):
         self.data_source = data_source
         self.chunk_size = chunk_size
         self._current_chunk = 0
@@ -56,12 +61,12 @@ class StreamingDataFrame:
         """Iterate over data in chunks"""
         if isinstance(self.data_source, pd.DataFrame):
             for i in range(0, len(self.data_source), self.chunk_size):
-                yield self.data_source.iloc[i:i + self.chunk_size]
+                yield self.data_source.iloc[i : i + self.chunk_size]
         elif isinstance(self.data_source, str):
             # Assume CSV file
             for chunk in pd.read_csv(self.data_source, chunksize=self.chunk_size):
                 yield chunk
-        elif hasattr(self.data_source, '__iter__'):
+        elif hasattr(self.data_source, "__iter__"):
             # Handle iterators
             buffer = []
             for item in self.data_source:
@@ -93,7 +98,7 @@ class StreamingDataFrame:
         """
         results = []
         chunk_sizes = []
-        
+
         for chunk in self:
             try:
                 chunk_result = agg_func(chunk, *args, **kwargs)
@@ -113,7 +118,9 @@ class StreamingDataFrame:
             # This handles mean, average, and similar operations correctly
             if len(results) > 1:
                 # Calculate weighted average
-                total_weighted_sum = sum(result * size for result, size in zip(results, chunk_sizes))
+                total_weighted_sum = sum(
+                    result * size for result, size in zip(results, chunk_sizes)
+                )
                 total_size = sum(chunk_sizes)
                 return total_weighted_sum / total_size if total_size > 0 else 0
             else:
@@ -133,6 +140,7 @@ class StreamingDataFrame:
             return combined
         else:
             return results
+
 
 class LazyDataLoader:
     """
@@ -158,15 +166,15 @@ class LazyDataLoader:
                     data = loader_func(*args, **kwargs)
                     if self._should_compress(data):
                         data = self._compress_data(data)
-                        self._cache[key] = ('compressed', data)
+                        self._cache[key] = ("compressed", data)
                     else:
-                        self._cache[key] = ('raw', data)
+                        self._cache[key] = ("raw", data)
                 except Exception as e:
                     logger.error(f"Failed to lazy load {key}: {e}")
                     raise
 
             data_type, data = self._cache[key]
-            if data_type == 'compressed':
+            if data_type == "compressed":
                 data = self._decompress_data(data)
 
             try:
@@ -202,11 +210,15 @@ class LazyDataLoader:
         """Compress data for memory efficiency"""
         if isinstance(data, pd.DataFrame):
             # Convert to efficient format and compress
-            json_str = data.to_json(orient='records', date_format='iso')
-            return gzip.compress(json_str.encode('utf-8'), compresslevel=self.config.compression_level)
+            json_str = data.to_json(orient="records", date_format="iso")
+            return gzip.compress(
+                json_str.encode("utf-8"), compresslevel=self.config.compression_level
+            )
         elif isinstance(data, dict):
             json_str = json.dumps(data, default=str)
-            return gzip.compress(json_str.encode('utf-8'), compresslevel=self.config.compression_level)
+            return gzip.compress(
+                json_str.encode("utf-8"), compresslevel=self.config.compression_level
+            )
         else:
             return pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
 
@@ -214,16 +226,17 @@ class LazyDataLoader:
         """Decompress data"""
         try:
             # Try JSON first (most common)
-            decompressed = gzip.decompress(compressed_data).decode('utf-8')
-            return pd.read_json(decompressed, orient='records')
+            decompressed = gzip.decompress(compressed_data).decode("utf-8")
+            return pd.read_json(decompressed, orient="records")
         except:
             try:
                 # Try dict format
-                decompressed = gzip.decompress(compressed_data).decode('utf-8')
+                decompressed = gzip.decompress(compressed_data).decode("utf-8")
                 return json.loads(decompressed)
             except:
                 # Fallback to pickle
                 return pickle.loads(compressed_data)
+
 
 class MemoryEfficientProcessor:
     """
@@ -236,8 +249,9 @@ class MemoryEfficientProcessor:
         self.lazy_loader = LazyDataLoader(self.config)
         self.executor = ThreadPoolExecutor(max_workers=min(4, os.cpu_count() or 2))
 
-    def process_large_dataframe(self, df: pd.DataFrame, operation: Callable,
-                              *args, **kwargs) -> Any:
+    def process_large_dataframe(
+        self, df: pd.DataFrame, operation: Callable, *args, **kwargs
+    ) -> Any:
         """
         Process large DataFrame in chunks to avoid memory issues
         """
@@ -259,7 +273,9 @@ class MemoryEfficientProcessor:
         if file_size > 50 * 1024 * 1024:  # 50MB threshold
             logger.info(f"Loading large file in chunks: {file_path}")
             chunks = []
-            for chunk in pd.read_csv(file_path, chunksize=self.config.chunk_size, **kwargs):
+            for chunk in pd.read_csv(
+                file_path, chunksize=self.config.chunk_size, **kwargs
+            ):
                 chunks.append(chunk)
                 # Process chunk immediately to free memory
                 if len(chunks) >= 10:  # Process every 10 chunks
@@ -279,21 +295,25 @@ class MemoryEfficientProcessor:
             return df
 
         # Downcast numeric types
-        for col in df.select_dtypes(include=['int64']):
-            df[col] = pd.to_numeric(df[col], downcast='integer')
+        for col in df.select_dtypes(include=["int64"]):
+            df[col] = pd.to_numeric(df[col], downcast="integer")
 
-        for col in df.select_dtypes(include=['float64']):
-            df[col] = pd.to_numeric(df[col], downcast='float')
+        for col in df.select_dtypes(include=["float64"]):
+            df[col] = pd.to_numeric(df[col], downcast="float")
 
         # Convert object columns to category if appropriate
-        for col in df.select_dtypes(include=['object']):
+        for col in df.select_dtypes(include=["object"]):
             if df[col].nunique() / len(df) < 0.5:  # Less than 50% unique values
-                df[col] = df[col].astype('category')
+                df[col] = df[col].astype("category")
 
         return df
 
-    def parallel_process(self, items: List[Any], process_func: Callable,
-                        max_workers: Optional[int] = None) -> List[Any]:
+    def parallel_process(
+        self,
+        items: List[Any],
+        process_func: Callable,
+        max_workers: Optional[int] = None,
+    ) -> List[Any]:
         """
         Process items in parallel with memory monitoring
         """
@@ -313,9 +333,11 @@ class MemoryEfficientProcessor:
 
             return results
 
+
 # Global instance for easy access
 _memory_processor = None
 _memory_lock = threading.Lock()
+
 
 def get_memory_processor() -> MemoryEfficientProcessor:
     """Get global memory-efficient processor instance"""
@@ -326,16 +348,21 @@ def get_memory_processor() -> MemoryEfficientProcessor:
                 _memory_processor = MemoryEfficientProcessor()
     return _memory_processor
 
+
 # Convenience functions
-def process_dataframe_efficiently(df: pd.DataFrame, operation: Callable, *args, **kwargs) -> Any:
+def process_dataframe_efficiently(
+    df: pd.DataFrame, operation: Callable, *args, **kwargs
+) -> Any:
     """Convenience function for efficient DataFrame processing"""
     processor = get_memory_processor()
     return processor.process_large_dataframe(df, operation, *args, **kwargs)
+
 
 def load_data_efficiently(file_path: str, **kwargs) -> pd.DataFrame:
     """Convenience function for efficient data loading"""
     processor = get_memory_processor()
     return processor.load_data_efficiently(file_path, **kwargs)
+
 
 def optimize_dataframe_memory(df: pd.DataFrame) -> pd.DataFrame:
     """Convenience function for DataFrame memory optimization"""

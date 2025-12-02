@@ -22,21 +22,24 @@ from core.optimized_algorithms import (
     DynamicAlgorithmSelector,
     get_vectorized_options_price,
     optimize_dataframe,
-    parallel_process_data
+    parallel_process_data,
 )
 
 from core.optimized_pandas import (
     OptimizedPandasProcessor,
     optimize_dataframe as pandas_optimize,
     vectorized_query,
-    efficient_groupby
+    efficient_groupby,
 )
 
-from data_feeds.cache_service import CacheService
+from data_feeds.cache.cache_service import CacheService
 
 # Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+)
 logger = logging.getLogger(__name__)
+
 
 def demonstrate_vectorized_speedup():
     """Demonstrate vectorized operations speedup"""
@@ -57,7 +60,9 @@ def demonstrate_vectorized_speedup():
     start_time = time.time()
     vectorized_prices = []
     for i in range(n_options):
-        price = engine.price_binomial_vectorized(S[i], K[i], T[i], r[i], sigma[i], 'call')
+        price = engine.price_binomial_vectorized(
+            S[i], K[i], T[i], r[i], sigma[i], "call"
+        )
         vectorized_prices.append(price)
     vectorized_time = time.time() - start_time
 
@@ -66,7 +71,9 @@ def demonstrate_vectorized_speedup():
     traditional_prices = []
     for i in range(n_options):
         # Simple Black-Scholes approximation
-        d1 = (np.log(S[i]/K[i]) + (r[i] + 0.5 * sigma[i]**2) * T[i]) / (sigma[i] * np.sqrt(T[i]))
+        d1 = (np.log(S[i] / K[i]) + (r[i] + 0.5 * sigma[i] ** 2) * T[i]) / (
+            sigma[i] * np.sqrt(T[i])
+        )
         d2 = d1 - sigma[i] * np.sqrt(T[i])
 
         # Very simple CDF approximation
@@ -86,11 +93,12 @@ def demonstrate_vectorized_speedup():
     logger.info(".2f")
 
     return {
-        'traditional_time': traditional_time,
-        'vectorized_time': vectorized_time,
-        'speedup': speedup,
-        'options_count': n_options
+        "traditional_time": traditional_time,
+        "vectorized_time": vectorized_time,
+        "speedup": speedup,
+        "options_count": n_options,
     }
+
 
 def demonstrate_pandas_optimization():
     """Demonstrate pandas optimization improvements"""
@@ -100,35 +108,37 @@ def demonstrate_pandas_optimization():
     np.random.seed(42)
     n_rows = 10000
 
-    df = pd.DataFrame({
-        'timestamp': pd.date_range('2023-01-01', periods=n_rows, freq='1min'),
-        'price': np.random.uniform(100, 200, n_rows),
-        'volume': np.random.randint(1000, 10000, n_rows),
-        'sentiment_score': np.random.uniform(-1, 1, n_rows),
-        'symbol': np.random.choice(['AAPL', 'MSFT', 'GOOGL', 'TSLA'], n_rows)
-    })
+    df = pd.DataFrame(
+        {
+            "timestamp": pd.date_range("2023-01-01", periods=n_rows, freq="1min"),
+            "price": np.random.uniform(100, 200, n_rows),
+            "volume": np.random.randint(1000, 10000, n_rows),
+            "sentiment_score": np.random.uniform(-1, 1, n_rows),
+            "symbol": np.random.choice(["AAPL", "MSFT", "GOOGL", "TSLA"], n_rows),
+        }
+    )
 
     processor = OptimizedPandasProcessor()
 
     # Time traditional operations
     start_time = time.time()
     traditional_df = df.copy()
-    traditional_df['price_change'] = traditional_df['price'].diff()
-    traditional_df['rolling_mean'] = traditional_df['price'].rolling(20).mean()
-    traditional_df['sentiment_category'] = traditional_df['sentiment_score'].apply(
-        lambda x: 'positive' if x > 0.1 else 'negative' if x < -0.1 else 'neutral'
+    traditional_df["price_change"] = traditional_df["price"].diff()
+    traditional_df["rolling_mean"] = traditional_df["price"].rolling(20).mean()
+    traditional_df["sentiment_category"] = traditional_df["sentiment_score"].apply(
+        lambda x: "positive" if x > 0.1 else "negative" if x < -0.1 else "neutral"
     )
     traditional_time = time.time() - start_time
 
     # Time optimized operations
     start_time = time.time()
     optimized_df = processor.optimize_dataframe_schema(df.copy())
-    optimized_df['price_change'] = optimized_df['price'].diff()
-    optimized_df['rolling_mean'] = optimized_df['price'].rolling(20).mean()
-    optimized_df['sentiment_category'] = np.select(
-        [optimized_df['sentiment_score'] > 0.1, optimized_df['sentiment_score'] < -0.1],
-        ['positive', 'negative'],
-        default='neutral'
+    optimized_df["price_change"] = optimized_df["price"].diff()
+    optimized_df["rolling_mean"] = optimized_df["price"].rolling(20).mean()
+    optimized_df["sentiment_category"] = np.select(
+        [optimized_df["sentiment_score"] > 0.1, optimized_df["sentiment_score"] < -0.1],
+        ["positive", "negative"],
+        default="neutral",
     )
     optimized_time = time.time() - start_time
 
@@ -139,14 +149,17 @@ def demonstrate_pandas_optimization():
     logger.info(".4f")
     logger.info(".4f")
     logger.info(".2f")
-    logger.info(f"   Memory usage: {df.memory_usage(deep=True).sum() / 1024 / 1024:.1f} MB")
+    logger.info(
+        f"   Memory usage: {df.memory_usage(deep=True).sum() / 1024 / 1024:.1f} MB"
+    )
 
     return {
-        'traditional_time': traditional_time,
-        'optimized_time': optimized_time,
-        'speedup': speedup,
-        'rows_processed': n_rows
+        "traditional_time": traditional_time,
+        "optimized_time": optimized_time,
+        "speedup": speedup,
+        "rows_processed": n_rows,
     }
+
 
 def demonstrate_caching_performance():
     """Demonstrate caching performance improvements"""
@@ -157,17 +170,22 @@ def demonstrate_caching_performance():
 
     # Test data
     test_data = {
-        'market_data_1': {'symbol': 'AAPL', 'price': 150.0, 'volume': 1000000},
-        'market_data_2': {'symbol': 'MSFT', 'price': 280.0, 'volume': 500000},
-        'sentiment_data': {'score': 0.75, 'confidence': 0.85, 'sources': 15},
-        'large_dataset': {'data': list(range(1000)), 'metadata': {'size': 1000, 'type': 'numeric'}}
+        "market_data_1": {"symbol": "AAPL", "price": 150.0, "volume": 1000000},
+        "market_data_2": {"symbol": "MSFT", "price": 280.0, "volume": 500000},
+        "sentiment_data": {"score": 0.75, "confidence": 0.85, "sources": 15},
+        "large_dataset": {
+            "data": list(range(1000)),
+            "metadata": {"size": 1000, "type": "numeric"},
+        },
     }
 
     # First run - cache misses
     logger.info("   First run (cache population)...")
     start_time = time.time()
     for key, data in test_data.items():
-        cache.set_optimized(key, data, endpoint="demo", symbol=key.split('_')[-1], ttl_seconds=3600)
+        cache.set_optimized(
+            key, data, endpoint="demo", symbol=key.split("_")[-1], ttl_seconds=3600
+        )
     first_run_time = time.time() - start_time
 
     # Second run - cache hits
@@ -184,11 +202,15 @@ def demonstrate_caching_performance():
     stats = {}
     try:
         stats = cache.get_cache_stats()
-        hit_rate = stats.get('overall', {}).get('overall_hit_rate', 0) if isinstance(stats, dict) else 0
+        hit_rate = (
+            stats.get("overall", {}).get("overall_hit_rate", 0)
+            if isinstance(stats, dict)
+            else 0
+        )
     except Exception as e:
         logger.warning(f"Failed to get cache stats: {e}")
         hit_rate = 0
-        stats = {'error': str(e)}
+        stats = {"error": str(e)}
 
     logger.info("📊 Caching Performance Results:")
     logger.info(".4f")
@@ -197,11 +219,12 @@ def demonstrate_caching_performance():
     logger.info(f"   Cache hit rate: {hit_rate:.1%}")
 
     return {
-        'first_run_time': first_run_time,
-        'second_run_time': second_run_time,
-        'speedup': speedup,
-        'cache_stats': stats
+        "first_run_time": first_run_time,
+        "second_run_time": second_run_time,
+        "speedup": speedup,
+        "cache_stats": stats,
     }
+
 
 def demonstrate_algorithm_selection():
     """Demonstrate dynamic algorithm selection"""
@@ -212,67 +235,71 @@ def demonstrate_algorithm_selection():
 
     # Register some algorithms
     selector.register_algorithm(
-        'vectorized_options',
+        "vectorized_options",
         lambda data, **kwargs: f"Processed {len(data)} items with vectorized options",
         {
-            'size_range': (1, 1000),
-            'data_types': ['numeric'],
-            'memory_efficient': True,
-            'time_series_optimized': False,
-            'distribution_types': ['normal', 'uniform']
-        }
+            "size_range": (1, 1000),
+            "data_types": ["numeric"],
+            "memory_efficient": True,
+            "time_series_optimized": False,
+            "distribution_types": ["normal", "uniform"],
+        },
     )
 
     selector.register_algorithm(
-        'parallel_processing',
+        "parallel_processing",
         lambda data, **kwargs: f"Processed {len(data)} items in parallel",
         {
-            'size_range': (100, 10000),
-            'data_types': ['mixed', 'numeric'],
-            'memory_efficient': True,
-            'time_series_optimized': False,
-            'distribution_types': ['normal', 'uniform', 'skewed']
-        }
+            "size_range": (100, 10000),
+            "data_types": ["mixed", "numeric"],
+            "memory_efficient": True,
+            "time_series_optimized": False,
+            "distribution_types": ["normal", "uniform", "skewed"],
+        },
     )
 
     # Test different data types
     test_cases = [
         (np.random.randn(500), "Numeric array"),
-        (pd.DataFrame({'a': range(500), 'b': np.random.randn(500)}), "DataFrame"),
+        (pd.DataFrame({"a": range(500), "b": np.random.randn(500)}), "DataFrame"),
         (list(range(500)), "List"),
-        ({'data': list(range(500))}, "Dictionary")
+        ({"data": list(range(500))}, "Dictionary"),
     ]
 
     results = []
     for data, description in test_cases:
         try:
             characteristics = selector.analyze_data_characteristics(data)
-            algorithm_name, algorithm_func, confidence = selector.select_optimal_algorithm(data)
+            algorithm_name, algorithm_func, confidence = (
+                selector.select_optimal_algorithm(data)
+            )
             result = algorithm_func(data)
-            results.append({
-                'data_type': description,
-                'selected_algorithm': algorithm_name,
-                'confidence': confidence,
-                'characteristics': {
-                    'size': characteristics.size,
-                    'data_type': characteristics.data_type,
-                    'sparsity': characteristics.sparsity
+            results.append(
+                {
+                    "data_type": description,
+                    "selected_algorithm": algorithm_name,
+                    "confidence": confidence,
+                    "characteristics": {
+                        "size": characteristics.size,
+                        "data_type": characteristics.data_type,
+                        "sparsity": characteristics.sparsity,
+                    },
                 }
-            })
+            )
         except Exception as e:
-            results.append({
-                'data_type': description,
-                'error': str(e)
-            })
+            results.append({"data_type": description, "error": str(e)})
 
     logger.info("📊 Algorithm Selection Results:")
     for result in results:
-        if 'error' not in result:
-            logger.info(f"   {result['data_type']}: {result['selected_algorithm']} (confidence: {result['confidence']:.2f})")
+        if "error" not in result:
+            logger.info(
+                f"   {result['data_type']}: {result['selected_algorithm']} (confidence: {result['confidence']:.2f})"
+            )
         else:
             logger.info(f"   {result['data_type']}: Error - {result['error']}")
 
     return results
+
 
 def run_performance_demonstration():
     """Run complete performance demonstration"""
@@ -283,38 +310,38 @@ def run_performance_demonstration():
 
     # Run demonstrations
     try:
-        results['vectorized'] = demonstrate_vectorized_speedup()
+        results["vectorized"] = demonstrate_vectorized_speedup()
         logger.info("")
     except Exception as e:
         logger.error(f"Vectorized demo failed: {e}")
-        results['vectorized'] = {'error': str(e)}
+        results["vectorized"] = {"error": str(e)}
 
     try:
-        results['pandas'] = demonstrate_pandas_optimization()
+        results["pandas"] = demonstrate_pandas_optimization()
         logger.info("")
     except Exception as e:
         logger.error(f"Pandas demo failed: {e}")
-        results['pandas'] = {'error': str(e)}
+        results["pandas"] = {"error": str(e)}
 
     try:
-        results['caching'] = demonstrate_caching_performance()
+        results["caching"] = demonstrate_caching_performance()
         logger.info("")
     except Exception as e:
         logger.error(f"Caching demo failed: {e}")
-        results['caching'] = {'error': str(e)}
+        results["caching"] = {"error": str(e)}
 
     try:
-        results['algorithm_selection'] = demonstrate_algorithm_selection()
+        results["algorithm_selection"] = demonstrate_algorithm_selection()
         logger.info("")
     except Exception as e:
         logger.error(f"Algorithm selection demo failed: {e}")
-        results['algorithm_selection'] = {'error': str(e)}
+        results["algorithm_selection"] = {"error": str(e)}
 
     # Calculate overall improvements
     speedups = []
     for key, result in results.items():
-        if isinstance(result, dict) and 'speedup' in result and result['speedup'] > 0:
-            speedups.append(result['speedup'])
+        if isinstance(result, dict) and "speedup" in result and result["speedup"] > 0:
+            speedups.append(result["speedup"])
 
     if speedups:
         avg_speedup = np.mean(speedups)
@@ -337,12 +364,16 @@ def run_performance_demonstration():
 
     return results
 
+
 if __name__ == "__main__":
     demo_results = run_performance_demonstration()
 
     # Save results
     import json
-    with open("performance_demonstration_results.json", 'w') as f:
+
+    with open("performance_demonstration_results.json", "w") as f:
         json.dump(demo_results, f, indent=2, default=str)
 
-    logger.info("📊 Demonstration results saved to performance_demonstration_results.json")
+    logger.info(
+        "📊 Demonstration results saved to performance_demonstration_results.json"
+    )

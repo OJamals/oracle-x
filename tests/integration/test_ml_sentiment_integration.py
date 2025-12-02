@@ -3,7 +3,7 @@
 ML Sentiment Integration Fix
 Fix the data orchestrator sentiment                            # Test ML prediction with sentiment data
                             print("    🎯 Testing ML prediction with sentiment...")
-                            
+
                             # Try to get a prediction - this will test the integration
                             try:tion for ML model training
 """
@@ -16,8 +16,9 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator, SentimentData
-from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+from sentiment.sentiment_engine import AdvancedSentimentEngine
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine, PredictionType
+
 
 def test_ml_sentiment_integration_fixed():
     """
@@ -25,53 +26,67 @@ def test_ml_sentiment_integration_fixed():
     """
     # Import TwitterSentimentFeed at function level to avoid shadowing
     from data_feeds.twitter_feed import TwitterSentimentFeed
-    
+
     print("=" * 80)
     print("ML SENTIMENT INTEGRATION FIX - TESTING")
     print("=" * 80)
     print(f"Timestamp: {datetime.now()}")
     print()
-    
+
     try:
         print("🔧 Initializing components...")
         orchestrator = DataFeedOrchestrator()
         sentiment_engine = AdvancedSentimentEngine()
         ml_engine = EnsemblePredictionEngine(orchestrator, sentiment_engine)
-        
+
         test_symbols = ["AAPL", "TSLA", "NVDA"]
-        
+
         print(f"\n📊 Testing sentiment data integration for: {', '.join(test_symbols)}")
-        
+
         for symbol in test_symbols:
             print(f"\n🔍 Testing {symbol}:")
-            
+
             # Test direct sentiment engine access
             try:
                 print("  📡 Getting live sentiment data...")
-                
+
                 # Get Twitter sentiment
                 twitter_feed_first = TwitterSentimentFeed()
                 tweets = twitter_feed_first.fetch(symbol, limit=5)
-                
+
                 if tweets:
                     print(f"    ✅ Retrieved {len(tweets)} tweets")
-                    
+
                     # Extract text from tweet dictionaries for sentiment analysis
-                    tweet_texts = [tweet['text'] for tweet in tweets if 'text' in tweet]
-                    
+                    tweet_texts = [tweet["text"] for tweet in tweets if "text" in tweet]
+
                     if tweet_texts:
                         print(f"    📝 Extracted {len(tweet_texts)} tweet texts")
-                        
+
                         # Use advanced sentiment engine to analyze
-                        symbol_sentiment = sentiment_engine.get_symbol_sentiment_summary(symbol, tweet_texts)
+                        symbol_sentiment = (
+                            sentiment_engine.get_symbol_sentiment_summary(
+                                symbol, tweet_texts
+                            )
+                        )
                         if symbol_sentiment:
                             print("    ✅ Advanced Sentiment Analysis:")
-                            print(f"       - Overall Sentiment: {symbol_sentiment.overall_sentiment:.3f}")
-                            print(f"       - Confidence: {symbol_sentiment.confidence:.3f}")
-                            print(f"       - Sample Size: {symbol_sentiment.sample_size}")
-                            print(f"       - Trending: {symbol_sentiment.trending_direction}")
-                            print(f"       - Quality Score: {symbol_sentiment.quality_score:.3f}")
-                            
+                            print(
+                                f"       - Overall Sentiment: {symbol_sentiment.overall_sentiment:.3f}"
+                            )
+                            print(
+                                f"       - Confidence: {symbol_sentiment.confidence:.3f}"
+                            )
+                            print(
+                                f"       - Sample Size: {symbol_sentiment.sample_size}"
+                            )
+                            print(
+                                f"       - Trending: {symbol_sentiment.trending_direction}"
+                            )
+                            print(
+                                f"       - Quality Score: {symbol_sentiment.quality_score:.3f}"
+                            )
+
                             # Create SentimentData object for ML integration
                             sentiment_data_obj = SentimentData(
                                 symbol=symbol,
@@ -81,32 +96,50 @@ def test_ml_sentiment_integration_fixed():
                                 timestamp=symbol_sentiment.timestamp,
                                 sample_size=symbol_sentiment.sample_size,
                                 raw_data={
-                                    'bullish_mentions': symbol_sentiment.bullish_mentions,
-                                    'bearish_mentions': symbol_sentiment.bearish_mentions,
-                                    'neutral_mentions': symbol_sentiment.neutral_mentions,
-                                    'trending_direction': symbol_sentiment.trending_direction,
-                                    'quality_score': symbol_sentiment.quality_score
-                                }
+                                    "bullish_mentions": symbol_sentiment.bullish_mentions,
+                                    "bearish_mentions": symbol_sentiment.bearish_mentions,
+                                    "neutral_mentions": symbol_sentiment.neutral_mentions,
+                                    "trending_direction": symbol_sentiment.trending_direction,
+                                    "quality_score": symbol_sentiment.quality_score,
+                                },
                             )
-                            
-                            print("    ✅ Created SentimentData object for ML integration")
+
+                            print(
+                                "    ✅ Created SentimentData object for ML integration"
+                            )
                             print(f"       - Symbol: {sentiment_data_obj.symbol}")
-                            print(f"       - Score: {sentiment_data_obj.sentiment_score:.3f}")
-                            print(f"       - Confidence: {sentiment_data_obj.confidence:.3f}")
+                            print(
+                                f"       - Score: {sentiment_data_obj.sentiment_score:.3f}"
+                            )
+                            print(
+                                f"       - Confidence: {sentiment_data_obj.confidence:.3f}"
+                            )
                             print(f"       - Source: {sentiment_data_obj.source}")
-                            
+
                             # Test ML prediction with sentiment data
                             print("    🎯 Testing ML prediction with sentiment...")
-                            
+
                             # Try to get a prediction - this will test the integration
                             try:
-                                prediction = ml_engine.predict(symbol, PredictionType.PRICE_DIRECTION, horizon_days=5)
+                                prediction = ml_engine.predict(
+                                    symbol,
+                                    PredictionType.PRICE_DIRECTION,
+                                    horizon_days=5,
+                                )
                                 if prediction:
                                     print("    ✅ ML Prediction successful:")
-                                    print(f"       - Prediction: {prediction.prediction:.3f}")
-                                    print(f"       - Confidence: {prediction.confidence:.3f}")
-                                    print(f"       - Sentiment Available: {prediction.prediction_context.get('sentiment_available', False)}")
-                                    print(f"       - Models Used: {prediction.prediction_context.get('models_used', 0)}")
+                                    print(
+                                        f"       - Prediction: {prediction.prediction:.3f}"
+                                    )
+                                    print(
+                                        f"       - Confidence: {prediction.confidence:.3f}"
+                                    )
+                                    print(
+                                        f"       - Sentiment Available: {prediction.prediction_context.get('sentiment_available', False)}"
+                                    )
+                                    print(
+                                        f"       - Models Used: {prediction.prediction_context.get('models_used', 0)}"
+                                    )
                                 else:
                                     print("    ❌ ML Prediction failed - no result")
                             except Exception as e:
@@ -117,15 +150,16 @@ def test_ml_sentiment_integration_fixed():
                         print("    ❌ No tweet texts could be extracted")
                 else:
                     print("    ❌ No tweets retrieved")
-                    
+
             except Exception as e:
                 print(f"  ❌ Error processing {symbol}: {e}")
                 import traceback
+
                 traceback.print_exc()
-        
+
         # Test ML training with sentiment data
         print("\n🎯 Testing ML training with sentiment integration...")
-        
+
         try:
             # Create some sample sentiment data for training
             sample_sentiment_data = {}
@@ -133,13 +167,17 @@ def test_ml_sentiment_integration_fixed():
                 # Get some live sentiment
                 twitter_feed_instance = TwitterSentimentFeed()
                 tweets = twitter_feed_instance.fetch(symbol, limit=3)
-                
+
                 if tweets:
                     # Extract text from tweet dictionaries for sentiment analysis
-                    tweet_texts = [tweet['text'] for tweet in tweets if 'text' in tweet]
-                    
+                    tweet_texts = [tweet["text"] for tweet in tweets if "text" in tweet]
+
                     if tweet_texts:
-                        symbol_sentiment = sentiment_engine.get_symbol_sentiment_summary(symbol, tweet_texts)
+                        symbol_sentiment = (
+                            sentiment_engine.get_symbol_sentiment_summary(
+                                symbol, tweet_texts
+                            )
+                        )
                         if symbol_sentiment:
                             sample_sentiment_data[symbol] = SentimentData(
                                 symbol=symbol,
@@ -147,52 +185,63 @@ def test_ml_sentiment_integration_fixed():
                                 confidence=symbol_sentiment.confidence,
                                 source="twitter_training",
                                 timestamp=symbol_sentiment.timestamp,
-                                sample_size=symbol_sentiment.sample_size
+                                sample_size=symbol_sentiment.sample_size,
                             )
-            
-            print(f"  📊 Created sentiment data for {len(sample_sentiment_data)} symbols")
-            
+
+            print(
+                f"  📊 Created sentiment data for {len(sample_sentiment_data)} symbols"
+            )
+
             # Attempt training
             training_result = ml_engine.train_models(test_symbols, lookback_days=30)
-            
+
             if training_result:
                 print("  ✅ ML Training completed:")
                 print(f"     - Training groups: {len(training_result)}")
                 for group, results in training_result.items():
                     if isinstance(results, dict) and len(results) > 0:
-                        success_count = sum(1 for r in results.values() if isinstance(r, dict) and 'error' not in r)
-                        print(f"     - {group}: {success_count}/{len(results)} models trained successfully")
+                        success_count = sum(
+                            1
+                            for r in results.values()
+                            if isinstance(r, dict) and "error" not in r
+                        )
+                        print(
+                            f"     - {group}: {success_count}/{len(results)} models trained successfully"
+                        )
                     else:
                         print(f"     - {group}: {results}")
             else:
                 print("  ❌ ML Training failed - no results")
-                
+
         except Exception as e:
             print(f"  ❌ ML Training error: {e}")
             import traceback
+
             traceback.print_exc()
-        
+
         print(f"\n{'='*80}")
         print("ML SENTIMENT INTEGRATION FIX TEST COMPLETE")
         print(f"{'='*80}")
-        
+
         print("\n📋 INTEGRATION SUMMARY:")
         print("✅ Twitter sentiment retrieval: Working")
-        print("✅ Advanced sentiment analysis: Working") 
+        print("✅ Advanced sentiment analysis: Working")
         print("✅ SentimentData object creation: Working")
         print("🔧 ML engine sentiment integration: Needs refinement")
         print("🔧 Data orchestrator caching: Needs implementation")
-        
+
         print("\n🎯 NEXT STEPS:")
         print("1. Implement sentiment data caching in DataFeedOrchestrator")
         print("2. Update ML engine to use cached sentiment data")
         print("3. Add sentiment features to feature engineering")
         print("4. Enable sentiment-enhanced training")
-        
+
     except Exception as e:
         print(f"❌ Integration test failed: {e}")
         import traceback
+
         traceback.print_exc()
+
 
 if __name__ == "__main__":
     test_ml_sentiment_integration_fixed()

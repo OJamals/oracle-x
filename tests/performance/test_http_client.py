@@ -10,7 +10,12 @@ import threading
 import os
 from unittest.mock import Mock, patch
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from core.http_client import HTTPClientManager, get_http_client_manager, optimized_get, optimized_post
+from core.http_client import (
+    HTTPClientManager,
+    get_http_client_manager,
+    optimized_get,
+    optimized_post,
+)
 
 
 class TestHTTPClientOptimization:
@@ -32,15 +37,15 @@ class TestHTTPClientOptimization:
     def test_session_creation_and_reuse(self, http_client):
         """Test session creation and reuse"""
         # Get session
-        session1 = http_client.get_session('test_session')
+        session1 = http_client.get_session("test_session")
         assert session1 is not None
 
         # Get same session again (should reuse)
-        session2 = http_client.get_session('test_session')
+        session2 = http_client.get_session("test_session")
         assert session1 is session2
 
         # Different session name should create new session
-        session3 = http_client.get_session('different_session')
+        session3 = http_client.get_session("different_session")
         assert session3 is not session1
 
     def test_connection_pooling_config(self, http_client):
@@ -48,34 +53,41 @@ class TestHTTPClientOptimization:
         session = http_client.get_session()
 
         # Check that session has HTTPAdapter with pooling
-        adapter = session.adapters.get('https://')
+        adapter = session.adapters.get("https://")
         assert adapter is not None
-        assert adapter.config['pool_connections'] == http_client.config['pool_connections']
-        assert adapter.config['pool_maxsize'] == http_client.config['pool_maxsize']
+        assert (
+            adapter.config["pool_connections"] == http_client.config["pool_connections"]
+        )
+        assert adapter.config["pool_maxsize"] == http_client.config["pool_maxsize"]
 
-    @patch('requests.Session.request')
+    @patch("requests.Session.request")
     def test_request_with_metrics(self, mock_request, http_client):
         """Test request execution with metrics tracking"""
         # Mock successful response
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.headers = {'Content-Encoding': 'gzip'}
+        mock_response.headers = {"Content-Encoding": "gzip"}
         mock_request.return_value = mock_response
 
         # Make request
         initial_metrics = http_client.get_metrics()
-        response = http_client.get('https://httpbin.org/get')
+        response = http_client.get("https://httpbin.org/get")
 
         # Check that request was made
         mock_request.assert_called_once()
 
         # Check metrics were updated
         final_metrics = http_client.get_metrics()
-        assert final_metrics['requests_total'] == initial_metrics['requests_total'] + 1
-        assert final_metrics['requests_success'] == initial_metrics['requests_success'] + 1
-        assert final_metrics['compression_savings'] == initial_metrics['compression_savings'] + 1
+        assert final_metrics["requests_total"] == initial_metrics["requests_total"] + 1
+        assert (
+            final_metrics["requests_success"] == initial_metrics["requests_success"] + 1
+        )
+        assert (
+            final_metrics["compression_savings"]
+            == initial_metrics["compression_savings"] + 1
+        )
 
-    @patch('requests.Session.request')
+    @patch("requests.Session.request")
     def test_retry_logic(self, mock_request, http_client):
         """Test retry logic on failures"""
         # Mock request to fail twice then succeed
@@ -84,11 +96,11 @@ class TestHTTPClientOptimization:
         mock_request.side_effect = [
             Exception("Connection failed"),
             Exception("Connection failed"),
-            mock_response
+            mock_response,
         ]
 
         # Make request
-        response = http_client.get('https://httpbin.org/get')
+        response = http_client.get("https://httpbin.org/get")
 
         # Should have been called 3 times (initial + 2 retries)
         assert mock_request.call_count == 3
@@ -98,15 +110,15 @@ class TestHTTPClientOptimization:
         session = http_client.get_session()
 
         expected_headers = {
-            'User-Agent': http_client.config['user_agent'],
-            'Accept-Encoding': 'gzip, deflate',
-            'Connection': 'keep-alive'
+            "User-Agent": http_client.config["user_agent"],
+            "Accept-Encoding": "gzip, deflate",
+            "Connection": "keep-alive",
         }
 
         for key, value in expected_headers.items():
             assert session.headers.get(key) == value
 
-    @patch('requests.Session.request')
+    @patch("requests.Session.request")
     def test_concurrent_requests(self, mock_request, http_client):
         """Test concurrent HTTP requests"""
         # Mock response
@@ -120,7 +132,7 @@ class TestHTTPClientOptimization:
             return http_client.get(url)
 
         # Make concurrent requests
-        urls = [f'https://api.example.com/endpoint{i}' for i in range(10)]
+        urls = [f"https://api.example.com/endpoint{i}" for i in range(10)]
 
         with ThreadPoolExecutor(max_workers=5) as executor:
             futures = [executor.submit(make_request, url) for url in urls]
@@ -133,7 +145,7 @@ class TestHTTPClientOptimization:
         # Total requests should equal number of URLs
         assert mock_request.call_count == 10
 
-    @patch('requests.Session.request')
+    @patch("requests.Session.request")
     def test_performance_metrics_tracking(self, mock_request, http_client):
         """Test performance metrics are tracked correctly"""
         # Mock responses with different timings
@@ -148,16 +160,18 @@ class TestHTTPClientOptimization:
 
         # Make multiple requests
         for i in range(5):
-            http_client.get(f'https://api.example.com/test{i}')
+            http_client.get(f"https://api.example.com/test{i}")
 
         final_metrics = http_client.get_metrics()
 
         # Check metrics
-        assert final_metrics['requests_total'] == initial_metrics['requests_total'] + 5
-        assert final_metrics['requests_success'] == initial_metrics['requests_success'] + 5
-        assert final_metrics['avg_response_time'] > 0
+        assert final_metrics["requests_total"] == initial_metrics["requests_total"] + 5
+        assert (
+            final_metrics["requests_success"] == initial_metrics["requests_success"] + 5
+        )
+        assert final_metrics["avg_response_time"] > 0
 
-    @patch('requests.Session.request')
+    @patch("requests.Session.request")
     def test_error_handling_and_metrics(self, mock_request, http_client):
         """Test error handling updates failure metrics"""
         # Mock failed request
@@ -169,38 +183,42 @@ class TestHTTPClientOptimization:
 
         # Make request that will fail
         with pytest.raises(Exception):
-            http_client.get('https://api.example.com/failing-endpoint')
+            http_client.get("https://api.example.com/failing-endpoint")
 
         final_metrics = http_client.get_metrics()
 
         # Check failure metrics
-        assert final_metrics['requests_total'] == initial_metrics['requests_total'] + 1
-        assert final_metrics['requests_failed'] == initial_metrics['requests_failed'] + 1
+        assert final_metrics["requests_total"] == initial_metrics["requests_total"] + 1
+        assert (
+            final_metrics["requests_failed"] == initial_metrics["requests_failed"] + 1
+        )
 
     def test_session_context_manager(self, http_client):
         """Test session context manager"""
-        with http_client.session_context('test_context') as session:
+        with http_client.session_context("test_context") as session:
             assert session is not None
-            assert session is http_client.get_session('test_context')
+            assert session is http_client.get_session("test_context")
 
     def test_convenience_functions(self):
         """Test convenience functions work correctly"""
-        with patch('core.http_client.get_http_client_manager') as mock_get_client:
+        with patch("core.http_client.get_http_client_manager") as mock_get_client:
             mock_client = Mock()
             mock_get_client.return_value = mock_client
 
             # Test optimized_get
-            optimized_get('https://example.com')
-            mock_client.get.assert_called_once_with('https://example.com', 'default', timeout=mock_client.config['timeout'])
+            optimized_get("https://example.com")
+            mock_client.get.assert_called_once_with(
+                "https://example.com", "default", timeout=mock_client.config["timeout"]
+            )
 
             # Test optimized_post
             mock_client.reset_mock()
-            optimized_post('https://example.com', data={'key': 'value'})
+            optimized_post("https://example.com", data={"key": "value"})
             mock_client.post.assert_called_once()
 
     def test_backward_compatibility(self):
         """Test backward compatibility functions"""
-        with patch('core.http_client.get_http_client_manager') as mock_get_client:
+        with patch("core.http_client.get_http_client_manager") as mock_get_client:
             mock_client = Mock()
             mock_response = Mock()
             mock_client.get.return_value = mock_response
@@ -210,25 +228,25 @@ class TestHTTPClientOptimization:
             from core.http_client import get_with_pool, post_with_pool
 
             # Test get_with_pool
-            response = get_with_pool('https://example.com')
+            response = get_with_pool("https://example.com")
             assert response == mock_response
 
             # Test post_with_pool
-            response = post_with_pool('https://example.com', data={'test': 'data'})
+            response = post_with_pool("https://example.com", data={"test": "data"})
             assert response == mock_response
 
-    @patch('requests.Session.request')
+    @patch("requests.Session.request")
     def test_keep_alive_connections(self, mock_request, http_client):
         """Test keep-alive connection reuse"""
         # Mock response
         mock_response = Mock()
         mock_response.status_code = 200
-        mock_response.headers = {'Connection': 'keep-alive'}
+        mock_response.headers = {"Connection": "keep-alive"}
         mock_request.return_value = mock_response
 
         # Make multiple requests to same host
         for i in range(3):
-            http_client.get('https://api.example.com/data')
+            http_client.get("https://api.example.com/data")
 
         # Should reuse the same session/connection
         assert mock_request.call_count == 3
@@ -245,11 +263,11 @@ class TestHTTPClientOptimization:
         def worker_thread(thread_id):
             """Worker function for thread safety test"""
             try:
-                session = http_client.get_session(f'thread_{thread_id}')
+                session = http_client.get_session(f"thread_{thread_id}")
                 assert session is not None
-                results.append(f'thread_{thread_id}_success')
+                results.append(f"thread_{thread_id}_success")
             except Exception as e:
-                errors.append(f'thread_{thread_id}_error: {e}')
+                errors.append(f"thread_{thread_id}_error: {e}")
 
         # Run multiple threads
         threads = []
@@ -265,7 +283,7 @@ class TestHTTPClientOptimization:
         # Check results
         assert len(results) == 10
         assert len(errors) == 0
-        assert all('success' in result for result in results)
+        assert all("success" in result for result in results)
 
     def test_configuration_override(self):
         """Test configuration can be overridden via environment variables"""
@@ -273,9 +291,9 @@ class TestHTTPClientOptimization:
 
         try:
             # Set environment variables
-            os.environ['HTTP_POOL_CONNECTIONS'] = '10'
-            os.environ['HTTP_MAX_RETRIES'] = '5'
-            os.environ['HTTP_ENABLE_COMPRESSION'] = 'false'
+            os.environ["HTTP_POOL_CONNECTIONS"] = "10"
+            os.environ["HTTP_MAX_RETRIES"] = "5"
+            os.environ["HTTP_ENABLE_COMPRESSION"] = "false"
 
             # Create new client instance (bypassing singleton for test)
             client = HTTPClientManager()
@@ -283,9 +301,9 @@ class TestHTTPClientOptimization:
             client.__init__()
 
             # Check configuration was applied
-            assert client.config['pool_connections'] == 10
-            assert client.config['max_retries'] == 5
-            assert client.config['enable_compression'] == False
+            assert client.config["pool_connections"] == 10
+            assert client.config["max_retries"] == 5
+            assert client.config["enable_compression"] == False
 
         finally:
             # Restore original environment

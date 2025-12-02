@@ -11,8 +11,11 @@ import json
 import sqlite3
 from unittest.mock import Mock, patch, AsyncMock
 from core.async_io_utils import (
-    AsyncFileManager, AsyncDatabaseManager, AsyncHTTPClient,
-    AsyncIOManager, get_async_io_manager
+    AsyncFileManager,
+    AsyncDatabaseManager,
+    AsyncHTTPClient,
+    AsyncIOManager,
+    get_async_io_manager,
 )
 
 
@@ -54,7 +57,7 @@ class TestAsyncFileManager:
         assert success == True
 
         # Verify file was written
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             written_data = json.load(f)
         assert written_data == test_data
 
@@ -84,7 +87,7 @@ class TestAsyncFileManager:
         assert success == True
 
         # Verify file was written
-        with open(file_path, 'r') as f:
+        with open(file_path, "r") as f:
             written_content = f.read()
         assert written_content == test_content
 
@@ -95,6 +98,7 @@ class TestAsyncFileManager:
 
         # This should work with sync fallback
         import asyncio
+
         async def test_sync():
             data = await file_manager.read_json(str(temp_file))
             return data
@@ -124,7 +128,7 @@ class TestAsyncDatabaseManager:
     @pytest.fixture
     def temp_db(self):
         """Create temporary database"""
-        fd, path = tempfile.mkstemp(suffix='.db')
+        fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         yield path
         os.unlink(path)
@@ -149,10 +153,7 @@ class TestAsyncDatabaseManager:
         # Execute query
         results = await db_manager.execute_query("SELECT * FROM test ORDER BY id")
 
-        expected = [
-            {"id": 1, "name": "Alice"},
-            {"id": 2, "name": "Bob"}
-        ]
+        expected = [{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]
         assert results == expected
 
     @pytest.mark.asyncio
@@ -184,7 +185,9 @@ class TestAsyncDatabaseManager:
             pytest.skip("aiosqlite not available")
 
         # Create test table
-        await db_manager.execute_write("CREATE TABLE bulk_test (id INTEGER PRIMARY KEY, value INTEGER)")
+        await db_manager.execute_write(
+            "CREATE TABLE bulk_test (id INTEGER PRIMARY KEY, value INTEGER)"
+        )
 
         # Bulk insert data
         data = [(i, i * 2) for i in range(100)]
@@ -194,7 +197,9 @@ class TestAsyncDatabaseManager:
         assert success == True
 
         # Verify all data was inserted
-        results = await db_manager.execute_query("SELECT COUNT(*) as count FROM bulk_test")
+        results = await db_manager.execute_query(
+            "SELECT COUNT(*) as count FROM bulk_test"
+        )
         assert results[0]["count"] == 100
 
     def test_sync_fallback_query(self, db_manager):
@@ -213,7 +218,9 @@ class TestAsyncDatabaseManager:
         db_manager.async_available = False
 
         async def test_sync():
-            success = await db_manager.execute_write("CREATE TABLE sync_test (id INTEGER)")
+            success = await db_manager.execute_write(
+                "CREATE TABLE sync_test (id INTEGER)"
+            )
             return success
 
         result = asyncio.run(test_sync())
@@ -235,7 +242,7 @@ class TestAsyncHTTPClient:
             pytest.skip("aiohttp not available")
 
         # Mock the aiohttp response
-        with patch('aiohttp.ClientSession.get') as mock_get:
+        with patch("aiohttp.ClientSession.get") as mock_get:
             mock_response = AsyncMock()
             mock_response.status = 200
             mock_response.json = AsyncMock(return_value={"data": "test"})
@@ -252,14 +259,16 @@ class TestAsyncHTTPClient:
         if not http_client.async_available:
             pytest.skip("aiohttp not available")
 
-        with patch('aiohttp.ClientSession.post') as mock_post:
+        with patch("aiohttp.ClientSession.post") as mock_post:
             mock_response = AsyncMock()
             mock_response.status = 201
             mock_response.json = AsyncMock(return_value={"id": 1, "created": True})
             mock_post.return_value.__aenter__.return_value = mock_response
 
             async with http_client:
-                result = await http_client.post("https://api.example.com/create", {"name": "test"})
+                result = await http_client.post(
+                    "https://api.example.com/create", {"name": "test"}
+                )
 
             assert result == {"id": 1, "created": True}
 
@@ -267,7 +276,7 @@ class TestAsyncHTTPClient:
         """Test sync fallback for GET requests"""
         http_client.async_available = False
 
-        with patch('requests.get') as mock_get:
+        with patch("requests.get") as mock_get:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {"fallback": "data"}
@@ -283,14 +292,16 @@ class TestAsyncHTTPClient:
         """Test sync fallback for POST requests"""
         http_client.async_available = False
 
-        with patch('requests.post') as mock_post:
+        with patch("requests.post") as mock_post:
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.json.return_value = {"posted": True}
             mock_post.return_value = mock_response
 
             async def test_sync():
-                return await http_client.post("https://api.example.com/post", {"data": "test"})
+                return await http_client.post(
+                    "https://api.example.com/post", {"data": "test"}
+                )
 
             result = asyncio.run(test_sync())
             assert result == {"posted": True}
@@ -307,7 +318,7 @@ class TestAsyncIOManager:
     @pytest.fixture
     def temp_db(self):
         """Create temporary database"""
-        fd, path = tempfile.mkstemp(suffix='.db')
+        fd, path = tempfile.mkstemp(suffix=".db")
         os.close(fd)
         yield path
         os.unlink(path)
@@ -333,11 +344,16 @@ class TestAsyncIOManager:
         requests_list = [
             {"method": "GET", "url": "https://api1.example.com"},
             {"method": "GET", "url": "https://api2.example.com"},
-            {"method": "POST", "url": "https://api3.example.com", "data": {"test": True}}
+            {
+                "method": "POST",
+                "url": "https://api3.example.com",
+                "data": {"test": True},
+            },
         ]
 
-        with patch('aiohttp.ClientSession.get') as mock_get, \
-             patch('aiohttp.ClientSession.post') as mock_post:
+        with patch("aiohttp.ClientSession.get") as mock_get, patch(
+            "aiohttp.ClientSession.post"
+        ) as mock_post:
 
             mock_response = AsyncMock()
             mock_response.status = 200
@@ -350,7 +366,11 @@ class TestAsyncIOManager:
                 results = await io_manager.concurrent_http_requests(requests_list)
 
             assert len(results) == 3
-            assert all(result == {"success": True} for result in results if not isinstance(result, Exception))
+            assert all(
+                result == {"success": True}
+                for result in results
+                if not isinstance(result, Exception)
+            )
 
     @pytest.mark.asyncio
     async def test_concurrent_file_operations(self, io_manager, tmp_path):
@@ -359,9 +379,21 @@ class TestAsyncIOManager:
             pytest.skip("aiofiles not available")
 
         operations = [
-            {"type": "write_json", "path": str(tmp_path / "file1.json"), "data": {"id": 1}},
-            {"type": "write_json", "path": str(tmp_path / "file2.json"), "data": {"id": 2}},
-            {"type": "write_text", "path": str(tmp_path / "file3.txt"), "content": "test content"}
+            {
+                "type": "write_json",
+                "path": str(tmp_path / "file1.json"),
+                "data": {"id": 1},
+            },
+            {
+                "type": "write_json",
+                "path": str(tmp_path / "file2.json"),
+                "data": {"id": 2},
+            },
+            {
+                "type": "write_text",
+                "path": str(tmp_path / "file3.txt"),
+                "content": "test content",
+            },
         ]
 
         results = await io_manager.concurrent_file_operations(operations)
@@ -399,17 +431,18 @@ class TestIntegration:
 
         if db_manager.async_available:
             # Create table
-            await db_manager.execute_write("""
+            await db_manager.execute_write(
+                """
                 CREATE TABLE workflow_test (
                     id INTEGER PRIMARY KEY,
                     data TEXT
                 )
-            """)
+            """
+            )
 
             # Insert data
             await db_manager.execute_write(
-                "INSERT INTO workflow_test (data) VALUES (?)",
-                ("async workflow test",)
+                "INSERT INTO workflow_test (data) VALUES (?)", ("async workflow test",)
             )
 
             # Query data
@@ -425,16 +458,16 @@ class TestIntegration:
         http_client = AsyncHTTPClient()
 
         # File operations should have sync fallbacks
-        assert hasattr(file_manager, '_read_json_sync')
-        assert hasattr(file_manager, '_write_json_sync')
+        assert hasattr(file_manager, "_read_json_sync")
+        assert hasattr(file_manager, "_write_json_sync")
 
         # Database operations should have sync fallbacks
-        assert hasattr(db_manager, '_execute_query_sync')
-        assert hasattr(db_manager, '_execute_write_sync')
+        assert hasattr(db_manager, "_execute_query_sync")
+        assert hasattr(db_manager, "_execute_write_sync")
 
         # HTTP operations should have sync fallbacks
-        assert hasattr(http_client, '_get_sync')
-        assert hasattr(http_client, '_post_sync')
+        assert hasattr(http_client, "_get_sync")
+        assert hasattr(http_client, "_post_sync")
 
 
 if __name__ == "__main__":

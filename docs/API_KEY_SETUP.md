@@ -153,7 +153,7 @@ python scripts/test_all_data_feeds.py
 
 # Test individual adapters
 python -c "from data_feeds.finnhub import fetch_finnhub_quote; print(fetch_finnhub_quote('AAPL'))"
-python -c "from data_feeds.enhanced_fmp_integration import EnhancedFMPAdapter; fmp = EnhancedFMPAdapter(); print(fmp.get_financial_ratios('AAPL'))"
+python -c "from data_feeds.consolidated_data_feed import FMPAdapter; fmp = FMPAdapter(); quote = fmp.get_quote('AAPL'); print(f'AAPL: ${quote.price}' if quote else 'Failed')"
 ```
 
 ### Expected Validation Results

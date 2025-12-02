@@ -13,7 +13,8 @@ from typing import Dict, List, Optional, Tuple, Any, Union, Callable
 from dataclasses import dataclass, field
 from enum import Enum
 import warnings
-warnings.filterwarnings('ignore')
+
+warnings.filterwarnings("ignore")
 
 import pickle
 import json
@@ -32,7 +33,12 @@ try:
     from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
     from sklearn.model_selection import train_test_split, cross_val_score
     from sklearn.preprocessing import StandardScaler, LabelEncoder
-    from sklearn.metrics import mean_squared_error, accuracy_score, classification_report
+    from sklearn.metrics import (
+        mean_squared_error,
+        accuracy_score,
+        classification_report,
+    )
+
     SKLEARN_AVAILABLE = True
 except ImportError:
     SKLEARN_AVAILABLE = False
@@ -43,14 +49,18 @@ try:
     import onnxruntime as ort
     from skl2onnx import convert_sklearn
     from skl2onnx.common.data_types import FloatTensorType
+
     ONNX_AVAILABLE = True
 except ImportError:
     ONNX_AVAILABLE = False
-    logging.warning("ONNX Runtime not available. Install with: pip install onnxruntime skl2onnx")
+    logging.warning(
+        "ONNX Runtime not available. Install with: pip install onnxruntime skl2onnx"
+    )
 
 # PyTorch for quantization
 try:
     import torch
+
     PYTORCH_AVAILABLE = True
 except ImportError:
     PYTORCH_AVAILABLE = False
@@ -61,6 +71,7 @@ logger = logging.getLogger(__name__)
 
 class OptimizationLevel(Enum):
     """Model optimization levels"""
+
     NONE = "none"
     FP16 = "fp16"
     INT8 = "int8"
@@ -69,6 +80,7 @@ class OptimizationLevel(Enum):
 
 class PredictionType(Enum):
     """Types of predictions the engine can make"""
+
     PRICE_MOVEMENT = "price_movement"
     VOLATILITY = "volatility"
     SENTIMENT_IMPACT = "sentiment_impact"
@@ -79,6 +91,7 @@ class PredictionType(Enum):
 @dataclass
 class ModelConfig:
     """Configuration for optimized model"""
+
     prediction_type: PredictionType
     optimization_level: OptimizationLevel = OptimizationLevel.NONE
     batch_size: int = 32
@@ -92,6 +105,7 @@ class ModelConfig:
 @dataclass
 class BatchPredictionRequest:
     """Request for batch prediction processing"""
+
     features: np.ndarray
     prediction_type: PredictionType
     model_config: ModelConfig
@@ -101,6 +115,7 @@ class BatchPredictionRequest:
 @dataclass
 class OptimizedModelMetrics:
     """Performance metrics for optimized models"""
+
     inference_time: float
     memory_usage: float
     model_size: float
@@ -121,7 +136,7 @@ class ModelQuantizer:
         try:
             if target_precision == "float16":
                 # Convert model parameters to float16
-                if hasattr(model, 'estimators_'):
+                if hasattr(model, "estimators_"):
                     # For ensemble models like RandomForest
                     for estimator in model.estimators_:
                         ModelQuantizer._quantize_estimator(estimator, np.float16)
@@ -130,7 +145,7 @@ class ModelQuantizer:
 
             elif target_precision == "int8":
                 # Dynamic quantization to int8
-                if hasattr(model, 'estimators_'):
+                if hasattr(model, "estimators_"):
                     for estimator in model.estimators_:
                         ModelQuantizer._quantize_estimator(estimator, np.int8)
                 else:
@@ -146,12 +161,12 @@ class ModelQuantizer:
     @staticmethod
     def _quantize_estimator(estimator, dtype):
         """Quantize individual estimator parameters"""
-        if hasattr(estimator, 'tree_'):
+        if hasattr(estimator, "tree_"):
             # For tree-based models
             tree = estimator.tree_
-            if hasattr(tree, 'value'):
+            if hasattr(tree, "value"):
                 tree.value = tree.value.astype(dtype)
-            if hasattr(tree, 'threshold'):
+            if hasattr(tree, "threshold"):
                 tree.threshold = tree.threshold.astype(dtype)
 
 
@@ -163,17 +178,20 @@ class ONNXModelOptimizer:
         if ONNX_AVAILABLE:
             self.session_options = ort.SessionOptions()
             # Enable all optimizations
-            self.session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            self.session_options.graph_optimization_level = (
+                ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+            )
 
-    def convert_to_onnx(self, sklearn_model, input_shape: Tuple[int, ...],
-                       model_path: str) -> Optional[str]:
+    def convert_to_onnx(
+        self, sklearn_model, input_shape: Tuple[int, ...], model_path: str
+    ) -> Optional[str]:
         """Convert scikit-learn model to ONNX format"""
         if not ONNX_AVAILABLE:
             return None
 
         try:
             # Define input type
-            initial_type = [('float_input', FloatTensorType([None, input_shape[1]]))]
+            initial_type = [("float_input", FloatTensorType([None, input_shape[1]]))]
 
             # Convert to ONNX
             onnx_model = convert_sklearn(sklearn_model, initial_types=initial_type)
@@ -220,7 +238,7 @@ class MemoryMappedModelLoader:
 
             try:
                 # Memory map the file
-                with open(model_path, 'rb') as f:
+                with open(model_path, "rb") as f:
                     mmapped_file = mmap.mmap(f.fileno(), 0, access=mmap.ACCESS_READ)
 
                     # Load model from memory-mapped data
@@ -235,7 +253,7 @@ class MemoryMappedModelLoader:
                 logger.warning(f"Memory-mapped loading failed for {model_id}: {e}")
                 # Fallback to normal loading
                 try:
-                    with open(model_path, 'rb') as f:
+                    with open(model_path, "rb") as f:
                         model = pickle.load(f)
                     self.loaded_models[model_id] = model
                     return model
@@ -286,7 +304,9 @@ class BatchInferenceProcessor:
 
         return results
 
-    def _group_requests_by_config(self, requests: List[BatchPredictionRequest]) -> Dict[str, List[BatchPredictionRequest]]:
+    def _group_requests_by_config(
+        self, requests: List[BatchPredictionRequest]
+    ) -> Dict[str, List[BatchPredictionRequest]]:
         """Group requests by model configuration for efficient batching"""
         groups = {}
 
@@ -316,11 +336,11 @@ class BatchInferenceProcessor:
         for i in range(len(requests)):
             # Mock prediction result
             result = {
-                'prediction': np.random.random(),
-                'confidence': np.random.random(),
-                'features_used': all_features.shape[1],
-                'batch_size': len(requests),
-                'optimization_level': config.optimization_level.value
+                "prediction": np.random.random(),
+                "confidence": np.random.random(),
+                "features_used": all_features.shape[1],
+                "batch_size": len(requests),
+                "optimization_level": config.optimization_level.value,
             }
             results.append(result)
 
@@ -346,37 +366,48 @@ class OptimizedMLPredictionEngine:
 
         logger.info(f"Optimized ML Engine initialized with config: {config}")
 
-    def optimize_model(self, model: Any, model_id: str, input_shape: Tuple[int, ...]) -> Dict[str, Any]:
+    def optimize_model(
+        self, model: Any, model_id: str, input_shape: Tuple[int, ...]
+    ) -> Dict[str, Any]:
         """Apply all optimizations to a model"""
         optimization_results = {
-            'original_model': model,
-            'quantized_model': None,
-            'onnx_path': None,
-            'onnx_session': None,
-            'optimization_metrics': {}
+            "original_model": model,
+            "quantized_model": None,
+            "onnx_path": None,
+            "onnx_session": None,
+            "optimization_metrics": {},
         }
 
         start_time = time.time()
 
         # 1. Apply quantization if enabled
-        if self.config.use_quantization and self.config.optimization_level != OptimizationLevel.NONE:
-            precision = "float16" if self.config.optimization_level == OptimizationLevel.FP16 else "int8"
+        if (
+            self.config.use_quantization
+            and self.config.optimization_level != OptimizationLevel.NONE
+        ):
+            precision = (
+                "float16"
+                if self.config.optimization_level == OptimizationLevel.FP16
+                else "int8"
+            )
             quantized_model = self.quantizer.quantize_sklearn_model(model, precision)
-            optimization_results['quantized_model'] = quantized_model
+            optimization_results["quantized_model"] = quantized_model
 
         # 2. Convert to ONNX if enabled
         if self.config.use_onnx and ONNX_AVAILABLE and self.onnx_optimizer:
             onnx_path = f"models/onnx/{model_id}.onnx"
             Path(onnx_path).parent.mkdir(parents=True, exist_ok=True)
 
-            target_model = optimization_results['quantized_model'] or model
-            onnx_path = self.onnx_optimizer.convert_to_onnx(target_model, input_shape, onnx_path)
+            target_model = optimization_results["quantized_model"] or model
+            onnx_path = self.onnx_optimizer.convert_to_onnx(
+                target_model, input_shape, onnx_path
+            )
 
             if onnx_path:
-                optimization_results['onnx_path'] = onnx_path
+                optimization_results["onnx_path"] = onnx_path
                 onnx_session = self.onnx_optimizer.create_inference_session(onnx_path)
                 if onnx_session:
-                    optimization_results['onnx_session'] = onnx_session
+                    optimization_results["onnx_session"] = onnx_session
                     self.onnx_sessions[model_id] = onnx_session
 
         # 3. Cache the optimized model
@@ -384,20 +415,20 @@ class OptimizedMLPredictionEngine:
             cache_path = f"models/cache/{model_id}.pkl"
             Path(cache_path).parent.mkdir(parents=True, exist_ok=True)
 
-            target_model = optimization_results['quantized_model'] or model
-            with open(cache_path, 'wb') as f:
+            target_model = optimization_results["quantized_model"] or model
+            with open(cache_path, "wb") as f:
                 pickle.dump(target_model, f)
 
-            optimization_results['cache_path'] = cache_path
+            optimization_results["cache_path"] = cache_path
 
         # Calculate optimization metrics
         optimization_time = time.time() - start_time
-        optimization_results['optimization_metrics'] = {
-            'optimization_time': optimization_time,
-            'quantization_applied': optimization_results['quantized_model'] is not None,
-            'onnx_conversion': optimization_results['onnx_path'] is not None,
-            'memory_mapped': self.config.memory_map,
-            'estimated_speedup': self._estimate_speedup(optimization_results)
+        optimization_results["optimization_metrics"] = {
+            "optimization_time": optimization_time,
+            "quantization_applied": optimization_results["quantized_model"] is not None,
+            "onnx_conversion": optimization_results["onnx_path"] is not None,
+            "memory_mapped": self.config.memory_map,
+            "estimated_speedup": self._estimate_speedup(optimization_results),
         }
 
         # Cache the optimized model
@@ -416,16 +447,20 @@ class OptimizedMLPredictionEngine:
         model_info = self.model_cache[model_id]
 
         # Use ONNX session if available (fastest)
-        if model_info['onnx_session'] and self.config.use_onnx:
-            prediction = self._predict_onnx(model_info['onnx_session'], features)
+        if model_info["onnx_session"] and self.config.use_onnx:
+            prediction = self._predict_onnx(model_info["onnx_session"], features)
 
         # Use quantized model if available
-        elif model_info['quantized_model']:
-            prediction = model_info['quantized_model'].predict(features.reshape(1, -1))[0]
+        elif model_info["quantized_model"]:
+            prediction = model_info["quantized_model"].predict(features.reshape(1, -1))[
+                0
+            ]
 
         # Use memory-mapped model
-        elif self.config.memory_map and 'cache_path' in model_info:
-            model = self.memory_loader.load_model_memory_mapped(model_info['cache_path'], model_id)
+        elif self.config.memory_map and "cache_path" in model_info:
+            model = self.memory_loader.load_model_memory_mapped(
+                model_info["cache_path"], model_id
+            )
             if model:
                 prediction = model.predict(features.reshape(1, -1))[0]
             else:
@@ -433,7 +468,9 @@ class OptimizedMLPredictionEngine:
 
         # Fallback to original model
         else:
-            prediction = model_info['original_model'].predict(features.reshape(1, -1))[0]
+            prediction = model_info["original_model"].predict(features.reshape(1, -1))[
+                0
+            ]
 
         inference_time = time.time() - start_time
 
@@ -444,21 +481,23 @@ class OptimizedMLPredictionEngine:
             model_size=self._estimate_model_size(model_info),
             throughput=1.0 / inference_time if inference_time > 0 else 0,
             accuracy_score=0.0,  # Would be calculated with ground truth
-            optimization_ratio=self._calculate_optimization_ratio(model_info)
+            optimization_ratio=self._calculate_optimization_ratio(model_info),
         )
 
         self.performance_metrics.append(metrics)
 
         return {
-            'prediction': prediction,
-            'inference_time': inference_time,
-            'optimization_level': self.config.optimization_level.value,
-            'used_onnx': model_info['onnx_session'] is not None,
-            'used_quantization': model_info['quantized_model'] is not None,
-            'confidence': np.random.random()  # Mock confidence score
+            "prediction": prediction,
+            "inference_time": inference_time,
+            "optimization_level": self.config.optimization_level.value,
+            "used_onnx": model_info["onnx_session"] is not None,
+            "used_quantization": model_info["quantized_model"] is not None,
+            "confidence": np.random.random(),  # Mock confidence score
         }
 
-    def predict_batch(self, requests: List[BatchPredictionRequest]) -> List[Dict[str, Any]]:
+    def predict_batch(
+        self, requests: List[BatchPredictionRequest]
+    ) -> List[Dict[str, Any]]:
         """Process multiple predictions in batch for maximum efficiency"""
         if not requests:
             return []
@@ -473,11 +512,13 @@ class OptimizedMLPredictionEngine:
         # Add timing information
         for i, result in enumerate(batch_results):
             if result:
-                result['batch_processing_time'] = batch_time
-                result['batch_size'] = len(requests)
-                result['individual_time'] = batch_time / len(requests)
+                result["batch_processing_time"] = batch_time
+                result["batch_size"] = len(requests)
+                result["individual_time"] = batch_time / len(requests)
 
-        logger.info(f"Batch prediction completed: {len(requests)} requests in {batch_time:.3f}s")
+        logger.info(
+            f"Batch prediction completed: {len(requests)} requests in {batch_time:.3f}s"
+        )
         return batch_results
 
     def _predict_onnx(self, session: Any, features: np.ndarray) -> float:
@@ -492,16 +533,18 @@ class OptimizedMLPredictionEngine:
         # Run inference
         result = session.run(None, {input_name: input_data})
 
-        return float(result[0][0][0]) if len(result[0].shape) > 1 else float(result[0][0])
+        return (
+            float(result[0][0][0]) if len(result[0].shape) > 1 else float(result[0][0])
+        )
 
     def _estimate_speedup(self, model_info: Dict[str, Any]) -> float:
         """Estimate performance speedup from optimizations"""
         speedup = 1.0
 
-        if model_info['quantized_model']:
+        if model_info["quantized_model"]:
             speedup *= 1.5  # Quantization typically gives 1.5x speedup
 
-        if model_info['onnx_session']:
+        if model_info["onnx_session"]:
             speedup *= 2.0  # ONNX Runtime typically gives 2x speedup
 
         if self.config.memory_map:
@@ -513,6 +556,7 @@ class OptimizedMLPredictionEngine:
         """Get current memory usage in MB"""
         try:
             import psutil
+
             process = psutil.Process()
             return process.memory_info().rss / 1024 / 1024
         except ImportError:
@@ -521,8 +565,8 @@ class OptimizedMLPredictionEngine:
     def _estimate_model_size(self, model_info: Dict[str, Any]) -> float:
         """Estimate model size in MB"""
         try:
-            if 'cache_path' in model_info and os.path.exists(model_info['cache_path']):
-                return os.path.getsize(model_info['cache_path']) / 1024 / 1024
+            if "cache_path" in model_info and os.path.exists(model_info["cache_path"]):
+                return os.path.getsize(model_info["cache_path"]) / 1024 / 1024
             else:
                 # Rough estimate based on model type
                 return 10.0  # Default 10MB estimate
@@ -533,10 +577,10 @@ class OptimizedMLPredictionEngine:
         """Calculate optimization effectiveness ratio"""
         ratio = 1.0
 
-        if model_info['quantized_model']:
+        if model_info["quantized_model"]:
             ratio *= 0.6  # 40% size reduction from quantization
 
-        if model_info['onnx_session']:
+        if model_info["onnx_session"]:
             ratio *= 0.7  # 30% size reduction from ONNX
 
         return ratio
@@ -544,32 +588,36 @@ class OptimizedMLPredictionEngine:
     def get_performance_summary(self) -> Dict[str, Any]:
         """Get comprehensive performance summary"""
         if not self.performance_metrics:
-            return {'message': 'No performance data available'}
+            return {"message": "No performance data available"}
 
         metrics = np.array([m.inference_time for m in self.performance_metrics])
         memory_usage = np.array([m.memory_usage for m in self.performance_metrics])
 
         return {
-            'total_predictions': len(self.performance_metrics),
-            'avg_inference_time': np.mean(metrics),
-            'median_inference_time': np.median(metrics),
-            'min_inference_time': np.min(metrics),
-            'max_inference_time': np.max(metrics),
-            'avg_memory_usage': np.mean(memory_usage),
-            'optimization_level': self.config.optimization_level.value,
-            'onnx_enabled': self.config.use_onnx,
-            'quantization_enabled': self.config.use_quantization,
-            'batch_size': self.config.batch_size,
-            'estimated_speedup': self._estimate_speedup(self.model_cache.get('last_model', {}))
+            "total_predictions": len(self.performance_metrics),
+            "avg_inference_time": np.mean(metrics),
+            "median_inference_time": np.median(metrics),
+            "min_inference_time": np.min(metrics),
+            "max_inference_time": np.max(metrics),
+            "avg_memory_usage": np.mean(memory_usage),
+            "optimization_level": self.config.optimization_level.value,
+            "onnx_enabled": self.config.use_onnx,
+            "quantization_enabled": self.config.use_quantization,
+            "batch_size": self.config.batch_size,
+            "estimated_speedup": self._estimate_speedup(
+                self.model_cache.get("last_model", {})
+            ),
         }
 
 
 # Factory function for creating optimized engines
-def create_optimized_ml_engine(prediction_type: PredictionType,
-                              optimization_level: OptimizationLevel = OptimizationLevel.FP16,
-                              use_onnx: bool = True,
-                              use_quantization: bool = True,
-                              batch_size: int = 32) -> OptimizedMLPredictionEngine:
+def create_optimized_ml_engine(
+    prediction_type: PredictionType,
+    optimization_level: OptimizationLevel = OptimizationLevel.FP16,
+    use_onnx: bool = True,
+    use_quantization: bool = True,
+    batch_size: int = 32,
+) -> OptimizedMLPredictionEngine:
     """Factory function to create optimized ML prediction engine"""
 
     config = ModelConfig(
@@ -579,7 +627,7 @@ def create_optimized_ml_engine(prediction_type: PredictionType,
         use_onnx=use_onnx and ONNX_AVAILABLE,
         use_quantization=use_quantization,
         memory_map=True,
-        cache_enabled=True
+        cache_enabled=True,
     )
 
     return OptimizedMLPredictionEngine(config)
@@ -594,6 +642,7 @@ def test_optimization_pipeline():
 
     # Create sample model
     from sklearn.datasets import make_regression
+
     X, y = make_regression(n_samples=1000, n_features=10, noise=0.1)
 
     model = RandomForestRegressor(n_estimators=100, random_state=42)
@@ -604,7 +653,7 @@ def test_optimization_pipeline():
         PredictionType.PRICE_MOVEMENT,
         optimization_level=OptimizationLevel.FP16,
         use_onnx=True,
-        use_quantization=True
+        use_quantization=True,
     )
 
     # Optimize model
@@ -620,8 +669,9 @@ def test_optimization_pipeline():
         BatchPredictionRequest(
             features=test_features[i],
             prediction_type=PredictionType.PRICE_MOVEMENT,
-            model_config=engine.config
-        ) for i in range(min(5, len(test_features)))
+            model_config=engine.config,
+        )
+        for i in range(min(5, len(test_features)))
     ]
 
     batch_results = engine.predict_batch(batch_requests)
@@ -633,10 +683,10 @@ def test_optimization_pipeline():
     logger.info(f"Performance summary: {summary}")
 
     return {
-        'optimization_result': optimization_result,
-        'prediction_result': prediction_result,
-        'batch_results': batch_results,
-        'performance_summary': summary
+        "optimization_result": optimization_result,
+        "prediction_result": prediction_result,
+        "batch_results": batch_results,
+        "performance_summary": summary,
     }
 
 

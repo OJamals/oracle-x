@@ -109,3 +109,14 @@ providers:
     intervals_map: { 1min: 1min, 5min: 5min, 15min: 15min, 30min: 30min, 1h: 1h, 1d: 1day }
   finviz:
     base_url: https://finviz.com
+
+data_feeds:
+  fetch_market_internals: true
+  fetch_options_flow: true
+  fetch_dark_pool_data: true
+  fetch_sentiment_web: true
+  fetch_sentiment_llm: true
+  fetch_news_yahoo: true
+  fetch_finviz_breadth: true
+  fetch_earnings_calendar: true
+  enable_premium_feeds: true

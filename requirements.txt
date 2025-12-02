@@ -1,16 +1,37 @@
+# Core dependencies
 pandas
 openai>=1.0.0
+pydantic>=2.0.0
 pillow
 scikit-learn
 plotly
 feedparser>=6.0.10
-qdrant-client
+
+# Vector database
+chromadb>=0.4.0
+sentence-transformers
+
+# Social media and web scraping
 tweepy
 twscrape
 praw>=7.8.0
 vaderSentiment>=3.3.0
+
+# ML/AI
 transformers>=4.50.0
 torch>=2.0.0
+
+# Financial data
 finvizfinance>=1.1.1
+yfinance
+# Note: investiny is optional due to dependency conflicts (httpx/pydantic version mismatches)
+# It's handled gracefully in the codebase - install manually if needed:
+# pip install investiny --no-deps
+
+# Infrastructure
 redis>=4.5.0
-investiny>=0.9.0
+matplotlib
+
+# Async I/O
+aiofiles
+aiohttp

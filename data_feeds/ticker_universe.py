@@ -9,15 +9,32 @@ import os
 try:
     from core.http_client import optimized_get
 except ImportError:
+
     def optimized_get(url, **kwargs):
         """Fallback to standard requests if optimized client unavailable"""
         return requests.get(url, **kwargs)
+
+
+# Ticker validator import with fallback
+try:
+    from optimizations.ticker_validator import validate_tickers
+
+    TICKER_VALIDATION_ENABLED = True
+except ImportError:
+    TICKER_VALIDATION_ENABLED = False
+
+    def validate_tickers(tickers):
+        """Fallback: no validation"""
+        return tickers
+
 
 def fetch_ticker_universe(source="finviz", sample_size=20, static_list=None):
     """
     Fetch a diverse list of active tickers from a public source (default: Finviz Screener).
     Optionally merge with a static list and sample a subset.
     Returns a list of tickers (strings).
+
+    Now includes intelligent validation to filter out delisted/invalid tickers.
     """
     tickers = set()
     if static_list:
@@ -26,11 +43,39 @@ def fetch_ticker_universe(source="finviz", sample_size=20, static_list=None):
         _extracted_from_fetch_ticker_universe_11(tickers)
     # Fallback: add some well-known tickers if none found
     if not tickers:
-        tickers.update(["AAPL", "TSLA", "MSFT", "GOOG", "AMZN", "NVDA", "AMD", "META", "NFLX", "SPY"])
-    # Sample a diverse subset
+        tickers.update(
+            [
+                "AAPL",
+                "TSLA",
+                "MSFT",
+                "GOOG",
+                "AMZN",
+                "NVDA",
+                "AMD",
+                "META",
+                "NFLX",
+                "SPY",
+            ]
+        )
+
+    # Convert to list for processing
     tickers = list(tickers)
+
+    # OPTIMIZATION: Validate tickers before sampling (filters invalid/delisted)
+    if TICKER_VALIDATION_ENABLED:
+        # Get more tickers than needed to account for invalid ones
+        initial_count = len(tickers)
+        tickers = validate_tickers(tickers)
+        filtered_count = initial_count - len(tickers)
+        if filtered_count > 0:
+            print(
+                f"[OPTIMIZATION] Filtered {filtered_count} invalid tickers, {len(tickers)} valid remaining"
+            )
+
+    # Sample a diverse subset
     if len(tickers) > sample_size:
         tickers = random.sample(tickers, sample_size)
+
     return tickers
 
 
@@ -41,7 +86,7 @@ def _extracted_from_fetch_ticker_universe_11(tickers):
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.212 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0"
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
     ]
     headers = {"User-Agent": random.choice(user_agents)}
     try:

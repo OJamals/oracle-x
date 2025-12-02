@@ -24,7 +24,9 @@ def main():
         q = orch_get_quote(symbol)
         q = orch.get_quote(symbol, preferred_sources=[DataSource.TWELVE_DATA])
         if q:
-            print(f"{symbol} price={q.price} change={q.change} change%={q.change_percent} ts={q.timestamp} src={q.source}")
+            print(
+                f"{symbol} price={q.price} change={q.change} change%={q.change_percent} ts={q.timestamp} src={q.source}"
+            )
         else:
             print("Quote unavailable")
     else:
@@ -32,7 +34,12 @@ def main():
 
     print("\n== Smoke: Twelve Data Market Data (daily) ==")
     if api_key:
-        md = orch.get_market_data(symbol, period="1y", interval="1d", preferred_sources=[DataSource.TWELVE_DATA])
+        md = orch.get_market_data(
+            symbol,
+            period="1y",
+            interval="1d",
+            preferred_sources=[DataSource.TWELVE_DATA],
+        )
         if md and md.data is not None and not md.data.empty:
             print(f"{symbol} last 3 bars:")
             print(md.data.tail(3))
@@ -44,7 +51,9 @@ def main():
     print("\n== Smoke: FinViz Market Breadth ==")
     breadth = get_market_breadth()
     if breadth:
-        print(f"Advancers={breadth.advancers} Decliners={breadth.decliners} AsOf={breadth.as_of} Source={breadth.source}")
+        print(
+            f"Advancers={breadth.advancers} Decliners={breadth.decliners} AsOf={breadth.as_of} Source={breadth.source}"
+        )
     else:
         print("Market breadth unavailable")
 

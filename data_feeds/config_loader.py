@@ -23,7 +23,6 @@ Defaults (aligned with data_feeds.data_feed_orchestrator.SmartCache and RateLimi
     REDDIT: per_minute=60
     TWITTER: per_15min=100 (window 900s)
     FRED: per_minute=120
-    TWELVE_DATA: per_minute=60
     FINVIZ: per_minute=12
 - quotas (daily):
     FINNHUB: per_day=1000
@@ -43,6 +42,7 @@ from typing import Any, Dict, List, Optional
 # Load .env if present
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except Exception:
     # dotenv is optional; proceed if unavailable
@@ -118,7 +118,6 @@ def _defaults() -> Config:
         # Twitter uses 100 per 15 minutes; represent both granularly and per_minute proxy
         "TWITTER": {"per_15min": 100, "per_minute": 7},
         "FRED": {"per_minute": 120},
-        "TWELVE_DATA": {"per_minute": 60},
         "FINVIZ": {"per_minute": 12},
     }
 
@@ -136,7 +135,6 @@ def _defaults() -> Config:
         "reddit": True,
         "twitter": True,
         "fred": True,
-        "twelve_data": True,
         "finviz": True,
         "yahoo_news": True,
         "google_trends": True,
@@ -159,7 +157,6 @@ def _defaults() -> Config:
     creds = {
         "FINNHUB_API_KEY": os.getenv("FINNHUB_API_KEY", ""),
         "FINANCIALMODELINGPREP_API_KEY": os.getenv("FINANCIALMODELINGPREP_API_KEY", ""),
-        "TWELVEDATA_API_KEY": os.getenv("TWELVEDATA_API_KEY", ""),
         "IEX_CLOUD_API_KEY": os.getenv("IEX_CLOUD_API_KEY", ""),
         "ALPHA_VANTAGE_API_KEY": os.getenv("ALPHA_VANTAGE_API_KEY", ""),
         "REDDIT_CLIENT_ID": os.getenv("REDDIT_CLIENT_ID", ""),
@@ -208,6 +205,7 @@ def load_config(
     if env_path and os.path.exists(env_path):
         try:
             from dotenv import load_dotenv as _load
+
             _load(env_path, override=True)
         except Exception:
             # best effort
@@ -271,15 +269,25 @@ def load_config(
                     if "calls" in limits and "period" in limits:
                         calls = limits.get("calls")
                         period = limits.get("period")
-                        if isinstance(calls, int) and isinstance(period, int) and period > 0:
+                        if (
+                            isinstance(calls, int)
+                            and isinstance(period, int)
+                            and period > 0
+                        ):
                             per_minute = int(calls * 60 / period)
-                            rate_limits[str(provider).upper()] = {"per_minute": per_minute}
+                            rate_limits[str(provider).upper()] = {
+                                "per_minute": per_minute
+                            }
                     else:
                         # granular; try rpm first
                         if "rpm" in limits and isinstance(limits["rpm"], int):
-                            rate_limits[str(provider).upper()] = {"per_minute": int(limits["rpm"])}
+                            rate_limits[str(provider).upper()] = {
+                                "per_minute": int(limits["rpm"])
+                            }
                         elif "rps" in limits and isinstance(limits["rps"], int):
-                            rate_limits[str(provider).upper()] = {"per_minute": int(limits["rps"] * 60)}
+                            rate_limits[str(provider).upper()] = {
+                                "per_minute": int(limits["rps"] * 60)
+                            }
                         # keep existing if not mappable
             merged["rate_limits"] = rate_limits
 
@@ -296,7 +304,6 @@ def load_config(
     cred_keys = [
         "FINNHUB_API_KEY",
         "FINANCIALMODELINGPREP_API_KEY",
-        "TWELVEDATA_API_KEY",
         "IEX_CLOUD_API_KEY",
         "ALPHA_VANTAGE_API_KEY",
         "REDDIT_CLIENT_ID",

@@ -9,6 +9,7 @@ from .base_news_adapter import BaseNewsAdapter
 
 logger = logging.getLogger(__name__)
 
+
 class ReutersAdapter(BaseNewsAdapter):
     """Reuters financial news adapter with enhanced sentiment analysis and fallback mechanisms"""
 
@@ -25,10 +26,7 @@ class ReutersAdapter(BaseNewsAdapter):
             "https://feeds.businesswire.com/BWTopStories",  # BusinessWire
         ]
 
-        super().__init__(
-            source_name="reuters",
-            rss_url=primary_rss
-        )
+        super().__init__(source_name="reuters", rss_url=primary_rss)
 
     def fetch_news_articles(self, symbol: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
@@ -44,7 +42,9 @@ class ReutersAdapter(BaseNewsAdapter):
                 if self._is_financial_article(article):
                     filtered_articles.append(article)
 
-            logger.info(f"Filtered {len(filtered_articles)} financial articles from {len(articles)} Reuters articles for {symbol}")
+            logger.info(
+                f"Filtered {len(filtered_articles)} financial articles from {len(articles)} Reuters articles for {symbol}"
+            )
             return filtered_articles[:limit]
 
         # If primary feed fails, try fallback feeds
@@ -71,7 +71,9 @@ class ReutersAdapter(BaseNewsAdapter):
                             filtered_articles.append(article)
 
                     if filtered_articles:
-                        logger.info(f"Successfully fetched {len(filtered_articles)} articles from fallback feed for {symbol}")
+                        logger.info(
+                            f"Successfully fetched {len(filtered_articles)} articles from fallback feed for {symbol}"
+                        )
                         return filtered_articles[:limit]
 
             except Exception as e:
@@ -86,14 +88,55 @@ class ReutersAdapter(BaseNewsAdapter):
         text = f"{article.get('title', '')} {article.get('description', '')}".lower()
 
         financial_keywords = [
-            'stock', 'stocks', 'shares', 'earnings', 'revenue', 'profit', 'financial',
-            'market', 'trading', 'investor', 'investment', 'analyst', 'economy',
-            'sec', 'ipo', 'dividend', 'quarterly', 'guidance', 'forecast',
-            'wall street', 'nasdaq', 'nyse', 'sp 500', 's&p 500', 'dow jones',
-            'business', 'company', 'corporation', 'corporate', 'ceo', 'cfo',
-            'fund', 'bank', 'banking', 'finance', 'economics', 'economic',
-            'merger', 'acquisition', 'm&a', 'valuation', 'price', 'trading',
-            'bullish', 'bearish', 'volatility', 'hedge fund', 'etf', 'mutual fund'
+            "stock",
+            "stocks",
+            "shares",
+            "earnings",
+            "revenue",
+            "profit",
+            "financial",
+            "market",
+            "trading",
+            "investor",
+            "investment",
+            "analyst",
+            "economy",
+            "sec",
+            "ipo",
+            "dividend",
+            "quarterly",
+            "guidance",
+            "forecast",
+            "wall street",
+            "nasdaq",
+            "nyse",
+            "sp 500",
+            "s&p 500",
+            "dow jones",
+            "business",
+            "company",
+            "corporation",
+            "corporate",
+            "ceo",
+            "cfo",
+            "fund",
+            "bank",
+            "banking",
+            "finance",
+            "economics",
+            "economic",
+            "merger",
+            "acquisition",
+            "m&a",
+            "valuation",
+            "price",
+            "trading",
+            "bullish",
+            "bearish",
+            "volatility",
+            "hedge fund",
+            "etf",
+            "mutual fund",
         ]
 
         return any(keyword in text for keyword in financial_keywords)
@@ -114,7 +157,7 @@ class ReutersAdapter(BaseNewsAdapter):
             f"({symbol.lower()})",
             f"{symbol.upper()}",
             f"${symbol.upper()}",
-            f"({symbol.upper()})"
+            f"({symbol.upper()})",
         ]
 
         return any(variation in text for variation in symbol_variations)
@@ -122,9 +165,11 @@ class ReutersAdapter(BaseNewsAdapter):
     def get_health_status(self) -> Dict[str, Any]:
         """Get enhanced health status with fallback information"""
         base_status = super().get_health_status()
-        base_status.update({
-            'fallback_feeds_available': len(self.fallback_feeds),
-            'fallback_feeds': self.fallback_feeds,
-            'resilient_mode': True
-        })
+        base_status.update(
+            {
+                "fallback_feeds_available": len(self.fallback_feeds),
+                "fallback_feeds": self.fallback_feeds,
+                "resilient_mode": True,
+            }
+        )
         return base_status

@@ -1,223 +1,439 @@
-## ORACLE-X — Copilot Instructions (Comprehensive)
+## ORACLE-X — AI Agent Development Guide
 
-This file provides focused, actionable knowledge for AI coding agents to be productive in this advanced trading intelligence repository.
+**Quick Start**: ORACLE-X is an AI-driven trading intelligence engine that transforms multi-source market data (options flow, sentiment, technical indicators) into actionable trading playbooks using LLM-powered analysis and ML predictions.
 
-## 1) Big Picture (Enhanced Architecture)
- - **ORACLE-X** is now a **comprehensive real-time market intelligence engine** that has evolved from basic signal generation to:
-   - **Multi-Pipeline Architecture**: Core pipeline + Enhanced pipeline + Optimized pipeline + Options pipeline
-   - **Advanced Analytics**: Real-time market breadth, sentiment aggregation, financial metrics (RSI, SMA, volatility)
-   - **Machine Learning**: Ensemble models with genetic optimization and fallback systems
-   - **Options Trading**: Complete options valuation using Black-Scholes, Binomial, and Monte Carlo methods
-   - **Self-Learning**: Prompt optimization with A/B testing and genetic evolution
-   - **Performance Monitoring**: 469,732x caching speedup, quality validation, and comprehensive analytics
+## 1) Big Picture Architecture
 
- - **Key Architecture Areas**:
-   - `agent_bundle/` (agent blueprints, data orchestrator, financial calculator)
-   - `oracle_engine/` (prompt chains, optimization engine, ML training, model management)
-   - `data_feeds/` (enhanced adapters with caching and fallback systems)
-   - `vector_db/` (Qdrant integration with quality validation)
-   - `backtest_tracker/` (performance analysis and backtesting)
-   - `dashboard/` (Streamlit UI with real-time analytics)
-   - `models/` (ML model storage and versioning)
-   - **NEW**: `accounts.db`, `model_monitoring.db`, `prompt_optimization.db` (performance tracking)
+### Core Concept
+ORACLE-X operates as a **multi-pipeline trading intelligence system** that:
+1. **Ingests**: Real-time market data from 10+ sources (TwelveData, FinViz, Reddit, Twitter/X, GNews, RSS feeds)
+2. **Processes**: Through LLM prompt chains (signals → scenario trees → playbook generation)
+3. **Enriches**: Via ML ensemble models with genetic optimization
+4. **Delivers**: Structured trading playbooks with risk-scored opportunities
 
-## 2) Multiple Pipeline Entry Points & Execution Modes
+### Key Architectural Layers
+```
+Data Collection (DataFeedOrchestrator)
+    ↓ with intelligent caching (469,732x speedup achieved)
+LLM Processing (prompt_chain.py)
+    ↓ with JSON sanitization and validation
+ML Enhancement (ensemble models, genetic optimization)
+    ↓ with quality scoring (82.7/100 avg)
+Output Generation (Playbooks, Dashboard, CLI)
+```
 
-### Core Pipelines
- - **Standard Pipeline**: `python main.py` → Enhanced data collection + Oracle agent pipeline + Playbook generation
- - **Enhanced Pipeline**: `python main_enhanced.py` → Advanced ML training + Enhanced sentiment analysis
- - **Optimized Pipeline**: `python main_optimized.py` → Self-learning prompt optimization + A/B testing
- - **Signals Collection**: `python signals_runner.py` → Multi-source data aggregation only
+### Critical Directories
+- `core/config.py` - **Unified configuration** (replaces old env_config.py, config_manager.py)
+- `data_feeds/data_feed_orchestrator.py` - **Central data hub** with caching, fallback, quality validation
+- `oracle_engine/prompt_chain.py` - **LLM workflow** (signals → scenarios → playbooks)
+- `oracle_options_pipeline.py` - **Options analysis** with Black-Scholes, Monte Carlo valuation
+- `data/databases/` - **SQLite DBs** (accounts, model_monitoring, prompt_optimization)
+- `tests/integration/` - **Reference patterns** for mocking and testing
 
-### Specialized CLI Tools  
- - **Options Analysis**: `python oracle_options_cli.py analyze AAPL` → Real-time options valuation and opportunity scoring
- - **Optimization Management**: `python oracle_optimize_cli.py analytics` → Prompt performance analytics and template evolution
- - **Validation Tools**: `python cli_validate.py <subcommand>` → Comprehensive adapter and pipeline validation
+## 2) Developer Workflows & Entry Points
 
-### Dashboard & Monitoring
- - **Main Dashboard**: `streamlit run dashboard/app.py` → Interactive trading dashboard
- - **Performance Analytics**: Built-in real-time monitoring with quality scoring (82.7/100 average across 5 sources)
+### Primary Commands (Most Used)
+```bash
+# Main trading playbook generation (standard mode)
+python main.py
 
-## 3) Enhanced Code Patterns & Advanced Gotchas
+# Unified CLI interface (recommended for automation)
+python oracle_cli.py pipeline run --mode standard    # Playbook generation
+python oracle_cli.py pipeline run --mode signals     # Data collection only
+python oracle_cli.py pipeline run --mode all         # Sequential execution
 
-### Core System Patterns (Preserved)
- - **Orchestrator Integration**: `main.py` imports `data_feeds.data_feed_orchestrator.DataFeedOrchestrator` with guarded try/except; code must handle `orchestrator is None` gracefully
- - **LLM Output Sanitization**: All pipelines use `_sanitize_llm_json()` before json.loads; maintain strict JSON format compliance in model wrappers
- - **Vector DB Health Checks**: `vector_db/qdrant_store.ensure_collection()` and `embed_text()` validate embedding dimensions {512,768,1024,1536}; failures skip storage gracefully
- - **Best-Effort Enrichment**: Functions like `enrich_trades_with_data_feeds()` and `enrich_playbook_top_level()` must never raise exceptions; use defensive try/except patterns
+# Interactive dashboard
+streamlit run dashboard/app.py
 
-### New Advanced Patterns (Critical - Recently Enhanced)
- - **Caching Layer**: DataFeedOrchestrator implements intelligent caching with TTL (5-minute default) achieving 469,732x speedup for Reddit sentiment
- - **Quality Validation**: All data feeds include quality scoring (0-100); pipeline tracks average quality metrics (current: 82.7/100)
- - **Fallback Systems**: TwelveData and other adapters implement automatic failover with exponential backoff and error classification
- - **ML Model Management**: `oracle_engine/ml_model_manager.py` handles model versioning, checkpointing, and automatic fallbacks
- - **Prompt Optimization**: Templates evolve using genetic algorithms stored in `prompt_optimization.db` with A/B testing framework
- - **Financial Calculations**: `FinancialCalculator` provides Black-Scholes, Greeks, Monte Carlo, and Binomial option pricing
- - **Performance Tracking**: Model attempts logged via `oracle_engine/model_attempt_logger.py` with comprehensive metrics
- - **Options Strategy Management**: Enhanced OptionStrategy enum with complete coverage (11 strategies) including CASH_SECURED_PUT, BULL_CALL_SPREAD, BEAR_PUT_SPREAD, IRON_CONDOR
- - **Configuration Standardization**: Unified PipelineConfig and EnhancedPipelineConfig with SafeMode enum integration and proper property overrides
- - **Test Infrastructure**: Comprehensive mocking and helper functions (initialize_options_model) for reliable integration testing
- - **Market Data Validation**: Enhanced option filtering with market price validation and edge case handling
+# Testing (94.4% pass rate - 67/71 tests passing)
+pytest tests/                                        # All tests
+pytest tests/integration/test_integration_options_pipeline.py  # Options pipeline (18/18 ✅)
+```
 
-### Database Integration Patterns
- - **SQLite Databases**: Multiple .db files for different concerns (accounts, monitoring, optimization) - handle with proper connection management
- - **Configuration Management**: Multiple .env files for different environments; use `env_config.py` for centralized config loading
- - **Async Operations**: Some ML training operations are async; use proper await patterns and handle timeouts
+### Specialized Pipelines
+```bash
+# Options analysis with valuation models
+python oracle_options_cli.py analyze AAPL
 
-## 4) Integration Points & Advanced Feature Development
+# Prompt optimization with genetic algorithms
+python oracle_optimize_cli.py analytics
 
-### Core Integration Points (Enhanced)
- - **Prompt Chains**: `oracle_engine/prompt_chain.py` and `oracle_engine/prompt_chain_optimized.py` (signals → scenario tree → playbook generation)
- - **Model Management**: `oracle_engine/model_attempt_logger.py` + `oracle_engine/ml_model_manager.py` for tracking and versioning
- - **Vector Operations**: `vector_db/qdrant_store.py` with quality validation and embedding health checks
- - **Adapter Framework**: `agent_bundle/adapter_protocol.py` and `agent_bundle/adapter_wrappers.py` for new data sources
+# Data feed validation (reproducible testing)
+python scripts/validation/cli_validate.py quote --symbol AAPL
+python scripts/validation/cli_validate.py advanced_sentiment --symbol TSLA
+```
 
-### New Advanced Integration Points (Recently Enhanced)
- - **Options Pipeline**: `oracle_options_pipeline.py` with `oracle_options_cli.py` for real-time options analysis and valuation
-   - **Enhanced Architecture**: BaseOptionsPipeline and EnhancedOracleOptionsPipeline with proper configuration inheritance
-   - **Strategy Coverage**: Complete OptionStrategy enum with 11 strategies (LONG_CALL, SHORT_CALL, LONG_PUT, SHORT_PUT, COVERED_CALL, PROTECTIVE_PUT, CASH_SECURED_PUT, BULL_CALL_SPREAD, BEAR_PUT_SPREAD, IRON_CONDOR, STRADDLE)
-   - **Configuration Management**: Unified config system with SafeMode enum and proper property overrides
-   - **Market Data Filtering**: Enhanced _filter_options method with market price validation
- - **Optimization Engine**: `oracle_engine/prompt_optimization.py` with genetic algorithms and A/B testing framework
- - **ML Training Pipeline**: `oracle_engine/ensemble_ml_engine.py` + `enhanced_ml_training.py` for advanced machine learning
- - **Financial Calculator**: `agent_bundle/data_feed_orchestrator.py` includes `FinancialCalculator` for metrics and options pricing
- - **Performance Analytics**: `oracle_optimize_cli.py` provides comprehensive analytics and template evolution monitoring
- - **Caching System**: `agent_bundle/cache_service.py` with intelligent TTL and invalidation strategies
- - **Fallback Management**: Advanced error handling with classification, exponential backoff, and automatic recovery
- - **Test Integration**: Comprehensive test suite with helper functions and proper mocking (18/18 options pipeline tests passing)
+### Automation Setup (Cron Example)
+```cron
+# Daily playbook generation at 6PM ET
+0 18 * * * cd /path/to/oracle-x && python oracle_cli.py pipeline run --mode all >> cronlog.txt 2>&1
+```
 
-### Database Integration Architecture
- - **accounts.db**: User account management and preferences
- - **model_monitoring.db**: ML model performance tracking and analytics  
- - **prompt_optimization.db**: Template evolution, A/B testing results, and genetic algorithm state
- - **Vector DB (Qdrant)**: Scenario recall, embeddings, and contextual prompt enhancement
+## 3) Critical Code Patterns & Gotchas
 
-### Configuration & Environment Integration
- - **optimization.env**: Optimization system configuration
- - **rss_feeds_config.env**: RSS feed sources and settings
- - **optimization_config.json**: Detailed optimization parameters and strategies
+### Defensive Programming (Essential)
+**Best-Effort Enrichment Pattern** - The system never fails on data enrichment:
+```python
+# ✅ CORRECT - All enrichment functions use defensive try/except
+def enrich_playbook_top_level(playbook: dict, orchestrator) -> dict:
+    try:
+        # Enrichment logic here
+        pass
+    except Exception as e:
+        warnings.warn(f"Enrichment failed: {e}")
+        return playbook  # Return original on failure
+```
+**Never raise exceptions** in:
+- `enrich_trades_with_data_feeds()`
+- `enrich_playbook_top_level()`
+- Any data collection/enrichment flow
 
-## 5) Environment Variables & Configuration Management (Comprehensive)
+### Orchestrator Integration (Critical)
+```python
+# ✅ CORRECT - Handle orchestrator availability gracefully
+try:
+    from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
+    orchestrator = DataFeedOrchestrator()
+except Exception:
+    orchestrator = None  # Many modules check `if orchestrator is None`
+```
+**Why**: Optional dependencies (TwelveData API, Redis) may be unavailable
 
-### Core API Endpoints & Model Configuration
- - **OpenAI/LLM**: `OPENAI_API_KEY`, `OPENAI_API_BASE` (configured in `agent_bundle/agent.py` and optimization systems)
- - **Model Selection**: `MODEL_NAME` in `agent_bundle/agent.py` affects logging and optimization tracking
+### LLM Output Handling (Required)
+```python
+# ✅ CORRECT - Always sanitize before parsing
+def _sanitize_llm_json(text: str) -> str:
+    """Remove markdown, comments, trailing commas"""
+    text = re.sub(r'```json\s*', '', text)
+    text = re.sub(r'```\s*$', '', text)
+    # ... additional sanitization
+    return text
 
-### Data Source API Keys & Configuration
- - **TwelveData**: `TWELVEDATA_API_KEY` for enhanced market data with fallback systems
- - **Social Media**: Reddit/Twitter credentials for sentiment analysis (see `agent_bundle/README.md`)
- - **RSS Feeds**: `RSS_FEEDS`, `RSS_INCLUDE_ALL` for news sentiment aggregation
+# Then parse
+response = llm.generate(prompt)
+clean_json = _sanitize_llm_json(response)
+data = json.loads(clean_json)
+```
+**Location**: See `oracle_engine/prompt_chain.py` for reference implementation
 
-### Advanced Sentiment & Analytics Configuration
- - **Enhanced Sentiment**: `ADVANCED_SENTIMENT_MAX_PER_SOURCE` for throttling sentiment collection per source
- - **Caching Configuration**: TTL settings for DataFeedOrchestrator caching (default: 5 minutes)
- - **Quality Thresholds**: Minimum quality scores for data validation and filtering
+### Intelligent Caching System
+```python
+# Automatic TTL-based caching (5-minute default)
+# DataFeedOrchestrator handles this internally:
+# - Reddit sentiment: 469,732x speedup achieved
+# - Quality metrics: 82.7/100 average
+# - Cache invalidation: Automatic on TTL expiry
 
-### Options Trading Configuration
- - **Risk Management**: Risk tolerance settings for options analysis pipeline
- - **Valuation Models**: Configuration for Black-Scholes, Binomial, Monte Carlo pricing methods
- - **Greeks Calculation**: Delta, Gamma, Vega, Theta, Rho sensitivity settings
+# ✅ Use CacheService for custom caching
+from data_feeds.cache_service import CacheService
+cache = CacheService(ttl_seconds=300)
+data = cache.get_or_fetch(key, fetch_function)
+```
 
-### Optimization System Configuration
- - **Genetic Algorithm**: Population size, mutation rates, crossover probabilities in `optimization_config.json`
- - **A/B Testing**: Test duration, significance thresholds, performance metrics
- - **Template Evolution**: Learning rates, performance tracking windows, evolution triggers
+### Configuration Management
+```python
+# ✅ CORRECT - Use unified config system
+from core.config import config
 
-### Database Configuration
- - **SQLite Settings**: Connection pooling, timeout settings, backup strategies
- - **Qdrant Vector DB**: Collection settings, embedding dimensions, similarity thresholds
- - **Performance Monitoring**: Metric collection intervals, retention policies
+# Access API keys
+openai_key = config.model.openai_api_key
+twelvedata_key = config.data_sources.twelvedata_api_key
 
-## 6) Testing Infrastructure & Validation Tools (Comprehensive)
+# Database paths
+accounts_db = config.database.get_full_path('accounts')
+```
+**Note**: Old `env_config.py`, `config_manager.py`, and `common_utils.py` have been removed.
 
-### Installation & Environment Setup
- - **Dependencies**: `pip install -r requirements.txt` with virtual environment recommended
- - **Environment Configuration**: Copy and configure `.env.example`, `optimization.env`, `rss_feeds_config.env`
- - **Database Initialization**: Automatic SQLite database creation on first run
+## 4) Integration Points & Feature Development
 
-### Comprehensive Testing Suite (Recently Optimized)
- - **Overall Test Status**: `pytest` (67/71 tests passing - 94.4% success rate) across comprehensive test suite
- - **Critical Systems**: 100% functional (all options pipeline integration tests passing)
- - **Options Pipeline Tests**: All 18 integration tests passing after comprehensive cleanup and optimization
- - **Integration Tests**: 
-   - `test_integration_options_pipeline.py` - Complete options pipeline validation (18/18 tests ✅)
-   - `test_enhanced_pipeline_comprehensive.py` - Full enhanced pipeline validation
-   - `test_options_prediction_model.py` - Options prediction model testing
-   - `test_optimization_system.py` - Prompt optimization system validation
-   - `test_fallback_system.py` - Adapter fallback and error handling
- - **Component-Specific Tests**:
-   - `test_financial_calculator.py` - Black-Scholes and options math validation
-   - `test_enhanced_sentiment_pipeline.py` - Sentiment analysis pipeline testing
-   - `test_enhanced_training.py` - ML training pipeline validation
- - **Known Minor Issues**: 4 non-critical test failures (3 enhanced feature engine edge cases, 1 batch pipeline timeout)
+### Adding New Data Sources
+Follow the adapter pattern in `data_feeds/`:
+```python
+# 1. Create adapter implementing source-specific logic
+class MyNewAdapter:
+    def get_data(self, symbol: str) -> dict:
+        # Fetch and normalize data
+        return {"price": 100.0, "volume": 1000000}
 
-### CLI Validation & Debugging Tools
- - **Adapter Validation**: `python cli_validate.py <subcommand>` for reproducible adapter testing
- - **Live Data Testing**: `demo_live_test.py` for real-time data feed validation
- - **Performance Analysis**: `performance_analysis.py` for pipeline performance monitoring
- - **Options Analysis**: `oracle_options_cli.py` for real-time options pipeline testing
- - **Optimization Analytics**: `oracle_optimize_cli.py` for prompt optimization monitoring
+# 2. Register in DataFeedOrchestrator
+# See: data_feeds/data_feed_orchestrator.py:50-80
+# Add to __init__ method and fallback chains
 
-### Development & Debugging Workflows
- - **Enhanced Pipeline Demo**: `demo_enhanced_pipeline.py` for feature demonstration
- - **News Adapter Testing**: `oracle_news_integration.py` for news feed validation
- - **Fallback Testing**: `test_fallback_integration.py` for adapter failover validation
- - **Deep Diagnostics**: `deep_training_diagnostic.py` for ML pipeline analysis
+# 3. Add quality validation
+def validate_quality(self, data: dict) -> float:
+    """Return quality score 0-100"""
+    completeness = sum(1 for v in data.values() if v) / len(data)
+    return completeness * 100
+```
 
-## 7) When changing LLM or vector behavior
- - If you update the model or prompt chain, update `MODEL_NAME` in `agent_bundle/agent.py` and review `oracle_engine/model_attempt_logger.py` and `main.py`'s sanitation/attempt handling.
- - For vector changes, update `vector_db/qdrant_store.py` and the embedding-dimension checks in `main.py`.
+### LLM Prompt Chain Development
+**3-Stage Pipeline** (see `oracle_engine/prompt_chain.py`):
+```python
+# Stage 1: Signals → Opportunity Analysis
+signals = collect_market_signals()
+opportunities = llm.analyze_opportunities(signals)
 
-## 8) Helpful files to read first (priority)
- - `README.md` (project overview & run commands)
- - `Copilot-Processing.md` (recent cleanup work and system status)
- - `main.py` (orchestrator, playbook save flow, JSON sanitation)
- - `oracle_options_pipeline.py` (enhanced options pipeline with complete strategy coverage)
- - `agent_bundle/AGENT_BLUEPRINT.md` and `agent_bundle/README.md` (agent architecture)
- - `oracle_engine/prompt_chain.py` and `oracle_engine/agent.py` (prompt flow)
- - `agent_bundle/adapter_protocol.py` (adapter contract)
- - `tests/integration/test_integration_options_pipeline.py` (comprehensive test patterns and mocking examples)
+# Stage 2: Opportunities → Scenario Tree
+scenario_tree = llm.generate_scenario_tree(opportunities)
 
-## 9) Recent Cleanup & Optimization Status (August 2025)
+# Stage 3: Scenario Tree → Trading Playbook
+playbook = llm.generate_playbook(scenario_tree)
+```
 
-### Comprehensive Codebase Cleanup Completed ✅
- - **Major Achievement**: Successfully completed comprehensive codebase cleanup, optimization, and consolidation
- - **Overall Test Success**: 94.4% (67/71 tests passing) with all critical systems 100% functional
- - **Options Pipeline**: All 18 integration tests passing after systematic fixes and optimization
+**Key Functions**:
+- `clean_signals_for_llm()` - Dedupe & truncate signals to prevent prompt bloat
+- `extract_scenario_tree()` - Parse LLM JSON with fallback strategies
+- Always use `_sanitize_llm_json()` before `json.loads()`
 
-### Key Improvements Implemented
- - **OptionStrategy Enum Enhancement**: Added missing values (CASH_SECURED_PUT, BULL_CALL_SPREAD, BEAR_PUT_SPREAD, IRON_CONDOR) for complete strategy coverage
- - **Configuration Standardization**: Fixed EnhancedOracleOptionsPipeline config property override, unified configuration patterns across pipelines
- - **Test Infrastructure**: Added comprehensive test helper functions (initialize_options_model) with proper mocking and validation
- - **Market Data Validation**: Enhanced option filtering with market price validation and edge case handling
- - **Cache Optimization**: Stabilized cache effectiveness tests with functional validation instead of timing-based assertions
+### ML Model Integration
+```python
+# Model lifecycle (see oracle_engine/ml_model_manager.py)
+from oracle_engine.ml_model_manager import MLModelManager
 
-### Current System Architecture Quality
- - **Import Safety**: Maintained safety-first import patterns with fallback stubs throughout the codebase
- - **Error Handling**: Comprehensive error handling and graceful degradation when optional components unavailable
- - **Configuration Management**: Unified config system with proper enum usage and property access across base and enhanced pipelines
- - **Performance Characteristics**: All advanced features preserved (469,732x caching speedup, 82.7/100 quality scores, ML ensemble models)
+manager = MLModelManager()
+model = manager.load_or_train(
+    model_type='ensemble',
+    features=['momentum', 'sentiment', 'volume'],
+    target='price_direction'
+)
 
-### Production Readiness Status
- - **Critical Pipeline Tests**: 100% passing (18/18 options pipeline integration tests)
- - **System Stability**: All sophisticated trading capabilities preserved and enhanced during cleanup
- - **Code Quality**: Clean, maintainable, well-documented architecture ready for production deployment
- - **Remaining Items**: Only 4 non-critical test failures (enhanced feature engine edge cases, batch pipeline timeout optimization)
+predictions = model.predict(market_data)
+manager.save_checkpoint(model, metrics={'accuracy': 0.82})
+```
 
-## 10) Style & conventions
- - Prefer small, guarded changes. Many modules are defensive (try/except and warnings). Preserve that pattern.
- - Avoid adding hard failures during enrichment or storage steps — keep best-effort semantics.
- - Use existing CLI helpers (`cli_validate.py`) to produce deterministic sample inputs for tests.
- - **Configuration Patterns**: Follow unified config system with SafeMode enum and proper property inheritance
- - **Test Patterns**: Use helper functions like `initialize_options_model()` for consistent mocking across integration tests
- - **OptionStrategy Usage**: All 11 strategy values are now available (CASH_SECURED_PUT, BULL_CALL_SPREAD, etc.) - use complete enum
- - **Import Safety**: Maintain fallback stubs and graceful degradation patterns for optional dependencies
+### Database Integration
+```python
+# SQLite access patterns
+from core.config import config
+import sqlite3
 
-## 11) Current Development Guidelines (Post-Cleanup)
- - **Test First**: All critical functionality has 100% test coverage - maintain this standard for new features
- - **Configuration Management**: Use established PipelineConfig/EnhancedPipelineConfig patterns for new pipelines
- - **Error Handling**: Follow defensive programming patterns with comprehensive try/except and fallback logic
- - **Performance**: Preserve existing caching and optimization patterns (469,732x speedup achievements)
- - **Quality Standards**: Maintain current quality metrics (82.7/100 data quality scores)
+# Get database path
+db_path = config.database.get_full_path('model_monitoring')
 
-If any of these sections look incomplete or you want more examples (unit tests, adapter template, or a runnable agent wrapper under `agent_bundle/`), tell me which area to expand and I will iterate.
+# Use context manager for connections
+with sqlite3.connect(db_path) as conn:
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM predictions WHERE accuracy > ?", (0.7,))
+    results = cursor.fetchall()
+```
+
+## 5) Environment Variables & Configuration
+
+### Essential API Keys
+```bash
+# Core LLM (required)
+export OPENAI_API_KEY="sk-..."
+export OPENAI_API_BASE="https://api.openai.com/v1"  # Optional custom endpoint
+
+# Market Data (recommended)
+export TWELVEDATA_API_KEY="..."  # Primary market data source
+
+# Social Sentiment (optional)
+export REDDIT_CLIENT_ID="..."
+export REDDIT_CLIENT_SECRET="..."
+export TWITTER_BEARER_TOKEN="..."
+```
+
+### Configuration Files
+```
+config/
+├── settings.yaml          # Main application settings
+├── optimization.env       # Genetic algorithm parameters
+├── rss_feeds_config.env   # News feed sources
+└── optimization_config.json  # A/B testing thresholds
+
+data/databases/
+├── accounts.db           # User preferences
+├── model_monitoring.db   # ML performance metrics
+└── prompt_optimization.db # Template evolution data
+```
+
+### Configuration Access Pattern
+```python
+from core.config import config
+
+# Hierarchical: env vars → files → defaults
+api_key = config.model.openai_api_key
+risk_tolerance = config.trading.risk_tolerance
+cache_ttl = config.cache.default_ttl_seconds
+```
+
+### Key Settings to Know
+- **ADVANCED_SENTIMENT_MAX_PER_SOURCE**: Limits sentiment items per source (default: 10)
+- **Cache TTL**: 300 seconds (5 min) for market data, 3600 for company info
+- **MODEL_NAME**: Affects prompt optimization tracking (set in `agent_bundle/agent.py`)
+
+## 6) Testing & Validation
+
+### Running Tests
+```bash
+# Full test suite (67/71 passing - 94.4% success rate)
+pytest tests/
+
+# Critical integration tests (100% passing)
+pytest tests/integration/test_integration_options_pipeline.py  # 18/18 ✅
+pytest tests/integration/test_enhanced_pipeline_comprehensive.py
+pytest tests/integration/test_fallback_system.py
+
+# Component-specific tests
+pytest tests/unit/test_financial_calculator.py
+pytest tests/unit/test_enhanced_sentiment_pipeline.py
+```
+
+### Test Patterns (Reference: `test_integration_options_pipeline.py`)
+```python
+# ✅ CORRECT - Use helper for consistent mocking
+from tests.integration.test_integration_options_pipeline import initialize_options_model
+
+def test_my_feature():
+    orchestrator = Mock(spec=DataFeedOrchestrator)
+    model = initialize_options_model(orchestrator)
+    
+    # Mock returns expected structure
+    result = model.predict('AAPL', mock_contract)
+    assert result.price_increase_probability > 0.5
+```
+
+### Data Feed Validation (CLI)
+```bash
+# Test individual adapters with real data
+python scripts/validation/cli_validate.py quote --symbol AAPL
+python scripts/validation/cli_validate.py advanced_sentiment --symbol TSLA
+python scripts/validation/cli_validate.py market_breadth
+python scripts/validation/cli_validate.py sector_performance
+
+# Compare values with tolerance
+python scripts/validation/cli_validate.py compare --value 195.23 --ref_value 196.5 --tolerance_pct 2.0
+```
+
+### Known Issues (Non-Critical)
+- 4 test failures: 3 enhanced feature engine edge cases, 1 batch pipeline timeout
+- All critical systems (options, data feeds, ML) are 100% functional
+
+## 7) Architecture Deep Dives
+
+### LLM Model Changes
+When modifying LLM behavior:
+1. Update `MODEL_NAME` in `agent_bundle/agent.py` (affects optimization tracking)
+2. Review `oracle_engine/model_attempt_logger.py` (logging compatibility)
+3. Update `oracle_engine/prompt_chain.py` sanitization if output format changes
+
+### Vector DB Changes
+**Local ChromaDB Storage** (migrated from Qdrant):
+1. Update `vector_db/local_store.py` collection configuration
+2. Storage location: `data/vector_db/` (automatically created)
+3. Uses OpenAI-compatible embeddings via `config.model.embedding_api_base`
+4. Test with `vector_db.ensure_collection()` and `vector_db.get_collection_stats()`
+5. No external services required - all data stored locally
+6. Legacy Qdrant code preserved in `vector_db/qdrant_store.py.backup`
+
+### Data Feed Architecture
+**Central Hub Pattern**: All data flows through `DataFeedOrchestrator`:
+```
+Source Adapters (TwelveData, FinViz, Reddit, etc.)
+    ↓
+FallbackManager (automatic failover)
+    ↓
+CacheService (TTL-based caching)
+    ↓
+QualityValidator (0-100 scoring)
+    ↓
+DataFeedOrchestrator (unified interface)
+```
+
+## 8) Essential Reading (Onboarding Priority)
+
+**Start Here** (15 min):
+1. `README.md` - Project overview, setup, commands
+2. `.github/copilot-instructions.md` - This file (you are here!)
+3. `main.py` lines 1-200 - Pipeline orchestration and entry point
+
+**Architecture Understanding** (30 min):
+4. `data_feeds/data_feed_orchestrator.py` lines 1-150 - Central data hub
+5. `oracle_engine/prompt_chain.py` lines 1-100 - LLM processing stages
+6. `core/config.py` lines 1-100 - Unified configuration system
+
+**Development Patterns** (30 min):
+7. `tests/integration/test_integration_options_pipeline.py` - Test patterns & mocking
+8. `docs/AGENT_BLUEPRINT.md` - Autonomous agent architecture
+9. `spec/Copilot-Processing.md` - Recent system enhancements
+
+## 9) Development Conventions
+
+### Code Style
+- **Defensive Programming**: Use try/except with warnings.warn() for enrichment flows
+- **Never Fail Silently**: Log failures, but return gracefully degraded results
+- **Import Safety**: Always provide fallback stubs for optional dependencies
+- **Configuration Access**: Use `core.config` module, never hardcode paths/keys
+
+### Testing Conventions
+```python
+# ✅ DO - Use helper functions for consistency
+from tests.integration.test_integration_options_pipeline import initialize_options_model
+
+# ✅ DO - Mock at the adapter level, not internal methods
+orchestrator = Mock(spec=DataFeedOrchestrator)
+
+# ❌ DON'T - Mock internal implementation details
+# This makes tests brittle to refactoring
+```
+
+### Naming Patterns
+- **Pipelines**: `*_pipeline.py` (e.g., `oracle_options_pipeline.py`)
+- **Adapters**: `*_adapter.py` (e.g., `twelvedata_adapter.py`)
+- **CLIs**: `*_cli.py` (e.g., `oracle_cli.py`)
+- **Configs**: `*_config.py` or `*.env` (e.g., `optimization.env`)
+
+### Performance Guidelines
+- **Always cache** expensive operations (API calls, ML inference)
+- **Use TTL wisely**: 5 min for volatile data, 1 hour for static
+- **Batch where possible**: `get_multiple_quotes()` vs repeated `get_quote()`
+- **Profile first**: Don't optimize without measuring (use `cProfile`)
+
+## 10) Common Pitfalls & Solutions
+
+### ❌ Problem: Import errors for optional dependencies
+```python
+# ❌ BAD - Hard failure
+from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
+```
+```python
+# ✅ GOOD - Graceful degradation
+try:
+    from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
+except ImportError:
+    DataFeedOrchestrator = None
+
+# Later: if DataFeedOrchestrator is None: ...
+```
+
+### ❌ Problem: LLM returns malformed JSON
+```python
+# ❌ BAD - Direct parsing
+data = json.loads(llm_response)
+```
+```python
+# ✅ GOOD - Sanitize first
+from oracle_engine.prompt_chain import _sanitize_llm_json
+clean = _sanitize_llm_json(llm_response)
+data = json.loads(clean)
+```
+
+### ❌ Problem: Missing configuration values
+```python
+# ❌ BAD - Environment variable access
+api_key = os.environ['OPENAI_API_KEY']  # KeyError if missing
+```
+```python
+# ✅ GOOD - Config system with defaults
+from core.config import config
+api_key = config.model.openai_api_key  # Returns None or default
+```
+
+---
+
+**Questions or need clarification?** Check these resources:
+- Unclear integration point? See `docs/AGENT_BLUEPRINT.md`
+- Test pattern questions? Review `tests/integration/test_integration_options_pipeline.py`
+- Configuration questions? Read `core/config.py` docstrings
+- Recent changes? See `spec/Copilot-Processing.md`

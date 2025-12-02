@@ -2,3 +2,15 @@ market_data_source: "YourDataAPI"
 sentiment_source: "Twitter/Reddit/Trends"
 vector_db_path: "vector_db/"
 risk_threshold: 0.7
+
+# Data source toggles
+data_sources:
+  fetch_options_flow: true
+  fetch_dark_pool_data: true
+  fetch_market_internals: true
+  fetch_sentiment_web: true
+  fetch_sentiment_llm: true
+  fetch_news_yahoo: true
+  fetch_finviz_breadth: true
+  fetch_earnings_calendar: true
+  enable_premium_feeds: false  # Requires API keys
