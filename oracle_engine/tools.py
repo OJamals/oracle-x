@@ -1,23 +1,4 @@
-import os
-import base64
-from openai import OpenAI
-from typing import Optional
-from core.config import config
-from oracle_engine.model_attempt_logger import log_attempt
-import time
-
-API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config.model.openai_api_base or os.environ.get(
-    "OPENAI_API_BASE", "https://api.githubcopilot.com/v1"
-)
-MODEL_NAME = config.model.openai_model
-
-if not API_KEY:
-    raise RuntimeError(
-        "OPENAI_API_KEY environment variable is not set. Please set it to run the application."
-    )
-
-client = OpenAI(api_key=API_KEY, base_url=API_BASE)
+from oracle_engine.llm_dispatcher import call_llm
 
 
 def _iter_fallback_models(primary: str):
@@ -39,7 +20,7 @@ def get_sentiment(text: str, model_name: str = MODEL_NAME) -> str:
     for model in _iter_fallback_models(model_name):
         start = time.time()
         try:
-            resp = client.chat.completions.create(
+            msg = call_llm(
                 model=model,
                 messages=[
                     {
@@ -48,9 +29,11 @@ def get_sentiment(text: str, model_name: str = MODEL_NAME) -> str:
                     },
                     {"role": "user", "content": f'Analyze sentiment: "{text}"'},
                 ],
-                max_completion_tokens=20,
+                max_tokens=20,
+                temperature=0.7,
+                use_cache=True,  # Cache sentiment analysis
+                retries=3
             )
-            msg = (resp.choices[0].message.content or "").strip()
             if msg:
                 if model != model_name:
                     print(f"[INFO] Fallback model '{model}' succeeded for sentiment.")
@@ -113,7 +96,7 @@ def analyze_chart(image_bytes: Optional[bytes], model_name: str = MODEL_NAME) ->
     for model in _iter_fallback_models(model_name):
         start = time.time()
         try:
-            resp = client.chat.completions.create(
+            msg = call_llm(
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are a chart analysis engine."},
@@ -122,9 +105,11 @@ def analyze_chart(image_bytes: Optional[bytes], model_name: str = MODEL_NAME) ->
                         "content": f"Analyze this chart (base64): {b64_str}",
                     },
                 ],
-                max_completion_tokens=60,
+                max_tokens=60,
+                temperature=0.7,
+                use_cache=True,  # Cache chart analysis
+                retries=3
             )
-            msg = (resp.choices[0].message.content or "").strip()
             if msg:
                 if model != model_name:
                     print(

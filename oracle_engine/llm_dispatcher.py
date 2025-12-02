@@ -1,237 +1,256 @@
 """
-Unified LLM Dispatcher
+Centralized LLM dispatcher with caching, retries, and config-driven model selection.
 
-Centralizes all LLM invocations with caching, retries, and config-driven models/providers.
+This module wraps the multi-provider LLM client so callers do not need to duplicate
+fallback handling or caching logic. All chat completions should flow through here
+to ensure consistent telemetry and cache behavior.
 """
 
-import time
+from __future__ import annotations
+
+import asyncio
+import functools
+import hashlib
+import json
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-from openai import OpenAI
+import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Sequence
+
 from core.config import config
+from core.unified_cache_manager import cache_manager
+from oracle_engine.llm_client import get_llm_client
 from oracle_engine.model_attempt_logger import log_attempt
-from core.unified_cache_manager import UnifiedCacheManager
 
 logger = logging.getLogger(__name__)
 
-class LLMRequest:
-    """Represents an LLM request"""
-    def __init__(self, model: str, messages: List[Dict[str, str]], max_tokens: int = 1024, temperature: float = 0.7):
-        self.model = model
-        self.messages = messages
-        self.max_tokens = max_tokens
-        self.temperature = temperature
+DEFAULT_CACHE_TTL_SECONDS = 300
+DEFAULT_RETRIES = 1
 
-    def __hash__(self):
-        # Create hash for caching based on key components
-        content = str(self.messages) + str(self.model) + str(self.max_tokens) + str(self.temperature)
-        return hash(content)
 
-    def __eq__(self, other):
-        return (isinstance(other, LLMRequest) and
-                self.model == other.model and
-                self.messages == other.messages and
-                self.max_tokens == other.max_tokens and
-                self.temperature == other.temperature)
+@dataclass
+class LLMDispatchResult:
+    """Normalized response returned by the dispatcher."""
 
-class LLMResponse:
-    """Represents an LLM response"""
-    def __init__(self, content: str, usage: Optional[Dict] = None, model: str = ""):
-        self.content = content
-        self.usage = usage or {}
-        self.model = model
+    content: str
+    model: str
+    provider: Optional[str]
+    cached: bool = False
+    tokens_used: Optional[Dict[str, int]] = None
+    error: Optional[str] = None
+
+
+def _iter_models(primary: str) -> List[str]:
+    """Yield primary model followed by configured fallbacks, de-duplicated."""
+    fallback = getattr(getattr(config, "model", None), "fallback_models", []) or []
+    ordered = [primary] + [m for m in fallback if m != primary]
+    seen = set()
+    models: List[str] = []
+    for model in ordered:
+        if model not in seen:
+            seen.add(model)
+            models.append(model)
+    return models
+
+
+def _normalize_messages(messages: Sequence[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Ensure messages are JSON-serializable and deterministic for hashing."""
+    normalized: List[Dict[str, str]] = []
+    for message in messages:
+        normalized.append(
+            {
+                "role": str(message.get("role", "user")),
+                "content": str(message.get("content", "")),
+            }
+        )
+    return normalized
+
+
+def _make_cache_key(
+    messages: Sequence[Dict[str, Any]],
+    model: str,
+    temperature: float,
+    max_tokens: Optional[int],
+    task_type: str,
+    purpose: str,
+    cache_key: Optional[str],
+) -> str:
+    if cache_key:
+        return cache_key
+
+    payload = {
+        "messages": _normalize_messages(messages),
+        "model": model,
+        "temperature": round(temperature, 4),
+        "max_tokens": max_tokens,
+        "task_type": task_type,
+        "purpose": purpose,
+    }
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+    return f"llm:{digest}"
+
 
 class LLMDispatcher:
-    """Unified dispatcher for LLM calls with caching and retries"""
+    """Dispatch chat completion requests with caching and retries."""
 
     def __init__(self):
-        self.cache = UnifiedCacheManager()
-        self.cache_ttl = config.cache.default_ttl_seconds if hasattr(config, 'cache') else 300
-        self._init_clients()
+        self.client = get_llm_client()
+        ttl_minutes = getattr(getattr(config, "data_feed", None), "cache_ttl_minutes", 5) or 5
+        self.default_ttl = max(int(ttl_minutes * 60), DEFAULT_CACHE_TTL_SECONDS)
+        self.default_model = getattr(getattr(config, "model", None), "openai_model", "gpt-4o")
 
-    def _init_clients(self):
-        """Initialize LLM clients"""
-        self.clients = {}
+    def chat(
+        self,
+        messages: Sequence[Dict[str, Any]],
+        *,
+        model: Optional[str] = None,
+        temperature: float = 0.3,
+        max_tokens: Optional[int] = None,
+        task_type: str = "general",
+        purpose: str = "llm_call",
+        cache_key: Optional[str] = None,
+        cache_ttl: Optional[int] = None,
+        use_cache: bool = True,
+        retries: int = DEFAULT_RETRIES,
+    ) -> LLMDispatchResult:
+        """Execute a chat completion with caching and fallback models."""
+        chosen_model = model or self.default_model
+        resolved_cache_key = _make_cache_key(
+            messages, chosen_model, temperature, max_tokens, task_type, purpose, cache_key
+        )
 
-        # OpenAI
-        if config.model.openai_api_key:
-            self.clients['openai'] = OpenAI(
-                api_key=config.model.openai_api_key,
-                base_url=config.model.openai_api_base or "https://api.openai.com/v1"
+        if use_cache:
+            cached_value = cache_manager.get(resolved_cache_key)
+            if isinstance(cached_value, dict) and cached_value.get("content"):
+                return LLMDispatchResult(
+                    content=cached_value.get("content", ""),
+                    model=cached_value.get("model", chosen_model),
+                    provider=cached_value.get("provider"),
+                    cached=True,
+                    tokens_used=cached_value.get("tokens_used"),
+                    error=None,
+                )
+
+        last_error: Optional[str] = None
+        for candidate_model in _iter_models(chosen_model):
+            result = self._call_model(
+                candidate_model,
+                messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                task_type=task_type,
+                purpose=purpose,
+                retries=retries,
+            )
+            if result.content:
+                if use_cache:
+                    cache_manager.set(
+                        resolved_cache_key,
+                        {
+                            "content": result.content,
+                            "model": result.model,
+                            "provider": result.provider,
+                            "tokens_used": result.tokens_used,
+                        },
+                        ttl=cache_ttl or self.default_ttl,
+                    )
+                return result
+            last_error = result.error
+
+        return LLMDispatchResult(
+            content="",
+            model=chosen_model,
+            provider=None,
+            cached=False,
+            tokens_used=None,
+            error=last_error,
+        )
+
+    def _call_model(
+        self,
+        model: str,
+        messages: Sequence[Dict[str, Any]],
+        *,
+        temperature: float,
+        max_tokens: Optional[int],
+        task_type: str,
+        purpose: str,
+        retries: int,
+    ) -> LLMDispatchResult:
+        """Call a specific model with retry/backoff."""
+        last_error: Optional[str] = None
+        response_provider: Optional[str] = None
+        tokens_used: Optional[Dict[str, int]] = None
+
+        for attempt in range(retries + 1):
+            start = time.time()
+            try:
+                response = self.client.create_chat_completion(
+                    messages=list(messages),
+                    model=model,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    task_type=task_type,
+                )
+            except Exception as exc:  # pragma: no cover - defensive guard
+                last_error = str(exc)
+                log_attempt(purpose, model, start_time=start, success=False, empty=False, error=last_error)
+                if attempt < retries:
+                    time.sleep(min(0.5 * (attempt + 1), 2.0))
+                continue
+
+            response_provider = getattr(getattr(response, "provider_used", None), "value", None)
+            tokens_used = getattr(response, "tokens_used", None)
+
+            success = getattr(response, "success", False) and bool(getattr(response, "content", "").strip())
+            empty = getattr(response, "success", False) and not success
+            log_attempt(
+                purpose,
+                model,
+                start_time=start,
+                success=success,
+                empty=empty,
+                error=getattr(response, "error_message", None),
             )
 
-        # Add other providers here as needed (Anthropic, etc.)
+            if success:
+                content = (response.content or "").strip()
+                return LLMDispatchResult(
+                    content=content,
+                    model=getattr(response, "model_used", model) or model,
+                    provider=response_provider,
+                    cached=False,
+                    tokens_used=tokens_used,
+                    error=None,
+                )
 
-    def _get_client_for_model(self, model: str) -> Tuple[Optional[Any], str]:
-        """Get appropriate client for model"""
-        if model.startswith('gpt'):
-            return self.clients.get('openai'), 'openai'
-        # Add other model mappings
-        return None, ''
+            last_error = getattr(response, "error_message", None) or "empty response"
+            if attempt < retries:
+                time.sleep(min(0.5 * (attempt + 1), 2.0))
 
-    def _iter_fallback_models(self, primary: str) -> List[str]:
-        """Return ordered list of models to try"""
-        try:
-            fallback = config.model.fallback_models
-        except Exception:
-            fallback = []
-        ordered = [primary] + [m for m in fallback if m != primary]
-        seen = set()
-        result = []
-        for m in ordered:
-            if m not in seen:
-                seen.add(m)
-                result.append(m)
-        return result
-
-    def call_llm(self, request: LLMRequest, use_cache: bool = True, retries: int = 3) -> LLMResponse:
-        """
-        Unified LLM call with caching and retries
-
-        Args:
-            request: LLMRequest object
-            use_cache: Whether to use caching
-            retries: Number of retries on failure
-
-        Returns:
-            LLMResponse object
-        """
-        # Check cache first
-        if use_cache:
-            cached = self.cache.get(str(hash(request)))
-            if cached:
-                logger.debug(f"Cache hit for LLM request")
-                return LLMResponse(**cached)
-
-        # Try models with fallbacks
-        last_error = None
-        for attempt, model in enumerate(self._iter_fallback_models(request.model)):
-            if attempt >= retries:
-                break
-
-            client, provider = self._get_client_for_model(model)
-            if not client:
-                continue
-
-            start_time = time.time()
-            try:
-                logger.debug(f"Trying model {model} (attempt {attempt + 1})")
-
-                # Adjust request for provider
-                if provider == 'openai':
-                    response = client.chat.completions.create(
-                        model=model,
-                        messages=request.messages,
-                        max_completion_tokens=request.max_tokens,
-                        temperature=request.temperature
-                    )
-                    content = (response.choices[0].message.content or "").strip()
-                    usage = {
-                        'prompt_tokens': response.usage.prompt_tokens if response.usage else 0,
-                        'completion_tokens': response.usage.completion_tokens if response.usage else 0,
-                        'total_tokens': response.usage.total_tokens if response.usage else 0
-                    }
-
-                if content:
-                    log_attempt("llm_dispatcher", model, start_time=start_time, success=True, empty=False, error=None)
-
-                    response_obj = LLMResponse(content=content, usage=usage, model=model)
-
-                    # Cache the result
-                    if use_cache:
-                        self.cache.set(str(hash(request)), {
-                            'content': content,
-                            'usage': usage,
-                            'model': model
-                        }, ttl=self.cache_ttl)
-
-                    return response_obj
-                else:
-                    log_attempt("llm_dispatcher", model, start_time=start_time, success=False, empty=True, error=None)
-
-            except Exception as e:
-                error_msg = str(e)
-                log_attempt("llm_dispatcher", model, start_time=start_time, success=False, empty=False, error=error_msg)
-                logger.warning(f"Model {model} failed: {error_msg}")
-                last_error = e
-                continue
-
-        # All models failed
-        error_msg = f"All models failed. Last error: {last_error}"
-        logger.error(error_msg)
-        raise Exception(error_msg)
-
-    def batch_call_llm(self, requests: List[LLMRequest], use_cache: bool = True, max_parallel: int = 5) -> List[LLMResponse]:
-        """
-        Batch LLM calls with parallel processing
-
-        Args:
-            requests: List of LLMRequest objects
-            use_cache: Whether to use caching
-            max_parallel: Maximum parallel calls
-
-        Returns:
-            List of LLMResponse objects
-        """
-        import asyncio
-        from concurrent.futures import ThreadPoolExecutor
-
-        async def _batch_call():
-            loop = asyncio.get_event_loop()
-            with ThreadPoolExecutor(max_workers=max_parallel) as executor:
-                tasks = [
-                    loop.run_in_executor(executor, self.call_llm, req, use_cache, 3)
-                    for req in requests
-                ]
-                return await asyncio.gather(*tasks, return_exceptions=True)
-
-        # Run async batch
-        try:
-            results = asyncio.run(_batch_call())
-            # Handle exceptions
-            responses = []
-            for result in results:
-                if isinstance(result, Exception):
-                    # Return empty response on error
-                    responses.append(LLMResponse(content="", model=""))
-                else:
-                    responses.append(result)
-            return responses
-        except Exception as e:
-            logger.error(f"Batch call failed: {e}")
-            return [LLMResponse(content="", model="") for _ in requests]
-
-# Global instance
-_dispatcher = None
-
-def get_llm_dispatcher() -> LLMDispatcher:
-    """Get global LLM dispatcher instance"""
-    global _dispatcher
-    if _dispatcher is None:
-        _dispatcher = LLMDispatcher()
-    return _dispatcher
-
-# Convenience functions
-def call_llm(model: str, messages: List[Dict[str, str]], max_tokens: int = 1024, temperature: float = 0.7,
-             use_cache: bool = True, retries: int = 3) -> str:
-    """Convenience function for LLM calls"""
-    dispatcher = get_llm_dispatcher()
-    request = LLMRequest(model=model, messages=messages, max_tokens=max_tokens, temperature=temperature)
-    response = dispatcher.call_llm(request, use_cache=use_cache, retries=retries)
-    return response.content
-
-def batch_call_llm(requests_data: List[Dict], use_cache: bool = True, max_parallel: int = 5) -> List[str]:
-    """Convenience function for batch LLM calls"""
-    dispatcher = get_llm_dispatcher()
-    requests = [
-        LLMRequest(
-            model=data['model'],
-            messages=data['messages'],
-            max_tokens=data.get('max_tokens', 1024),
-            temperature=data.get('temperature', 0.7)
+        return LLMDispatchResult(
+            content="",
+            model=model,
+            provider=response_provider,
+            cached=False,
+            tokens_used=tokens_used,
+            error=last_error,
         )
-        for data in requests_data
-    ]
-    responses = dispatcher.batch_call_llm(requests, use_cache=use_cache, max_parallel=max_parallel)
-    return [r.content for r in responses]</content>
-<parameter name="filePath">/Users/omar/Documents/Projects/oracle-x/oracle_engine/llm_dispatcher.py
+
+
+_dispatcher = LLMDispatcher()
+
+
+def dispatch_chat(*args: Any, **kwargs: Any) -> LLMDispatchResult:
+    """Module-level convenience wrapper for synchronous dispatch."""
+    return _dispatcher.chat(*args, **kwargs)
+
+
+async def dispatch_chat_async(*args: Any, **kwargs: Any) -> LLMDispatchResult:
+    """Async wrapper to use dispatcher from asyncio code paths."""
+    loop = asyncio.get_running_loop()
+    func = functools.partial(dispatch_chat, *args, **kwargs)
+    return await loop.run_in_executor(None, func)
+
+
+__all__ = ["LLMDispatchResult", "dispatch_chat", "dispatch_chat_async", "LLMDispatcher"]

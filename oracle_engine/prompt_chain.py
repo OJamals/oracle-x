@@ -247,7 +247,7 @@ API_BASE = config.model.openai_api_base or os.environ.get(
 )
 MODEL_NAME = config.model.openai_model
 
-client = OpenAI(api_key=API_KEY, base_url=API_BASE)
+# client = OpenAI(api_key=API_KEY, base_url=API_BASE)  # Now using dispatcher
 
 
 def get_signals_from_scrapers(
@@ -575,17 +575,17 @@ def _adjust_scenario_tree_optimized(
     attempts = []
 
     try:
-        resp = client.chat.completions.create(
+        content = call_llm(
             model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_completion_tokens=600,
+            max_tokens=600,
             temperature=0.3,
+            use_cache=False,
+            retries=3
         )
-
-        content = (resp.choices[0].message.content or "").strip()
 
         if content:
             log_attempt(
@@ -1171,17 +1171,17 @@ DO NOT include any text before or after the JSON. Output only the JSON object.
     attempts = []
 
     try:
-        resp = client.chat.completions.create(
+        content = call_llm(
             model=model_name,
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": enhanced_user_prompt},
             ],
-            max_completion_tokens=1024,
+            max_tokens=1024,
             temperature=0.3,
+            use_cache=False,
+            retries=3
         )
-
-        content = (resp.choices[0].message.content or "").strip()
 
         if content:
             log_attempt(
@@ -1408,16 +1408,17 @@ def run_optimization_experiment(
 
         # Generate sample outputs
         try:
-            resp = client.chat.completions.create(
+            content = call_llm(
                 model=MODEL_NAME,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
-                max_completion_tokens=600,
+                max_tokens=600,
+                temperature=0.7,
+                use_cache=False,
+                retries=3
             )
-
-            content = resp.choices[0].message.content or ""
             quality = analyze_playbook_quality(content)
 
             results[template_id] = {

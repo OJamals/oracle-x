@@ -1,17 +1,4 @@
-from openai import OpenAI
-import os
-from typing import Dict
-from core.config import config
-from oracle_engine.model_attempt_logger import log_attempt
-import time
-
-API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config.model.openai_api_base or os.environ.get(
-    "OPENAI_API_BASE", "https://api.githubcopilot.com/v1"
-)
-MODEL_NAME = config.model.openai_model
-
-client = OpenAI(api_key=API_KEY, base_url=API_BASE)
+from oracle_engine.llm_dispatcher import call_llm
 
 
 def _iter_fallback_models(primary: str):
@@ -62,16 +49,17 @@ def get_oracle_playbook(prompt: str) -> str:
     for model in _iter_fallback_models(MODEL_NAME):
         start = time.time()
         try:
-            resp = client.chat.completions.create(
+            content = call_llm(
                 model=model,
                 messages=[
                     {"role": "system", "content": "You are ORACLE-X."},
                     {"role": "user", "content": prompt},
                 ],
+                max_tokens=1024,
                 temperature=0.3,
-                max_completion_tokens=1024,
+                use_cache=False,
+                retries=3
             )
-            content = (resp.choices[0].message.content or "").strip()
             if content:
                 if model != MODEL_NAME:
                     print(
