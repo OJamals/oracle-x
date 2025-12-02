@@ -2,27 +2,8 @@
 """
 🚀 ORACLE-X Unified CLI Interface
 
-A comprehensive command-line interface for the ORACLE-X trading intelligence platform.
-Consolidates all CLI functionality into a s        # Test configuration
-        try:
-            import config_manager
-            components.append(("Configuration", True, ""))
-        except Exception as e:
-            components.append(("Configuration", False, str(e)))
-        
-        # Test prompt_chain
-        try:
-            from oracle_engine import prompt_chain
-            components.append(("PromptChain", True, ""))
-        except Exception as e:
-            components.append(("PromptChain", False, str(e)))
-        
-        # Test ML components
-        try:
-            from oracle_engine.ml_model_manager import MLModelManager
-            components.append(("MLModelManager", True, ""))
-        except Exception as e:
-            components.append(("MLModelManager", False, str(e)))erface.
+Single entry point for options analysis, optimization analytics, validation,
+pipeline orchestration, and test execution.
 
 Available Commands:
     options     - Options analysis and trading commands
@@ -41,12 +22,13 @@ Usage Examples:
 
 import argparse
 import json
+import importlib
 import sys
 import subprocess
 import warnings
 
 # Import common utilities
-from common_utils import (
+from utils.common import (
     setup_project_path, CLIFormatter,
     setup_logging, get_project_root
 )
@@ -79,6 +61,46 @@ def print_success(message: str):
 def print_info(message: str):
     """Print formatted info message"""
     print(CLIFormatter.info(message))
+
+
+def _check_component(name: str, loader):
+    """Attempt to load a component and return status with optional error."""
+    try:
+        loader()
+        return True, ""
+    except Exception as exc:  # noqa: BLE001
+        return False, str(exc)
+
+
+def _run_command(cmd, description: str, *, background: bool = False, verbose: bool = False) -> bool:
+    """Run a subprocess command with consistent logging."""
+    try:
+        if background:
+            subprocess.Popen(cmd, cwd=project_root)
+            print_success(f"{description} started in background")
+            return True
+
+        result = subprocess.run(
+            cmd,
+            cwd=project_root,
+            capture_output=verbose,
+            text=True,
+        )
+        if result.returncode == 0:
+            print_success(f"{description} completed successfully")
+        else:
+            print_error(f"{description} failed with exit code {result.returncode}")
+
+        if verbose:
+            if result.stdout:
+                print(result.stdout)
+            if result.stderr:
+                print(result.stderr)
+
+        return result.returncode == 0
+    except Exception as exc:  # noqa: BLE001
+        print_error(f"{description} failed: {exc}")
+        return False
 
 # ========================== OPTIONS COMMANDS ==========================
 
@@ -199,33 +221,16 @@ def handle_validate_system(args):
         # Import major system components
         print_info("Validating system components...")
         
-        components = []
-        
-        # Test DataFeedOrchestrator
-        try:
-            from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-            DataFeedOrchestrator()
-            components.append(("DataFeedOrchestrator", True, ""))
-        except Exception as e:
-            components.append(("DataFeedOrchestrator", False, str(e)))
-        
-        # Test config_manager
-        try:
-            components.append(("Configuration", True, ""))
-        except Exception as e:
-            components.append(("Configuration", False, str(e)))
-        
-        # Test prompt_chain
-        try:
-            components.append(("PromptChain", True, ""))
-        except Exception as e:
-            components.append(("PromptChain", False, str(e)))
-        
-        # Test ML components
-        try:
-            components.append(("MLModelManager", True, ""))
-        except Exception as e:
-            components.append(("MLModelManager", False, str(e)))
+        checks = [
+            ("DataFeedOrchestrator", lambda: importlib.import_module("data_feeds.data_feed_orchestrator").DataFeedOrchestrator()),
+            ("Configuration", lambda: importlib.import_module("core.config").config),
+            ("PromptChain", lambda: importlib.import_module("oracle_engine.prompt_chain")),
+            ("MLModelManager", lambda: importlib.import_module("oracle_engine.ml_model_manager").MLModelManager),
+        ]
+
+        components = [
+            (name, *_check_component(name, loader)) for name, loader in checks
+        ]
         
         # Display results
         print_section("Component Status")
@@ -242,18 +247,11 @@ def handle_validate_system(args):
         
         if args.comprehensive:
             print_info("Running comprehensive validation...")
-            # Run test suite
-            try:
-                result = subprocess.run([
-                    sys.executable, "test_runner.py", "--validate-system"
-                ], capture_output=True, text=True, cwd=project_root)
-                
-                if result.returncode == 0:
-                    print_success("Comprehensive validation passed")
-                else:
-                    print_error(f"Comprehensive validation failed: {result.stderr}")
-            except Exception as e:
-                print_error(f"Could not run comprehensive validation: {e}")
+            _run_command(
+                [sys.executable, "test_runner.py", "--validate-system"],
+                "Comprehensive validation",
+                verbose=True,
+            )
                 
     except Exception as e:
         print_error(f"System validation failed: {e}")
@@ -275,18 +273,11 @@ def handle_pipeline_run(args):
         print_info("Running all pipelines sequentially...")
         for mode, script in mode_files.items():
             print_section(f"Running {mode} pipeline")
-            try:
-                cmd = [sys.executable, script]
-                result = subprocess.run(cmd, cwd=project_root, capture_output=True, text=True)
-                if result.returncode == 0:
-                    print_success(f"{mode} pipeline completed successfully")
-                else:
-                    print_error(f"{mode} pipeline failed with exit code {result.returncode}")
-                    if args.verbose:
-                        print(result.stdout)
-                        print(result.stderr)
-            except Exception as e:
-                print_error(f"{mode} pipeline execution failed: {e}")
+            _run_command(
+                [sys.executable, script],
+                f"{mode} pipeline",
+                verbose=args.verbose,
+            )
         return
     
     script = mode_files.get(args.mode)
@@ -297,22 +288,13 @@ def handle_pipeline_run(args):
     
     print_info(f"Running {args.mode} pipeline ({script})")
     
-    try:
-        cmd = [sys.executable, script]
-        if args.background:
-            print_info("Starting pipeline in background mode...")
-            subprocess.Popen(cmd, cwd=project_root)
-            print_success("Pipeline started in background")
-        else:
-            print_info("Running pipeline in foreground mode...")
-            result = subprocess.run(cmd, cwd=project_root)
-            if result.returncode == 0:
-                print_success("Pipeline completed successfully")
-            else:
-                print_error(f"Pipeline failed with exit code {result.returncode}")
-                
-    except Exception as e:
-        print_error(f"Pipeline execution failed: {e}")
+    cmd = [sys.executable, script]
+    _run_command(
+        cmd,
+        f"{args.mode} pipeline",
+        background=args.background,
+        verbose=args.verbose,
+    )
 
 def handle_pipeline_status(args):
     """Handle pipeline status command"""
@@ -345,14 +327,9 @@ def handle_test(args):
             cmd.append("--report")
         
         print_info(f"Running tests: {' '.join(cmd[2:])}")
-        
-        result = subprocess.run(cmd, cwd=project_root)
-        
-        if result.returncode == 0:
-            print_success("Tests completed successfully")
-        else:
-            print_error(f"Tests failed with exit code {result.returncode}")
-            
+
+        _run_command(cmd, "Tests", verbose=args.verbose)
+
     except Exception as e:
         print_error(f"Test execution failed: {e}")
 

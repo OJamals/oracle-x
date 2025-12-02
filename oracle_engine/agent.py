@@ -7,24 +7,19 @@ from oracle_engine.prompt_chain import (
     generate_final_playbook
 )
 import os
-import config_manager
+from core.config import config
 
 API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config_manager.get_openai_api_base() or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
-_PREFERRED_MODEL = config_manager.get_openai_model()
+API_BASE = config.model.openai_api_base or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+MODEL_NAME = config.model.openai_model
 
 client = OpenAI(api_key=API_KEY, base_url=API_BASE)
-try:
-    MODEL_NAME = config_manager.resolve_model(client, _PREFERRED_MODEL, test=True)
-except Exception as e:
-    print(f"[WARN] Model resolution failed, using preferred '{_PREFERRED_MODEL}': {e}")
-    MODEL_NAME = _PREFERRED_MODEL
 
 from typing import Optional
 
 def oracle_agent_pipeline(prompt_text: str, chart_image_b64: Optional[str]) -> str:
     """
-    Full Prompt Chain: real-time signals → Qdrant recall → adjusted scenario tree → Playbook.
+    Full Prompt Chain: real-time signals → ChromaDB recall → adjusted scenario tree → Playbook.
     Args:
         prompt_text (str): User prompt or market summary.
         chart_image_b64 (Optional[str]): Base64-encoded chart image.
@@ -35,9 +30,9 @@ def oracle_agent_pipeline(prompt_text: str, chart_image_b64: Optional[str]) -> s
     signals = get_signals_from_scrapers(prompt_text, chart_image_b64 or "")
     print("[DEBUG] Signals sent to LLM:", signals)
 
-    # 2️⃣ Pull similar historical scenarios from Qdrant
+    # 2️⃣ Pull similar historical scenarios from ChromaDB
     similar_scenarios = pull_similar_scenarios(prompt_text)
-    print("[DEBUG] Similar scenarios from Qdrant:", similar_scenarios)
+    print("[DEBUG] Similar scenarios from ChromaDB:", similar_scenarios)
 
     # 3️⃣ Adjust your scenario tree with all context (now using prompt boosting)
     scenario_tree = adjust_scenario_tree_with_boost(signals, similar_scenarios)

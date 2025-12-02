@@ -7,6 +7,7 @@ Provides confidence-weighted sentiment scoring for trading decisions
 import logging
 import time
 import os  # Needed for ADV_SENTIMENT_VERBOSE flag and finbert verbosity gating
+import warnings
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass
@@ -14,6 +15,10 @@ import threading
 import torch.multiprocessing as mp
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import statistics
+
+# Suppress FutureWarning from transformers library about encoder_attention_mask
+warnings.filterwarnings("ignore", message=r".*encoder_attention_mask.*", category=FutureWarning)
+warnings.filterwarnings("ignore", category=FutureWarning, module="transformers")
 
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification

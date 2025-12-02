@@ -17,7 +17,7 @@ from oracle_engine.prompt_chain_optimized import (
 )
 from oracle_engine.prompt_chain import pull_similar_scenarios
 from oracle_engine.prompt_optimization import get_optimization_engine, MarketCondition
-import config_manager
+from core.config import config
 import time
 import json
 

@@ -115,36 +115,6 @@ def test_finviz_adapter():
     except Exception as e:
         log_test("finviz_adapter", "ERROR", str(e))
 
-def test_twelvedata_adapter():
-    """Test TwelveData API adapter if API key is available"""
-    if not os.getenv('TWELVEDATA_API_KEY'):
-        log_test("twelvedata_adapter", "SKIP", "API key not configured")
-        return
-        
-    try:
-        from data_feeds.twelvedata_adapter import TwelveDataAdapter
-        
-        adapter = TwelveDataAdapter()  # Uses default constructor with env vars
-        
-        start_time = time.time()
-        quote = adapter.get_quote('AAPL')
-        timing = time.time() - start_time
-        
-        # Handle Quote objects
-        if quote and hasattr(quote, 'symbol'):
-            details = {
-                "symbol": quote.symbol,
-                "price": float(quote.price or 0),
-                "volume": int(quote.volume or 0),
-                "quality_score": float(quote.quality_score or 0)
-            }
-            log_test("twelvedata_quote", "PASS", json.dumps(details), timing)
-        else:
-            log_test("twelvedata_quote", "FAIL", "No quote data", timing)
-            
-    except Exception as e:
-        log_test("twelvedata_adapter", "ERROR", str(e))
-
 def test_twitter_adapter():
     """Test Twitter adapter (uses twscrape, no API keys required)"""
     # Twitter adapter uses twscrape which doesn't require API credentials
@@ -427,35 +397,6 @@ def test_adapter_wrappers():
             
     except Exception as e:
         log_test("twitter_adapter", "ERROR", str(e))
-    """Test TwelveData adapter (if API key available)"""
-    api_key = os.getenv('TWELVEDATA_API_KEY')
-    if not api_key:
-        log_test("twelvedata_adapter", "SKIP", "API key not configured")
-        return
-        
-    try:
-        from data_feeds.twelvedata_adapter import TwelveDataAdapter
-        adapter = TwelveDataAdapter(api_key=api_key)
-        
-        # Test quote
-        start_time = time.time()
-        quote = adapter.get_quote('AAPL')
-        timing = time.time() - start_time
-        
-        if quote and hasattr(quote, 'price') and quote.price:
-            details = {
-                "symbol": quote.symbol,
-                "price": float(quote.price),
-                "source": quote.source,
-                "has_timestamp": quote.timestamp is not None
-            }
-            log_test("twelvedata_quote", "PASS", json.dumps(details), timing)
-        else:
-            log_test("twelvedata_quote", "FAIL", "No quote data", timing)
-            
-    except Exception as e:
-        log_test("twelvedata_adapter", "ERROR", str(e))
-
 def test_orchestrator_basic():
     """Test basic orchestrator functionality"""
     try:
@@ -595,7 +536,6 @@ def main():
     print("# Individual Adapter Tests")
     test_reddit_adapter()
     test_finviz_adapter()
-    test_twelvedata_adapter()
     test_twitter_adapter()
     test_investiny_adapter()
     test_adapter_wrappers()

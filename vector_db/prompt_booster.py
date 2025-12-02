@@ -1,27 +1,36 @@
 from typing import List
-from .qdrant_store import query_similar, batch_query_similar
+from .local_store import query_similar, batch_query_similar
+
+
+def _extract_payload(hit):
+    payload = getattr(hit, "payload", None)
+    if payload is not None:
+        return payload
+    if isinstance(hit, dict):
+        return hit.get("payload", {})
+    return {}
 
 
 def build_boosted_prompt(base_prompt: str, trade_thesis: str) -> str:
     """
     Takes your base prompt + thesis for a trade idea,
-    queries Qdrant for similar past scenarios,
+    queries ChromaDB for similar past scenarios,
     and appends the top matches to your LLM prompt.
     """
     hits = query_similar(trade_thesis, top_k=3)
 
     if not hits:
-        print("No similar scenarios found in Qdrant.")
+        print("No similar scenarios found in ChromaDB.")
         return base_prompt
 
     boost_text = "\n\n### SIMILAR PAST SCENARIOS:\n"
     for hit in hits:
-        payload = hit.payload
+        payload = _extract_payload(hit)
         boost_text += (
-            f"- Ticker: {payload['ticker']}, "
-            f"Direction: {payload['direction']}, "
-            f"Thesis: {payload['thesis']}, "
-            f"Date: {payload['date']}\n"
+            f"- Ticker: {payload.get('ticker', 'N/A')}, "
+            f"Direction: {payload.get('direction', 'N/A')}, "
+            f"Thesis: {payload.get('thesis', 'N/A')}, "
+            f"Date: {payload.get('date', 'N/A')}\n"
         )
 
     print(f"✅ Found {len(hits)} similar scenarios. Boosting prompt.")
@@ -41,12 +50,12 @@ def batch_build_boosted_prompts(base_prompts: List[str], trade_theses: List[str]
             continue
         boost_text = "\n\n### SIMILAR PAST SCENARIOS:\n"
         for hit in hits:
-            payload = hit.payload
+            payload = _extract_payload(hit)
             boost_text += (
-                f"- Ticker: {payload['ticker']}, "
-                f"Direction: {payload['direction']}, "
-                f"Thesis: {payload['thesis']}, "
-                f"Date: {payload['date']}\n"
+                f"- Ticker: {payload.get('ticker', 'N/A')}, "
+                f"Direction: {payload.get('direction', 'N/A')}, "
+                f"Thesis: {payload.get('thesis', 'N/A')}, "
+                f"Date: {payload.get('date', 'N/A')}\n"
             )
         boosted.append(f"{base_prompt}\n\n{boost_text}")
     return boosted

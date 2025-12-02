@@ -1,6 +1,8 @@
 from __future__ import annotations
 import os
 import requests
+import asyncio
+import time
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from typing import Optional, Dict, Any, List
@@ -21,6 +23,14 @@ try:
     ASYNC_IO_AVAILABLE = True
 except ImportError:
     pass
+
+# Smart rate limiter import with fallback
+try:
+    from optimizations.smart_rate_limiter import get_rate_limiter
+    RATE_LIMITER_ENABLED = True
+except ImportError:
+    RATE_LIMITER_ENABLED = False
+    get_rate_limiter = None
 
 # from data_feeds.data_feed_orchestrator import Quote, MarketData  # Reuse orchestrator models
 
@@ -91,17 +101,59 @@ class TwelveDataAdapter:
             self.session = session or requests.Session()
         
         self.timeout = (5, 15)  # connect, read
+        
+        # Initialize rate limiter
+        self.rate_limiter = get_rate_limiter() if RATE_LIMITER_ENABLED else None
+        
+        # Track last request time for manual throttling (fallback)
+        self._last_request_time = 0
+        self._min_request_interval = 7.5  # seconds (8 req/min = 7.5s between requests)
+    
+    def _manual_throttle(self):
+        """Fallback manual throttling if smart rate limiter not available"""
+        now = time.time()
+        time_since_last = now - self._last_request_time
+        
+        # Light throttling (1s) to prevent bursts
+        min_interval = 1.0
+        
+        if time_since_last < min_interval:
+            wait_time = min_interval - time_since_last
+            time.sleep(wait_time)
+        
+        self._last_request_time = time.time()
 
-    def _request(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    async def _request_async(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        PHASE 2: Async version of _request with smart rate limiting.
+        Uses async rate limiter for proper request distribution.
+        """
+        # PHASE 2: Smart rate limiting with async
+        if self.rate_limiter and RATE_LIMITER_ENABLED:
+            await self.rate_limiter.acquire('twelve_data')
+        
+        # Make the actual HTTP request (still sync)
         url = f"{self.base_url}/{path.lstrip('/')}"
         qp = dict(params or {})
         if self.api_key:
             qp["apikey"] = self.api_key
-        resp = self.session.get(url, params=qp, timeout=self.timeout)
+        
+        # Run sync request in thread pool to avoid blocking
+        loop = asyncio.get_event_loop()
+        resp = await loop.run_in_executor(
+            None,
+            lambda: self.session.get(url, params=qp, timeout=self.timeout)
+        )
+        
+        # Check for rate limit errors
         if resp.status_code == 429:
+            if self.rate_limiter and RATE_LIMITER_ENABLED:
+                self.rate_limiter.record_rate_limit_error('twelve_data')
             raise TwelveDataThrottled("Twelve Data rate limit exceeded (429)")
+        
         if resp.status_code == 404:
             raise TwelveDataNotFound("Resource not found (404)")
+        
         try:
             data = resp.json()
         except Exception as e:
@@ -113,8 +165,55 @@ class TwelveDataAdapter:
             if "not found" in msg.lower():
                 raise TwelveDataNotFound(msg)
             if "limit" in msg.lower() or "rate" in msg.lower():
+                if self.rate_limiter and RATE_LIMITER_ENABLED:
+                    self.rate_limiter.record_rate_limit_error('twelve_data')
                 raise TwelveDataThrottled(msg)
             raise TwelveDataError(msg)
+        
+        # Record successful request
+        if self.rate_limiter and RATE_LIMITER_ENABLED:
+            self.rate_limiter.record_success('twelve_data')
+        
+        return data
+
+    def _request(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
+        # OPTIMIZATION: Disabled for Phase 1, re-enabled for Phase 2
+        # The existing fallback manager in DataFeedOrchestrator handles rate limiting for sync calls
+        
+        url = f"{self.base_url}/{path.lstrip('/')}"
+        qp = dict(params or {})
+        if self.api_key:
+            qp["apikey"] = self.api_key
+        resp = self.session.get(url, params=qp, timeout=self.timeout)
+        
+        # Check for rate limit errors
+        if resp.status_code == 429:
+            if self.rate_limiter and RATE_LIMITER_ENABLED:
+                self.rate_limiter.record_rate_limit_error('twelve_data')
+            raise TwelveDataThrottled("Twelve Data rate limit exceeded (429)")
+        
+        if resp.status_code == 404:
+            raise TwelveDataNotFound("Resource not found (404)")
+        
+        try:
+            data = resp.json()
+        except Exception as e:
+            raise TwelveDataError(f"Invalid JSON response: {e}")
+
+        # Twelve Data error format: {"status":"error","message":"..."}
+        if isinstance(data, dict) and data.get("status") == "error":
+            msg = data.get("message", "Unknown provider error")
+            if "not found" in msg.lower():
+                raise TwelveDataNotFound(msg)
+            if "limit" in msg.lower() or "rate" in msg.lower():
+                if self.rate_limiter and RATE_LIMITER_ENABLED:
+                    self.rate_limiter.record_rate_limit_error('twelve_data')
+                raise TwelveDataThrottled(msg)
+            raise TwelveDataError(msg)
+        
+        # Record successful request
+        if self.rate_limiter and RATE_LIMITER_ENABLED:
+            self.rate_limiter.record_success('twelve_data')
         return data
 
     def _models(self):

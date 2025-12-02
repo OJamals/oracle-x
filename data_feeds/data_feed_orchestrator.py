@@ -42,7 +42,6 @@ except ImportError:
         return requests.get(url, **kwargs)
 
 from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
-from data_feeds.twelvedata_adapter import TwelveDataAdapter, TwelveDataThrottled, TwelveDataError  # Enhanced import
 from data_feeds.finviz_adapter import FinVizAdapter  # New import
 from data_feeds.gnews_adapter import GNewsAdapter  # GNews sentiment adapter
 from data_feeds.fallback_manager import FallbackManager, FallbackConfig, FallbackReason  # New import for intelligent fallback
@@ -51,9 +50,17 @@ from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo,
 from dotenv import load_dotenv
 from data_feeds.twitter_feed import TwitterSentimentFeed  # New import
 from data_feeds.redis_cache_manager import get_redis_cache_manager, RedisCacheManager  # Redis cache manager
-from data_feeds.cache_analytics import get_cache_analytics, record_cache_hit, record_cache_miss  # Cache analytics
-from data_feeds.cache_invalidation_service import get_cache_invalidation_service  # Cache invalidation service
-from data_feeds.cache_warming_service import get_cache_warming_service  # Cache warming service
+
+# Optional cache services; guard imports so missing dependencies (e.g., schedule) do not break orchestrator
+try:
+    from data_feeds.cache_invalidation_service import get_cache_invalidation_service  # type: ignore
+except Exception:
+    get_cache_invalidation_service = None  # type: ignore
+
+try:
+    from data_feeds.cache_warming_service import get_cache_warming_service  # type: ignore
+except Exception:
+    get_cache_warming_service = None  # type: ignore
 from data_feeds.cache_service import CacheService  # SQLite-backed cache
 # Optional Investiny compact formatter
 try:
@@ -234,7 +241,7 @@ class DataSource(Enum):
     YAHOO_NEWS = "yahoo_news"
     FRED = "fred"
     SEC_EDGAR = "sec_edgar"
-    TWELVE_DATA = "twelve_data"
+    TWELVE_DATA = "twelve_data"  # Deprecated (legacy placeholder)
     FINVIZ = "finviz"
     GNEWS = "gnews"
 
@@ -542,7 +549,6 @@ class RateLimiter:
             DataSource.REDDIT: (60, 60),       # 60 calls per minute
             # DataSource.TWITTER: No rate limits - twscrape is rate-limit free
             DataSource.FRED: (120, 60),        # 120 calls per minute
-            DataSource.TWELVE_DATA: (60, 60),  # 60 req per 60s (quick-path default)
             DataSource.FINVIZ: (12, 60),       # 12 req per 60s
         }
         self.daily_quotas = {
@@ -1330,6 +1336,9 @@ class DataFeedOrchestrator:
         fallback_config = FallbackConfig()
         self.fallback_manager = FallbackManager(fallback_config)
         
+        self.cache_warming_service = None
+        self.cache_invalidation_service = None
+
         # Initialize persistent cache (SQLite) for long-lived artifacts
         try:
             self.persistent_cache = CacheService(db_path=os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
@@ -1348,16 +1357,19 @@ class DataFeedOrchestrator:
             logger.error(f"Failed to initialize Redis cache manager: {e}")
             self.redis_cache = None
 
-        # Initialize cache warming service
-        try:
-            self.cache_warming_service = get_cache_warming_service(self)
-            if self.cache_warming_service:
-                logger.info("Cache warming service initialized successfully")
-            else:
-                logger.info("Cache warming service not enabled")
-        except Exception as e:
-            logger.error(f"Failed to initialize cache warming service: {e}")
-            self.cache_warming_service = None
+        # Initialize cache warming service (optional dependency)
+        if get_cache_warming_service:
+            try:
+                self.cache_warming_service = get_cache_warming_service(self)
+                if self.cache_warming_service:
+                    logger.info("Cache warming service initialized successfully")
+                else:
+                    logger.info("Cache warming service not enabled")
+            except Exception as e:
+                logger.error(f"Failed to initialize cache warming service: {e}")
+                self.cache_warming_service = None
+        else:
+            logger.info("Cache warming service not available (dependency missing)")
 
         # Initialize proactive cache warming for frequently accessed data
         self._init_proactive_cache_warming()
@@ -1371,8 +1383,6 @@ class DataFeedOrchestrator:
             DataSource.REDDIT: RedditAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.TWITTER: TwitterAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.YAHOO_NEWS: YahooNewsSentimentAdapter(self.cache, self.rate_limiter, self.performance_tracker),
-            # New adapters
-            DataSource.TWELVE_DATA: TwelveDataAdapter(api_key=os.getenv("TWELVEDATA_API_KEY")),
             DataSource.FINVIZ: FinVizAdapter(),
             DataSource.GNEWS: GNewsAdapter(),  # Google News sentiment adapter
         }
@@ -1466,7 +1476,9 @@ class DataFeedOrchestrator:
             self.frequent_patterns = {
                 # Market data patterns (highest priority)
                 'market_quotes': ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'NVDA', 'META', 'NFLX'],
-                'market_indices': ['^GSPC', '^IXIC', '^DJI', '^VIX'],
+                # Prefer ETF proxies here so cache warming never spams caret-based symbols
+                # that some free data providers reject (e.g., ^GSPC via yfinance).
+                'market_indices': ['SPY', 'QQQ', 'DIA', 'VIXY'],
                 'sector_etfs': ['XLF', 'XLE', 'XLK', 'XLV', 'XLY', 'XLI', 'XLB', 'XLP', 'XLU', 'XLRE'],
                 
                 # Economic indicators
@@ -1633,35 +1645,20 @@ class DataFeedOrchestrator:
             logger.error(f"Failed to get cache warming status: {e}")
             return {'status': 'error', 'error': str(e)}
 
-        # Initialize cache analytics
-        try:
-            self.cache_metrics, self.cache_optimizer, self.cache_monitor = get_cache_analytics()
-            logger.info("Cache analytics initialized successfully")
-        except Exception as e:
-            logger.error(f"Failed to initialize cache analytics: {e}")
-            self.cache_metrics = None
-            self.cache_optimizer = None
-            self.cache_monitor = None
-
-        # Initialize cache invalidation service
-        try:
-            self.cache_invalidation_service = get_cache_invalidation_service(self.redis_cache, self)
-            if self.cache_invalidation_service:
-                logger.info("Cache invalidation service initialized successfully")
-            else:
-                logger.info("Cache invalidation service not enabled")
-        except Exception as e:
-            logger.error(f"Failed to initialize cache invalidation service: {e}")
-            self.cache_invalidation_service = None
+        # Initialize cache invalidation service (optional dependency)
+        if get_cache_invalidation_service:
+            try:
+                self.cache_invalidation_service = get_cache_invalidation_service(self.redis_cache, self)
+                if self.cache_invalidation_service:
+                    logger.info("Cache invalidation service initialized successfully")
+                else:
+                    logger.info("Cache invalidation service not enabled")
+            except Exception as e:
+                logger.error(f"Failed to initialize cache invalidation service: {e}")
+                self.cache_invalidation_service = None
+        else:
+            logger.info("Cache invalidation service not available (dependency missing)")
         
-    async def _init_options_schema_async(self) -> None:
-        """Async version of options schema initialization"""
-        try:
-            from data_feeds import options_store as _opts_store  # type: ignore
-            await _opts_store.ensure_schema_async(os.getenv("CACHE_DB_PATH", "./model_monitoring.db"))
-        except Exception:
-            pass
-
     async def _init_options_schema_async(self) -> None:
         """Async version of options schema initialization"""
         try:
@@ -1737,28 +1734,6 @@ class DataFeedOrchestrator:
                         logger.debug(f"No valid quote from {source_name}")
                 else:
                     logger.debug(f"Skipping source without get_quote: {source}")
-                    
-            except TwelveDataThrottled as e:
-                logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
-                should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
-                if should_fallback:
-                    logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
-                timings[f'throttled_{source.value}'] = time.time() - sub_start
-                
-                # If this was a recovery attempt, record the failure
-                if self.fallback_manager.is_in_fallback(source_name):
-                    self.fallback_manager.record_retry_attempt(source_name, success=False)
-                    
-            except TwelveDataError as e:
-                logger.warning(f"TwelveData API error for {symbol}: {e}")
-                should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
-                if should_fallback:
-                    logger.info(f"Data source {source_name} put in fallback mode due to API error")
-                timings[f'error_{source.value}'] = time.time() - sub_start
-                
-                # If this was a recovery attempt, record the failure
-                if self.fallback_manager.is_in_fallback(source_name):
-                    self.fallback_manager.record_retry_attempt(source_name, success=False)
                     
             except Exception as e:
                 logger.error(f"Error fetching quote from {source}: {e}")
@@ -1849,32 +1824,6 @@ class DataFeedOrchestrator:
                     else:
                         logger.debug(f"No valid quote from {source_name}")
                         return None, source_name, response_time
-
-                except TwelveDataThrottled as e:
-                    logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
-                    should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
-                    if should_fallback:
-                        logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
-                    response_time = time.time() - sub_start
-
-                    # If this was a recovery attempt, record the failure
-                    if self.fallback_manager.is_in_fallback(source_name):
-                        self.fallback_manager.record_retry_attempt(source_name, success=False)
-
-                    return None, source_name, response_time
-
-                except TwelveDataError as e:
-                    logger.warning(f"TwelveData API error for {symbol}: {e}")
-                    should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
-                    if should_fallback:
-                        logger.info(f"Data source {source_name} put in fallback mode due to API error")
-                    response_time = time.time() - sub_start
-
-                    # If this was a recovery attempt, record the failure
-                    if self.fallback_manager.is_in_fallback(source_name):
-                        self.fallback_manager.record_retry_attempt(source_name, success=False)
-
-                    return None, source_name, response_time
 
                 except Exception as e:
                     logger.error(f"Error fetching quote from {source}: {e}")
@@ -2000,28 +1949,6 @@ class DataFeedOrchestrator:
                 else:
                     logger.debug(f"Skipping source without get_market_data: {source}")
                     
-            except TwelveDataThrottled as e:
-                logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
-                should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
-                if should_fallback:
-                    logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
-                timings[f'throttled_{source.value}'] = time.time() - sub_start
-                
-                # If this was a recovery attempt, record the failure
-                if self.fallback_manager.is_in_fallback(source_name):
-                    self.fallback_manager.record_retry_attempt(source_name, success=False)
-                    
-            except TwelveDataError as e:
-                logger.warning(f"TwelveData API error for {symbol}: {e}")
-                should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
-                if should_fallback:
-                    logger.info(f"Data source {source_name} put in fallback mode due to API error")
-                timings[f'error_{source.value}'] = time.time() - sub_start
-                
-                # If this was a recovery attempt, record the failure
-                if self.fallback_manager.is_in_fallback(source_name):
-                    self.fallback_manager.record_retry_attempt(source_name, success=False)
-                    
             except Exception as e:
                 logger.error(f"Error fetching market data from {source}: {e}")
                 should_fallback = self.fallback_manager.record_error(source_name, e, "unknown")
@@ -2112,32 +2039,6 @@ class DataFeedOrchestrator:
                     else:
                         logger.debug(f"No valid market data from {source_name}")
                         return None, source_name, response_time
-
-                except TwelveDataThrottled as e:
-                    logger.warning(f"TwelveData rate limit hit for {symbol}: {e}")
-                    should_fallback = self.fallback_manager.record_error(source_name, e, "rate_limit")
-                    if should_fallback:
-                        logger.info(f"Data source {source_name} put in fallback mode due to rate limiting")
-                    response_time = time.time() - sub_start
-
-                    # If this was a recovery attempt, record the failure
-                    if self.fallback_manager.is_in_fallback(source_name):
-                        self.fallback_manager.record_retry_attempt(source_name, success=False)
-
-                    return None, source_name, response_time
-
-                except TwelveDataError as e:
-                    logger.warning(f"TwelveData API error for {symbol}: {e}")
-                    should_fallback = self.fallback_manager.record_error(source_name, e, "api_error")
-                    if should_fallback:
-                        logger.info(f"Data source {source_name} put in fallback mode due to API error")
-                    response_time = time.time() - sub_start
-
-                    # If this was a recovery attempt, record the failure
-                    if self.fallback_manager.is_in_fallback(source_name):
-                        self.fallback_manager.record_retry_attempt(source_name, success=False)
-
-                    return None, source_name, response_time
 
                 except Exception as e:
                     logger.error(f"Error fetching market data from {source}: {e}")

@@ -8,20 +8,15 @@ import logging
 from typing import Dict, List, Optional, Any, Callable
 from datetime import datetime, timedelta
 import time
+import logging
 
-from common_utils import logger
+logger = logging.getLogger(__name__)
 
 class APIKeyValidator:
     """Validates API keys and manages fallback strategies"""
 
     # Define API key requirements and fallback behaviors
     API_KEY_CONFIG = {
-        'twelve_data': {
-            'env_var': 'TWELVEDATA_API_KEY',
-            'required': True,
-            'fallback_available': True,
-            'fallback_description': 'Limited functionality with demo data'
-        },
         'financial_modeling_prep': {
             'env_var': 'FINANCIALMODELINGPREP_API_KEY',
             'required': True,
@@ -39,12 +34,6 @@ class APIKeyValidator:
             'required': True,
             'fallback_available': True,
             'fallback_description': 'Limited daily requests'
-        },
-        'polygon': {
-            'env_var': 'POLYGON_API_KEY',
-            'required': True,
-            'fallback_available': True,
-            'fallback_description': 'Free tier with delays'
         },
         'twitter_bearer': {
             'env_var': 'TWITTER_BEARER_TOKEN',
@@ -85,16 +74,14 @@ class APIKeyValidator:
         # Try to get API key from configuration manager first, then fallback to environment
         api_key = None
         try:
-            from config_manager import get_data_feeds_config
-            data_config = get_data_feeds_config()
+            from core.config import config
+            data_config = config.data_feeds
 
             # Map service names to configuration attributes
             service_to_attr = {
-                'twelve_data': 'twelve_data_api_key',
                 'financial_modeling_prep': 'financial_modeling_prep_api_key',
                 'finnhub': 'finnhub_api_key',
                 'alphavantage': 'alphavantage_api_key',
-                'polygon': 'polygon_api_key',
                 'twitter_bearer': 'twitter_bearer_token',
                 'reddit_client_id': 'reddit_client_id',
                 'reddit_client_secret': 'reddit_client_secret'

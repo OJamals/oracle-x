@@ -4,7 +4,18 @@
 		{
 			"type": "shell",
 			"label": "Run main pipeline with strict model",
-			"command": "/Users/omar/.pyenv/versions/oracle/bin/python main.py"
+			"command": "/Users/omar/.pyenv/versions/3.12.11/bin/python3",
+			"args": [
+				"main.py"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			}
+		},
+		{
+			"label": "Extract class names from oracle_options_pipeline.py",
+			"type": "shell",
+			"command": "cd /Users/omar/Documents/Projects/oracle-x && python -c \"import ast; content=open('oracle_options_pipeline.py').read(); tree=ast.parse(content); classes=[node.name for node in ast.walk(tree) if isinstance(node, ast.ClassDef)]; print('Classes found:', classes[:10])\""
 		}
 	]
 }

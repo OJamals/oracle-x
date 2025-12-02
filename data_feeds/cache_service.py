@@ -62,8 +62,8 @@ from collections import OrderedDict
 
 # Fallback to default path if import fails
 try:
-    from config_manager import get_cache_db_path
-    DEFAULT_DB_PATH = get_cache_db_path()
+    from core.config import config
+    DEFAULT_DB_PATH = str(config.database.get_full_path('cache'))
 except:
     DEFAULT_DB_PATH = "data/databases/model_monitoring.db"
 
@@ -210,66 +210,6 @@ class RedisCacheManager:
     def is_available(self) -> bool:
         """Check if Redis is available"""
         return self.redis_client is not None
-
-import json
-import os
-import sqlite3
-import sys
-import time
-import hashlib
-from dataclasses import dataclass
-from typing import Any, Optional, Dict
-
-# Add parent directory to path for imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Import the optimized database pool
-DatabasePool = None
-try:
-    from core.database_pool import DatabasePool
-    USE_POOL = True
-except ImportError:
-    USE_POOL = False
-
-# Import threading for thread-safe operations
-import threading
-from collections import OrderedDict
-
-# Import Redis for multi-level caching
-redis = None
-try:
-    import redis
-    REDIS_AVAILABLE = True
-except ImportError:
-    REDIS_AVAILABLE = False
-
-# Fallback to default path if import fails
-try:
-    from config_manager import get_cache_db_path
-    DEFAULT_DB_PATH = get_cache_db_path()
-except:
-    DEFAULT_DB_PATH = "data/databases/model_monitoring.db"
-
-DDL_CACHE_ENTRIES = """
-CREATE TABLE IF NOT EXISTS cache_entries (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  key_hash TEXT UNIQUE,
-  endpoint TEXT,
-  symbol TEXT,
-  fetched_at INTEGER,
-  ttl_seconds INTEGER,
-  source TEXT,
-  metadata_json TEXT,
-  payload_json TEXT,
-  payload_blob BLOB,
-  storage_uri TEXT,
-  version INTEGER DEFAULT 1,
-  status TEXT DEFAULT 'ok'
-);
-"""
-
-IDX_1 = "CREATE INDEX IF NOT EXISTS idx_cache_endpoint_symbol ON cache_entries(endpoint, symbol, fetched_at DESC);"
-IDX_2 = "CREATE INDEX IF NOT EXISTS idx_cache_keyhash ON cache_entries(key_hash);"
 
 
 @dataclass

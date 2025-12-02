@@ -2,17 +2,57 @@
 import yfinance as yf
 import pandas as pd
 from typing import Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 import logging
+from functools import wraps
+import time
 
 logger = logging.getLogger(__name__)
 
+# Simple in-memory cache for market internals
+_market_internals_cache = {}
+_CACHE_TTL_SECONDS = 60  # 1 minute cache for market internals
+
+def with_cache(ttl_seconds=60):
+    """Simple caching decorator with TTL"""
+    def decorator(func):
+        cache_key = f"_cache_{func.__name__}"
+        
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            # Create cache key from function name and args
+            key = (func.__name__, str(args), str(sorted(kwargs.items())))
+            
+            # Check if we have cached data
+            if key in _market_internals_cache:
+                cached_data, timestamp = _market_internals_cache[key]
+                age = time.time() - timestamp
+                
+                if age < ttl_seconds:
+                    logger.debug(f"[CACHE HIT] {func.__name__} (age: {age:.1f}s)")
+                    return cached_data
+            
+            # Cache miss - call function
+            logger.debug(f"[CACHE MISS] {func.__name__}")
+            result = func(*args, **kwargs)
+            
+            # Store in cache
+            _market_internals_cache[key] = (result, time.time())
+            
+            return result
+        
+        return wrapper
+    return decorator
+
+@with_cache(ttl_seconds=60)  # OPTIMIZATION: Cache for 60 seconds
 def fetch_market_internals() -> dict:
     """
     Fetch market internals data using free yfinance API.
     Uses major indices and VIX for market breadth analysis.
     Returns:
         dict: Market internals snapshot with real data.
+    
+    OPTIMIZED: Results are cached for 60 seconds to reduce API calls.
     """
     try:
         # Get major market indices

@@ -1,24 +1,19 @@
 from openai import OpenAI
 import os
 from typing import Dict
-import config_manager
+from core.config import config
 from oracle_engine.model_attempt_logger import log_attempt
 import time
 
 API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config_manager.get_openai_api_base() or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
-_PREFERRED_MODEL = config_manager.get_openai_model()
+API_BASE = config.model.openai_api_base or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+MODEL_NAME = config.model.openai_model
 
 client = OpenAI(api_key=API_KEY, base_url=API_BASE)
-try:
-    MODEL_NAME = config_manager.resolve_model(client, _PREFERRED_MODEL, test=True)
-except Exception as e:
-    print(f"[WARN] Model resolution failed, using preferred '{_PREFERRED_MODEL}': {e}")
-    MODEL_NAME = _PREFERRED_MODEL
 
 def _iter_fallback_models(primary: str):
     try:
-        fallback = config_manager.get_fallback_models()
+        fallback = config.model.fallback_models
     except Exception:
         fallback = []
     ordered = [primary] + [m for m in fallback if m != primary]

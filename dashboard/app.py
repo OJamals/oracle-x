@@ -13,10 +13,10 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 # Import environment configuration
 try:
-    from env_config import load_config
-    config = load_config()
+    from core.config import config, load_config
+    load_config()
 except Exception:
-    config = {}
+    config = None
 
 # Defer importing the main pipeline runner until the Streamlit UI is actively running
 # This prevents importing and triggering Streamlit script-runner context when the
@@ -25,7 +25,7 @@ run_oracle_pipeline = None
 try:
     # Only import when running as a Streamlit app (Streamlit sets the "STREAMLIT" env var)
     if os.environ.get("STREAMLIT") or __name__ == "__main__":
-        from main import run_oracle_pipeline  # type: ignore
+        from oracle_pipeline import run_oracle_pipeline  # type: ignore
 except Exception:
     run_oracle_pipeline = None
 
@@ -33,14 +33,13 @@ except Exception:
 PLAYBOOKS_DIR = "playbooks/"
 SIGNALS_DIR = "signals/"
 
-# Load service URLs from environment configuration
-QDRANT_URL = config.get('QDRANT_URL', 'http://localhost:6333')
-QDRANT_COLLECTIONS_URL = f"{QDRANT_URL}/collections"
-QDRANT_API_KEY = config.get('QDRANT_API_KEY')
+# Vector DB configuration
+VECTOR_DB_PATH = str(config.vector_db.get_full_path()) if config else 'data/vector_db'
+VECTOR_DB_COLLECTION = config.vector_db.collection_name if config else 'oraclex_trades'
 
 # LLM service URLs from config
-OPENAI_API_BASE = config.get('OPENAI_API_BASE', 'https://api.openai.com')
-EMBEDDING_API_BASE = config.get('EMBEDDING_API_BASE', OPENAI_API_BASE)
+OPENAI_API_BASE = config.model.openai_api_base if config else 'https://api.openai.com'
+EMBEDDING_API_BASE = config.model.embedding_api_base if config else OPENAI_API_BASE
 
 # === UTILS ===
 def list_playbooks():
@@ -87,23 +86,19 @@ def get_latest_file_info(directory):
     mod_time = datetime.fromtimestamp(os.path.getmtime(path)).strftime("%Y-%m-%d %H:%M:%S")
     return latest, mod_time
 
-def check_service(url, api_key=None):
+def check_service_health(url, api_key=None):
     """Check service health with proper authentication for different service types."""
     
-    # Special handling for different service types
-    if 'qdrant' in url.lower() or ':6333' in url:
-        # Use QdrantClient for Qdrant instead of raw HTTP
+    # Special handling for local vector store
+    if 'vector' in url.lower() or 'local' in url.lower():
+        # Check local vector store instead of Qdrant
         try:
-            from qdrant_client import QdrantClient
-            client = QdrantClient(
-                url=url.replace('/collections', '').replace('/health', ''),
-                api_key=api_key or config.get('QDRANT_API_KEY')
-            )
-            collections = client.get_collections()
-            print(f"[DEBUG] Qdrant health check via client: SUCCESS, {len(collections.collections)} collections")
+            from vector_db.local_store import get_collection_stats
+            stats = get_collection_stats()
+            print(f"[DEBUG] Local vector store health check: SUCCESS, {stats.get('total_vectors', 0)} vectors")
             return True
         except Exception as e:
-            print(f"[DEBUG] Qdrant health check error: {e}")
+            print(f"[DEBUG] Local vector store health check error: {e}")
             return False
     
     # Regular HTTP health check for other services

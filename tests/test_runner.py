@@ -106,7 +106,7 @@ tests = {
     "Main Pipeline": "import main",
     "Options Pipeline": "import oracle_options_pipeline", 
     "Data Orchestrator": "from data_feeds.data_feed_orchestrator import DataFeedOrchestrator",
-    "Environment Config": "import config_manager; config_manager.load_config()",
+    "Environment Config": "from core.config import config, load_config; load_config()",
     "ML Model Manager": "from oracle_engine.ml_model_manager import MLModelManager",
     "Prompt Chain": "from oracle_engine.prompt_chain import adjust_scenario_tree"
 }

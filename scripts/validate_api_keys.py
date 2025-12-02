@@ -14,12 +14,15 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from data_feeds.api_key_validator import validate_all_api_keys, print_api_key_report
-from config_manager import validate_api_key_configuration, print_api_key_validation_report
+from core.config import ConfigValidator, config, load_config
 
 def main():
     """Main validation function"""
     print("🔍 Starting API Key Configuration Validation")
     print("=" * 60)
+    
+    # Load configuration
+    load_config()
 
     # Check if we're running in the correct directory
     if not os.path.exists('.env.example'):
@@ -39,8 +42,17 @@ def main():
     # Validate using the configuration manager
     print("\n🔧 Validating using Configuration Manager:")
     print("-" * 40)
-    config_validation = validate_api_key_configuration()
-    print_api_key_validation_report()
+    validator = ConfigValidator(config)
+    config_validation = validator.validate()
+    print(f"Valid: {config_validation.is_valid}")
+    if config_validation.errors:
+        print("Errors:")
+        for error in config_validation.errors:
+            print(f"  - {error}")
+    if config_validation.warnings:
+        print("Warnings:")
+        for warning in config_validation.warnings:
+            print(f"  - {warning}")
 
     # Also validate using the dedicated validator
     print("\n🔧 Validating using API Key Validator:")

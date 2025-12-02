@@ -24,14 +24,14 @@ from oracle_engine.prompt_chain import (
 from oracle_engine.model_attempt_logger import log_attempt, pop_attempts
 from openai import OpenAI
 import os
-import config_manager
+from core.config import config
 import time
 
 logger = logging.getLogger(__name__)
 
 # Initialize OpenAI client
 API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config_manager.get_openai_api_base() or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
+API_BASE = config.model.openai_api_base or os.environ.get("OPENAI_API_BASE", "https://api.githubcopilot.com/v1")
 client = OpenAI(api_key=API_KEY, base_url=API_BASE)
 
 def get_signals_from_scrapers_optimized(prompt_text: str, chart_image_b64: str) -> Dict[str, Any]:

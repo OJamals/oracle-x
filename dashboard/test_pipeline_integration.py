@@ -19,7 +19,7 @@ def test_pipeline_import():
         run_oracle_pipeline = None
         try:
             if os.environ.get("STREAMLIT") or __name__ == "__main__":
-                from main import run_oracle_pipeline  # type: ignore
+                from oracle_pipeline import run_oracle_pipeline  # type: ignore
                 print("✅ Pipeline imported successfully")
                 return run_oracle_pipeline
             else:

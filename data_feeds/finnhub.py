@@ -25,10 +25,14 @@ except ImportError:
 
 # Try to import configuration manager
 try:
-    from config_manager import get_finnhub_api_key
+    from core.config import config
     CONFIG_MANAGER_AVAILABLE = True
+    def get_finnhub_api_key():
+        return config.data_feeds.finnhub_api_key
 except ImportError:
     CONFIG_MANAGER_AVAILABLE = False
+    def get_finnhub_api_key():
+        return None
 
 def fetch_finnhub_quote(symbol: str) -> Dict[str, Any]:
     """

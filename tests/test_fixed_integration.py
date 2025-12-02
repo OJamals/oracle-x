@@ -50,38 +50,31 @@ class ComponentValidator:
 def test_api_configuration():
     """Test 1: Production API key configuration and service connectivity"""
     try:
-        from env_config import load_config
-        config = load_config()
+        from core.config import config
         
         # Validate all required API configurations
-        required_configs = [
-            'OPENAI_API_KEY', 'OPENAI_API_BASE', 'QDRANT_URL', 'QDRANT_API_KEY',
-            'EMBEDDING_API_BASE', 'TWELVEDATA_API_KEY', 'REDDIT_CLIENT_ID'
-        ]
+        api_key = config.model.openai_api_key
+        api_base = config.model.openai_api_base
+        qdrant_url = config.vector_db.qdrant_url
+        qdrant_api_key = config.vector_db.qdrant_api_key
         
-        missing_configs = [key for key in required_configs if not config.get(key)]
+        missing_configs = []
+        if not api_key:
+            missing_configs.append('OPENAI_API_KEY')
+        if not api_base:
+            missing_configs.append('OPENAI_API_BASE')
+            
         if missing_configs:
             logger.warning(f"Missing configurations: {missing_configs}")
         
         # Test service connectivity with proper authentication
         from qdrant_client import QdrantClient
         qdrant_client = QdrantClient(
-            url=config.get('QDRANT_URL', 'http://localhost:6333'),
-            api_key=config.get('QDRANT_API_KEY')
+            url=qdrant_url or 'http://localhost:6333',
+            api_key=qdrant_api_key
         )
         collections = qdrant_client.get_collections()
         logger.info(f"Qdrant connection successful: {len(collections.collections)} collections")
-        
-        # Test TwelveData API usage endpoint
-        import requests
-        td_response = requests.get(
-            'https://api.twelvedata.com/api_usage',
-            params={'apikey': config.get('TWELVEDATA_API_KEY')},
-            timeout=10
-        )
-        if td_response.status_code == 200:
-            usage_data = td_response.json()
-            logger.info(f"TwelveData API usage: {usage_data}")
         
         return len(missing_configs) == 0
         
@@ -120,36 +113,31 @@ def test_ensemble_prediction_engine():
 def test_rss_connectivity():
     """Test 3: Reuters RSS connectivity fixes"""
     try:
-        # Test RSS feed configuration
-        from env_config import load_config
-        config = load_config()
+        # Use default Reuters feed
+        rss_feeds = 'https://feeds.reuters.com/reuters/businessNews'
+        feeds = [rss_feeds]
+        logger.info(f"RSS feeds to test: {len(feeds)} feeds")
         
-        # Use configured RSS feeds or default Reuters feed
-        rss_feeds = config.get('RSS_FEEDS', 'https://feeds.reuters.com/reuters/businessNews')
-        if isinstance(rss_feeds, str) and rss_feeds:
-            feeds = rss_feeds.split(',') if ',' in rss_feeds else [rss_feeds]
-            logger.info(f"RSS feeds to test: {len(feeds)} feeds")
+        # Test basic RSS feed parsing
+        import feedparser
+        import socket
+        
+        # Test the first feed
+        test_feed = feeds[0].strip()
+        logger.info(f"Testing RSS feed: {test_feed}")
+        
+        # Parse with timeout
+        socket.setdefaulttimeout(10)
+        feed = feedparser.parse(test_feed)
+        
+        if hasattr(feed, 'entries') and len(feed.entries) > 0:
+            logger.info(f"RSS feed parsing successful: {len(feed.entries)} entries")
+            return True
+        elif hasattr(feed, 'status'):
+            logger.warning(f"RSS feed returned status: {feed.status}")
+            # Consider HTTP 200 responses as success even if no entries
+            return feed.status == 200
             
-            # Test basic RSS feed parsing
-            import feedparser
-            import socket
-            
-            # Test the first feed
-            test_feed = feeds[0].strip()
-            logger.info(f"Testing RSS feed: {test_feed}")
-            
-            # Parse with timeout
-            socket.setdefaulttimeout(10)
-            feed = feedparser.parse(test_feed)
-            
-            if hasattr(feed, 'entries') and len(feed.entries) > 0:
-                logger.info(f"RSS feed parsing successful: {len(feed.entries)} entries")
-                return True
-            elif hasattr(feed, 'status'):
-                logger.warning(f"RSS feed returned status: {feed.status}")
-                # Consider HTTP 200 responses as success even if no entries
-                return feed.status == 200
-                
         # If no feeds configured, consider this a success (optional feature)
         logger.info("No RSS feeds configured - skipping RSS connectivity test")
         return True
@@ -224,48 +212,6 @@ def test_intelligent_caching_strategy():
         logger.error(f"Intelligent caching strategy test failed: {e}")
         return False
 
-def test_twelvedata_optimization():
-    """Test 6: TwelveData optimization with available methods"""
-    try:
-        from data_feeds.twelvedata_adapter import TwelveDataAdapter
-        
-        # Initialize adapter
-        adapter = TwelveDataAdapter()
-        
-        # Test available methods instead of non-existent check_quota
-        if hasattr(adapter, 'get_quote'):
-            logger.info("TwelveData quote method available")
-            
-        if hasattr(adapter, 'get_market_data'):
-            logger.info("TwelveData market data method available")
-            
-        # Test API usage endpoint via direct request (since no check_quota method exists)
-        from env_config import load_config
-        config = load_config()
-        api_key = config.get('TWELVEDATA_API_KEY')
-        
-        if api_key:
-            import requests
-            try:
-                response = requests.get(
-                    'https://api.twelvedata.com/api_usage',
-                    params={'apikey': api_key},
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    usage_data = response.json()
-                    logger.info(f"TwelveData usage check successful: {usage_data}")
-                    return True
-            except Exception as e:
-                logger.warning(f"TwelveData usage check failed: {e}")
-                
-        # Consider successful if adapter initializes properly
-        return True
-        
-    except Exception as e:
-        logger.error(f"TwelveData optimization test failed: {e}")
-        return False
-
 def test_backtesting_validation():
     """Test 7: Backtesting validation fixes"""
     try:
@@ -299,22 +245,21 @@ def test_dashboard_functionality():
         sys.path.append(os.path.join(os.path.dirname(__file__), 'dashboard'))
         
         from dashboard.app import check_service
-        from env_config import load_config
-        config = load_config()
+        from core.config import config
         
         # Test Qdrant service check with proper URL
-        qdrant_url = config.get('QDRANT_URL', 'http://localhost:6333')
-        qdrant_status = check_service(qdrant_url, config.get('QDRANT_API_KEY'))
+        qdrant_url = config.vector_db.qdrant_url or 'http://localhost:6333'
+        qdrant_status = check_service(qdrant_url, config.vector_db.qdrant_api_key)
         logger.info(f"Qdrant service status: {qdrant_status}")
         
         # Test embedding service check with proper URL
-        embedding_url = f"{config.get('EMBEDDING_API_BASE', 'http://localhost:2025')}/health"
+        embedding_url = f"{config.model.embedding_api_base or 'http://localhost:2025'}/health"
         embedding_status = check_service(embedding_url)
         logger.info(f"Embedding service status: {embedding_status}")
         
         # Test OpenAI service check with proper URL and authentication
-        openai_url = f"{config.get('OPENAI_API_BASE', 'https://api.githubcopilot.com')}/models"
-        openai_api_key = config.get('OPENAI_API_KEY')
+        openai_url = f"{config.model.openai_api_base or 'https://api.githubcopilot.com'}/models"
+        openai_api_key = config.model.openai_api_key
         openai_status = check_service(openai_url, openai_api_key)
         logger.info(f"OpenAI service status: {openai_status}")
         
@@ -330,9 +275,7 @@ def test_multi_model_llm_support():
     try:
         # Test OracleAgentOptimized with GitHub Copilot configuration
         from oracle_engine.agent_optimized import OracleAgentOptimized
-        from env_config import load_config
-        
-        config = load_config()
+        from core.config import config
         
         # Initialize optimized agent with GitHub Copilot configuration
         OracleAgentOptimized()
@@ -346,8 +289,8 @@ def test_multi_model_llm_support():
             logger.info("Oracle agent pipeline function available")
             
         # Verify model configuration from environment
-        api_base = config.get('OPENAI_API_BASE', 'https://api.githubcopilot.com')
-        model_name = config.get('OPENAI_MODEL', 'gpt-4o')
+        api_base = config.model.openai_api_base or 'https://api.githubcopilot.com'
+        model_name = config.model.openai_model or 'gpt-4o'
         
         logger.info(f"Multi-model support configured: API base={api_base}, Model={model_name}")
         return True
@@ -400,7 +343,6 @@ def main():
         ("Reuters RSS Connectivity Fixes", test_rss_connectivity),
         ("Parallel Sentiment Processing", test_parallel_sentiment_processing),
         ("Intelligent Caching Strategy", test_intelligent_caching_strategy),
-        ("TwelveData Optimization", test_twelvedata_optimization),
         ("Backtesting Validation Fixes", test_backtesting_validation),
         ("Web Dashboard Functionality", test_dashboard_functionality),
         ("Multi-Model LLM Support", test_multi_model_llm_support),

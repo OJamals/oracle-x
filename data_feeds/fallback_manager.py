@@ -77,10 +77,10 @@ class FallbackConfig:
     
     # Priority orders for different data types
     quote_fallback_order: List[str] = field(default_factory=lambda: [
-        "yfinance", "twelve_data", "finviz", "iex_cloud", "finnhub"
+        "yfinance", "finviz", "iex_cloud", "finnhub"
     ])
     market_data_fallback_order: List[str] = field(default_factory=lambda: [
-        "yfinance", "twelve_data", "iex_cloud", "finnhub"
+        "yfinance", "iex_cloud", "finnhub"
     ])
     news_fallback_order: List[str] = field(default_factory=lambda: [
         "yahoo_news", "finviz", "reddit", "twitter"
@@ -239,9 +239,6 @@ class FallbackManager:
         error_type_lower = error_type.lower()
         
         # Check for specific error types first
-        if "twelvedatathrottled" in str(type(error).__name__).lower():
-            return FallbackReason.RATE_LIMITED
-        
         if any(keyword in error_str for keyword in ["rate limit", "throttled", "429", "quota exceeded"]):
             return FallbackReason.RATE_LIMITED
         elif any(keyword in error_str for keyword in ["timeout", "timed out"]):

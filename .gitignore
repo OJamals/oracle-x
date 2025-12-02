@@ -50,8 +50,6 @@ ehthumbs.db
 Thumbs.db
 
 # Project specific
-*.db
-*.log
 .archive/
 playbooks/*.json
 charts/*.png
@@ -59,7 +57,17 @@ checkpoints/*.pkl
 models/*.pkl
 results_*
 *_results_*
-pipeline_run_*.log
+
+# Data directory (databases and cache)
+data/databases/*.db
+data/databases/*.db-shm
+data/databases/*.db-wal
+data/cache/*.db
+data/cache/*.db-shm
+data/cache/*.db-wal
+
+# Logs directory
+logs/*.log
 
 # Backtest data
 backtest_data/*.pkl

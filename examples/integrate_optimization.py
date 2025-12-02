@@ -103,8 +103,9 @@ def main():
         
         if not agent.optimization_enabled:
             print("⚠️  Optimization not enabled, falling back to standard pipeline")
-            from main import main as standard_main
-            return standard_main()
+            from oracle_pipeline import OracleXPipeline
+            pipeline = OracleXPipeline(mode="standard")
+            return pipeline.run()
         
         print(f"✅ Optimization enabled with {len(agent.prompt_optimizer.prompt_templates)} templates")
         

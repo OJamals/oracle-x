@@ -23,7 +23,6 @@ Defaults (aligned with data_feeds.data_feed_orchestrator.SmartCache and RateLimi
     REDDIT: per_minute=60
     TWITTER: per_15min=100 (window 900s)
     FRED: per_minute=120
-    TWELVE_DATA: per_minute=60
     FINVIZ: per_minute=12
 - quotas (daily):
     FINNHUB: per_day=1000
@@ -118,7 +117,6 @@ def _defaults() -> Config:
         # Twitter uses 100 per 15 minutes; represent both granularly and per_minute proxy
         "TWITTER": {"per_15min": 100, "per_minute": 7},
         "FRED": {"per_minute": 120},
-        "TWELVE_DATA": {"per_minute": 60},
         "FINVIZ": {"per_minute": 12},
     }
 
@@ -136,7 +134,6 @@ def _defaults() -> Config:
         "reddit": True,
         "twitter": True,
         "fred": True,
-        "twelve_data": True,
         "finviz": True,
         "yahoo_news": True,
         "google_trends": True,
@@ -159,7 +156,6 @@ def _defaults() -> Config:
     creds = {
         "FINNHUB_API_KEY": os.getenv("FINNHUB_API_KEY", ""),
         "FINANCIALMODELINGPREP_API_KEY": os.getenv("FINANCIALMODELINGPREP_API_KEY", ""),
-        "TWELVEDATA_API_KEY": os.getenv("TWELVEDATA_API_KEY", ""),
         "IEX_CLOUD_API_KEY": os.getenv("IEX_CLOUD_API_KEY", ""),
         "ALPHA_VANTAGE_API_KEY": os.getenv("ALPHA_VANTAGE_API_KEY", ""),
         "REDDIT_CLIENT_ID": os.getenv("REDDIT_CLIENT_ID", ""),
@@ -296,7 +292,6 @@ def load_config(
     cred_keys = [
         "FINNHUB_API_KEY",
         "FINANCIALMODELINGPREP_API_KEY",
-        "TWELVEDATA_API_KEY",
         "IEX_CLOUD_API_KEY",
         "ALPHA_VANTAGE_API_KEY",
         "REDDIT_CLIENT_ID",

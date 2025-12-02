@@ -1,180 +1,120 @@
-import os
-from dotenv import load_dotenv
-from qdrant_client import QdrantClient
-from qdrant_client.http import models as qmodels
-from openai import OpenAI
+"""Compatibility wrapper for legacy Qdrant interfaces.
 
-from typing import List, Dict
+The project migrated from a Qdrant-backed vector store to a local ChromaDB
+implementation. Several modules (tests, CLI utilities, historical scripts)
+still import ``vector_db.qdrant_store``.  Reintroducing a compatibility layer
+allows those callers to operate without modification while delegating all real
+work to ``vector_db.local_store``.
 
-# Load environment variables from .env if present
-load_dotenv()
+All public functions mirror the original signatures but forward to the Chroma
+implementation.  Results are normalised into ``QdrantLikeHit`` instances so
+existing code that expects ``hit.payload`` style access continues to work.
+"""
+from __future__ import annotations
 
-# Set up your local Qdrant client
-qdrant = QdrantClient(
-    url="http://localhost:6333",
-    api_key=os.environ.get("QDRANT_API_KEY", "your-super-secret-qdrant-api-key")
-)
+from dataclasses import dataclass
+from typing import Any, Dict, Iterable, List, Sequence
+
+from . import local_store as _local
+
+__all__ = [
+    "QdrantLikeHit",
+    "ensure_collection",
+    "embed_text",
+    "batch_embed_text",
+    "store_trade_vector",
+    "query_similar",
+    "batch_query_similar",
+    "clear_cache",
+    "get_collection_stats",
+    "reset_collection",
+]
 
 
-import config_manager  # project-level configuration module
+@dataclass(frozen=True)
+class QdrantLikeHit:
+    """Lightweight container matching the original Qdrant response contract."""
 
-# Embedding configuration (falls back gracefully)
-EMBEDDING_MODEL = config_manager.get_embedding_model() if hasattr(config_manager, 'get_embedding_model') else os.environ.get("EMBEDDING_MODEL", "text-embedding-3-small")
-EMBEDDING_API_BASE = config_manager.get_embedding_api_base() if hasattr(config_manager, 'get_embedding_api_base') else os.environ.get("EMBEDDING_API_BASE")
-API_KEY = os.environ.get("OPENAI_API_KEY") or os.environ.get("EMBEDDING_API_KEY")
+    id: str
+    score: float
+    payload: Dict[str, Any]
 
-client = OpenAI(api_key=API_KEY, base_url=EMBEDDING_API_BASE or config_manager.get_openai_api_base())
+    def to_dict(self) -> Dict[str, Any]:
+        """Return a dictionary representation for callers expecting mappings."""
 
-COLLECTION_NAME = "oraclex_trades"
+        return {"id": self.id, "score": self.score, "payload": self.payload}
 
-# Simple in-memory cache for embeddings and queries
-EMBED_CACHE = {}
-QUERY_CACHE = {}
 
 def ensure_collection():
-    """
-    Ensure the Qdrant collection exists, create if missing.
-    """
-    try:
-        if COLLECTION_NAME not in [c.name for c in qdrant.get_collections().collections]:
-            qdrant.create_collection(
-                collection_name=COLLECTION_NAME,
-                vectors_config=qmodels.VectorParams(size=1024, distance=qmodels.Distance.COSINE)
-            )
-    except Exception as e:
-        print(f"[ERROR] Qdrant collection setup failed: {e}")
+    """Ensure the underlying Chroma collection exists."""
 
-def embed_text(text: str) -> list:
-    """
-    Use Qwen3 embedding server (OpenAI compatible).
-    Args:
-        text (str): Text to embed.
-    Returns:
-        list: Embedding vector.
-    """
-    try:
-        resp = client.embeddings.create(
-            model=EMBEDDING_MODEL,
-            input=text
-        )
-        return resp.data[0].embedding  # type: ignore[attr-defined]
-    except Exception as e:
-        print(f"[ERROR] Embedding failed: {e}")
-        return []
+    return _local.ensure_collection()
 
-# Batch embedding
 
-def batch_embed_text(texts: List[str]) -> List[list]:
-    """
-    Batch embed a list of texts using Qwen3 embedding server.
-    Returns a list of embedding vectors.
-    """
-    results = []
-    uncached = []
-    uncached_indices = []
-    for i, text in enumerate(texts):
-        if text in EMBED_CACHE:
-            results.append(EMBED_CACHE[text])
-        else:
-            results.append(None)
-            uncached.append(text)
-            uncached_indices.append(i)
-    if uncached:
-        try:
-            resp = client.embeddings.create(
-                model=EMBEDDING_MODEL,
-                input=uncached
-            )
-            for idx, emb in zip(uncached_indices, resp.data):  # type: ignore[attr-defined]
-                results[idx] = emb.embedding  # type: ignore[attr-defined]
-                EMBED_CACHE[uncached[idx]] = emb.embedding  # type: ignore[attr-defined]
-        except Exception as e:
-            print(f"[ERROR] Batch embedding failed: {e}")
-            for idx in uncached_indices:
-                results[idx] = []
-    return results
+def embed_text(text: str) -> List[float]:
+    """Delegate embedding generation to the local store."""
 
-def store_trade_vector(trade: dict) -> bool:
-    """Store a single trade vector in Qdrant.
+    return _local.embed_text(text)
 
-    Returns True only if an embedding was generated AND the upsert succeeded.
-    Never raises; logs errors and returns False on any failure.
-    """
-    required_keys = ("ticker", "thesis", "scenario_tree", "counter_signal")
-    for k in required_keys:
-        if k not in trade:
-            print(f"[ERROR] Trade missing key '{k}' – cannot embed.")
-            return False
-    text = f"{trade['ticker']} {trade['thesis']} {trade['scenario_tree']} {trade['counter_signal']}"
-    vector = embed_text(text)
-    if not vector:
-        print(f"[ERROR] No vector generated for {trade.get('ticker','UNKNOWN')}")
-        return False
-    payload = {
-        "ticker": trade.get("ticker"),
-        "direction": trade.get("direction"),
-        "thesis": trade.get("thesis"),
-        "date": trade.get("date", "unknown")
-    }
-    import uuid
-    try:
-        point_id = str(uuid.uuid5(uuid.NAMESPACE_DNS, f"{trade.get('ticker','UNK')}-{trade.get('date', 'unknown')}-{trade.get('direction', '')}"))
-        qdrant.upsert(
-            collection_name=COLLECTION_NAME,
-            points=[qmodels.PointStruct(id=point_id, vector=vector, payload=payload)]
-        )
-        print(f"✅ Stored {trade.get('ticker','UNKNOWN')} vector to Qdrant.")
-        return True
-    except Exception as e:
-        print(f"[ERROR] Qdrant upsert failed: {e}")
-        return False
 
-# Batch query for similar vectors
+def batch_embed_text(texts: Sequence[str]) -> List[List[float]]:
+    """Batch embed multiple texts via the local store implementation."""
 
-def batch_query_similar(texts: List[str], top_k: int = 3) -> List[List[Dict]]:
-    """
-    Batch query Qdrant for similar vectors for a list of texts.
-    Returns a list of lists of Qdrant search results.
-    """
-    vectors = batch_embed_text(texts)
-    results = []
-    for text, vector in zip(texts, vectors):
-        cache_key = (text, top_k)
-        if cache_key in QUERY_CACHE:
-            results.append(QUERY_CACHE[cache_key])
+    return _local.batch_embed_text(list(texts))
+
+
+def store_trade_vector(trade: Dict[str, Any]) -> bool:
+    """Persist a trade vector using the local store."""
+
+    return _local.store_trade_vector(trade)
+
+
+def _convert(results: Iterable[Dict[str, Any]]) -> List[QdrantLikeHit]:
+    converted: List[QdrantLikeHit] = []
+    for item in results:
+        if isinstance(item, QdrantLikeHit):
+            converted.append(item)
             continue
-        if not vector:
-            results.append([])
+
+        if not isinstance(item, dict):
+            # Unexpected shape – skip but preserve compatibility by coercing.
+            converted.append(QdrantLikeHit(id=str(item), score=0.0, payload={}))
             continue
-        try:
-            res = qdrant.search(
-                collection_name=COLLECTION_NAME, query_vector=vector, limit=top_k
-            )
-            QUERY_CACHE[cache_key] = res
-            results.append(res)
-        except Exception as e:
-            print(f"[ERROR] Qdrant batch search failed: {e}")
-            results.append([])
-    return results
 
-# Update query_similar to use cache
+        payload = item.get("payload") or item.get("metadata") or {}
+        score = float(item.get("score", 0.0))
+        identifier = str(item.get("id", payload.get("id", "")))
+        converted.append(QdrantLikeHit(id=identifier, score=score, payload=payload))
+    return converted
 
-def query_similar(text: str, top_k: int = 3):
-    cache_key = (text, top_k)
-    if cache_key in QUERY_CACHE:
-        return QUERY_CACHE[cache_key]
-    vector = embed_text(text)
-    if not vector:
-        return []
-    try:
-        res = qdrant.search(
-            collection_name=COLLECTION_NAME, query_vector=vector, limit=top_k
-        )
-        QUERY_CACHE[cache_key] = res
-        return res
-    except Exception as e:
-        print(f"[ERROR] Qdrant search failed: {e}")
-        return []
 
-# Initialize collection on module import
-ensure_collection()
+def query_similar(text: str, top_k: int = 3) -> List[QdrantLikeHit]:
+    """Return similar trades in the legacy Qdrant response format."""
+
+    results = _local.query_similar(text, top_k)
+    return _convert(results)
+
+
+def batch_query_similar(texts: Sequence[str], top_k: int = 3) -> List[List[QdrantLikeHit]]:
+    """Batch variant mirroring the Qdrant API."""
+
+    batched_results = _local.batch_query_similar(list(texts), top_k)
+    return [_convert(batch) for batch in batched_results]
+
+
+def clear_cache() -> None:
+    """Expose cache clearing for compatibility."""
+
+    _local.clear_cache()
+
+
+def get_collection_stats() -> Dict[str, Any]:
+    """Fetch collection statistics from the local store."""
+
+    return _local.get_collection_stats()
+
+
+def reset_collection() -> None:
+    """Reset the underlying collection."""
+
+    _local.reset_collection()

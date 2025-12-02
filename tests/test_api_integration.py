@@ -14,13 +14,14 @@ from typing import Dict, Any, Tuple
 # Add project root to path
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 
-from env_config import load_config
+from core.config import config, load_config
 
 class APIIntegrationTester:
     """Comprehensive API integration testing with detailed diagnostics."""
     
     def __init__(self):
-        self.config = load_config()
+        load_config()
+        self.config = config
         self.results = {}
         self.print_config()
     
@@ -214,63 +215,6 @@ class APIIntegrationTester:
             print(f"  ❌ Embedding test failed: {error_msg}")
             return False, f"Embedding service error: {error_msg}", {'error': error_msg}
     
-    def test_twelvedata_api(self) -> Tuple[bool, str, Dict[str, Any]]:
-        """Test TwelveData API connectivity."""
-        print("📈 Testing TwelveData API...")
-        
-        api_key = os.environ.get('TWELVEDATA_API_KEY')
-        
-        if not api_key:
-            return False, "TWELVEDATA_API_KEY not configured", {}
-        
-        try:
-            # Test API usage endpoint (correct endpoint)
-            usage_url = "https://api.twelvedata.com/api_usage"
-            params = {'apikey': api_key}
-            
-            response = requests.get(usage_url, params=params, timeout=10)
-            
-            if response.status_code == 200:
-                usage_data = response.json()
-                print("  ✅ TwelveData API accessible")
-                print(f"  API Usage Data: {usage_data}")
-                
-                # Also test a simple stock price endpoint to verify functionality
-                try:
-                    price_url = "https://api.twelvedata.com/price"
-                    price_params = {'symbol': 'AAPL', 'apikey': api_key}
-                    price_response = requests.get(price_url, params=price_params, timeout=10)
-                    
-                    if price_response.status_code == 200:
-                        price_data = price_response.json()
-                        print(f"  ✅ Price endpoint test successful: AAPL = ${price_data.get('price', 'N/A')}")
-                        
-                        return True, "TwelveData API fully functional", {
-                            'api_usage': usage_data,
-                            'test_price_call': price_data,
-                            'endpoints_tested': ['api_usage', 'price']
-                        }
-                    else:
-                        return True, "TwelveData API accessible (usage endpoint only)", {
-                            'api_usage': usage_data,
-                            'price_endpoint_error': f"Status {price_response.status_code}",
-                            'endpoints_tested': ['api_usage']
-                        }
-                except Exception as price_error:
-                    return True, "TwelveData API accessible (usage endpoint only)", {
-                        'api_usage': usage_data,
-                        'price_endpoint_error': str(price_error),
-                        'endpoints_tested': ['api_usage']
-                    }
-                    
-            else:
-                return False, f"API usage check failed: {response.status_code}", {'error': response.text, 'status_code': response.status_code}
-                
-        except Exception as e:
-            error_msg = str(e)
-            print(f"  ❌ TwelveData test failed: {error_msg}")
-            return False, f"TwelveData API error: {error_msg}", {'error': error_msg}
-    
     def test_reddit_api(self) -> Tuple[bool, str, Dict[str, Any]]:
         """Test Reddit API connectivity."""
         print("🔴 Testing Reddit API...")
@@ -316,7 +260,6 @@ class APIIntegrationTester:
             ("Qdrant Vector Database", self.test_qdrant_connectivity),
             ("OpenAI/LLM Service", self.test_openai_llm_service),
             ("Embedding Service", self.test_embedding_service),
-            ("TwelveData API", self.test_twelvedata_api),
             ("Reddit API", self.test_reddit_api),
         ]
         

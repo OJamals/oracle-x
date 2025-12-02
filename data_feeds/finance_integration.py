@@ -29,6 +29,11 @@ except ImportError:
     FINANCE_DATABASE_AVAILABLE = False
     logging.warning("FinanceDatabase not available. Install with: pip install financedatabase")
 
+try:
+    from core.config import config as _core_config
+except Exception:
+    _core_config = None
+
 logger = logging.getLogger(__name__)
 
 # ============================================================================
@@ -124,7 +129,12 @@ class FinanceToolkitAdapter:
             return
         
         # Check for API key (FMP is recommended for full functionality)
-        self.api_key = os.getenv('FMP_API_KEY')
+        config_data = getattr(_core_config, 'data_feeds', None)
+        self.api_key = (
+            os.getenv('FINANCIALMODELINGPREP_API_KEY')
+            or os.getenv('FMP_API_KEY')
+            or (getattr(config_data, 'financial_modeling_prep_api_key', None) if config_data else None)
+        )
         if not self.api_key:
             logger.info("No FMP API key found. FinanceToolkit will use free data sources with limitations")
     

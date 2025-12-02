@@ -13,11 +13,23 @@ except ImportError:
         """Fallback to standard requests if optimized client unavailable"""
         return requests.get(url, **kwargs)
 
+# Ticker validator import with fallback
+try:
+    from optimizations.ticker_validator import validate_tickers
+    TICKER_VALIDATION_ENABLED = True
+except ImportError:
+    TICKER_VALIDATION_ENABLED = False
+    def validate_tickers(tickers):
+        """Fallback: no validation"""
+        return tickers
+
 def fetch_ticker_universe(source="finviz", sample_size=20, static_list=None):
     """
     Fetch a diverse list of active tickers from a public source (default: Finviz Screener).
     Optionally merge with a static list and sample a subset.
     Returns a list of tickers (strings).
+    
+    Now includes intelligent validation to filter out delisted/invalid tickers.
     """
     tickers = set()
     if static_list:
@@ -27,10 +39,23 @@ def fetch_ticker_universe(source="finviz", sample_size=20, static_list=None):
     # Fallback: add some well-known tickers if none found
     if not tickers:
         tickers.update(["AAPL", "TSLA", "MSFT", "GOOG", "AMZN", "NVDA", "AMD", "META", "NFLX", "SPY"])
-    # Sample a diverse subset
+    
+    # Convert to list for processing
     tickers = list(tickers)
+    
+    # OPTIMIZATION: Validate tickers before sampling (filters invalid/delisted)
+    if TICKER_VALIDATION_ENABLED:
+        # Get more tickers than needed to account for invalid ones
+        initial_count = len(tickers)
+        tickers = validate_tickers(tickers)
+        filtered_count = initial_count - len(tickers)
+        if filtered_count > 0:
+            print(f"[OPTIMIZATION] Filtered {filtered_count} invalid tickers, {len(tickers)} valid remaining")
+    
+    # Sample a diverse subset
     if len(tickers) > sample_size:
         tickers = random.sample(tickers, sample_size)
+    
     return tickers
 
 

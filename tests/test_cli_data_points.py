@@ -89,7 +89,6 @@ TEST_CASES = [
 
 # Optional adapter markers
 OPTIONAL_ADAPTERS = {
-    "twelve_data": "TWELVEDATA_API_KEY",
     "fmp": "FINANCIALMODELINGPREP_API_KEY",
     "finnhub": "FINNHUB_API_KEY",
     "stockdex": "STOCKDEX_API_KEY"
@@ -601,12 +600,11 @@ def test_optional_adapters(test_case):
     """Test optional adapter functionality"""
     # Check if required API keys are available
     adapter_key = None
-    if "twelve" in test_case["name"].lower():
-        adapter_key = "TWELVEDATA_API_KEY"
-    elif "fmp" in test_case["name"].lower():
-        adapter_key = "FINANCIALMODELINGPREP_API_KEY"
-    elif "finnhub" in test_case["name"].lower():
-        adapter_key = "FINNHUB_API_KEY"
+    test_name = test_case["name"].lower()
+    for adapter, env_var in OPTIONAL_ADAPTERS.items():
+        if adapter in test_name:
+            adapter_key = env_var
+            break
     
     if adapter_key and not os.getenv(adapter_key):
         pytest.skip(f"Skipping {test_case['name']} - {adapter_key} not set")
