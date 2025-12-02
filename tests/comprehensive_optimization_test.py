@@ -39,7 +39,7 @@ from core.optimized_pandas import (
     process_large_csv
 )
 
-from data_feeds.cache_service import CacheService
+from data_feeds.cache.cache_service import CacheService
 from oracle_engine.optimized_ml_engine import (
     OptimizedMLPredictionEngine,
     ModelConfig,

@@ -26,7 +26,7 @@ def test_enhanced_training():
         # Import components
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         from examples.enhanced_ml_training import create_enhanced_training_wrapper
         
         print("\n📦 INITIALIZING COMPONENTS")

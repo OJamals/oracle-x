@@ -9,7 +9,7 @@ This package contains optimization modules for improving pipeline performance:
 Usage:
     from optimizations.ticker_validator import validate_tickers
     from optimizations.smart_rate_limiter import get_rate_limiter
-    from optimizations.request_cache import get_request_cache
+    from data_feeds.cache.request_cache import get_request_cache
 """
 
 __version__ = "1.0.0"

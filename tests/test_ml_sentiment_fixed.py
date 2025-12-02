@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 # Import our modules
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator, DataSource
-from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+from sentiment.sentiment_engine import AdvancedSentimentEngine
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine, PredictionType
 
 def test_ml_training_with_sentiment():

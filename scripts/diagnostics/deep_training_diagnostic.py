@@ -23,7 +23,7 @@ def diagnose_feature_engineering():
     try:
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine, PredictionType
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         
         # Initialize components
         orchestrator = DataFeedOrchestrator()
@@ -147,7 +147,7 @@ def diagnose_model_training(features_df):
     try:
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine, PredictionType
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         
         # Initialize components
         orchestrator = DataFeedOrchestrator()

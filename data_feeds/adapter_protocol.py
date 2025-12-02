@@ -21,7 +21,7 @@ from pandas import DataFrame
 
 # Reuse shared dataclasses and types where applicable
 from data_feeds.consolidated_data_feed import Quote, CompanyInfo, NewsItem  # type: ignore
-from data_feeds.data_feed_orchestrator import MarketData  # type: ignore
+from data_feeds.data_types import MarketData  # type: ignore
 
 
 @runtime_checkable

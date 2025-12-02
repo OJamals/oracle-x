@@ -152,7 +152,7 @@ def test_parallel_sentiment_processing():
     try:
         # Test advanced sentiment engine initialization
         try:
-            from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+            from sentiment.sentiment_engine import AdvancedSentimentEngine
             sentiment_engine = AdvancedSentimentEngine()
             logger.info("AdvancedSentimentEngine initialized successfully")
             
@@ -182,7 +182,7 @@ def test_parallel_sentiment_processing():
 def test_intelligent_caching_strategy():
     """Test 5: Intelligent caching strategy with fixed method signature"""
     try:
-        from data_feeds.cache_service import CacheService
+        from data_feeds.cache.cache_service import CacheService
         
         # Initialize cache service
         cache = CacheService()

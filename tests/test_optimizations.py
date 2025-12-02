@@ -168,12 +168,12 @@ class OptimizationTestSuite:
     
     def test_request_cache_import(self):
         """Test: Request cache module can be imported"""
-        from optimizations.request_cache import RequestCache, get_request_cache
+        from data_feeds.cache.request_cache import RequestCache, get_request_cache
         return True, "Module imported successfully"
     
     def test_request_cache_basic(self):
         """Test: Request cache stores and retrieves data"""
-        from optimizations.request_cache import RequestCache
+        from data_feeds.cache.request_cache import RequestCache
         
         cache = RequestCache()
         
@@ -194,7 +194,7 @@ class OptimizationTestSuite:
     
     def test_request_cache_ttl(self):
         """Test: Request cache respects TTL"""
-        from optimizations.request_cache import TimedLRUCache
+        from data_feeds.cache.request_cache import TimedLRUCache
         
         cache = TimedLRUCache(maxsize=10, ttl_seconds=1)
         

@@ -16,7 +16,7 @@ from oracle_engine.ensemble_ml_engine import (
     create_prediction_engine
 )
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+from sentiment.sentiment_engine import AdvancedSentimentEngine
 
 # Configure logging to show only important messages
 logging.basicConfig(level=logging.ERROR)

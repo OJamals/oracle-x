@@ -133,7 +133,7 @@ def test_individual_components():
     print("=" * 50)
     
     try:
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine, analyze_text_sentiment
+        from sentiment.sentiment_engine import AdvancedSentimentEngine, analyze_text_sentiment
         
         engine = AdvancedSentimentEngine()
         

@@ -42,25 +42,27 @@ except ImportError:
         return requests.get(url, **kwargs)
 
 from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
-from data_feeds.finviz_adapter import FinVizAdapter  # New import
+from data_feeds.sources.finviz_adapter import FinVizAdapter  # New import
+from data_feeds.sources.news_adapter import NewsAdapter  # Unified news adapter
 from data_feeds.fallback_manager import FallbackManager, FallbackConfig, FallbackReason  # New import for intelligent fallback
 # Delegate models and feed for consolidation parity
 from data_feeds.consolidated_data_feed import ConsolidatedDataFeed, CompanyInfo, NewsItem  # absolute imports as required (avoid Quote name clash)
+from data_feeds.data_types import DataSource, DataQuality, Quote, MarketData, SentimentData, DataQualityMetrics  # Shared dataclasses
 from dotenv import load_dotenv
 from data_feeds.twitter_feed import TwitterSentimentFeed  # New import
-from data_feeds.redis_cache_manager import get_redis_cache_manager, RedisCacheManager  # Redis cache manager
+from data_feeds.cache.redis_cache_manager import get_redis_cache_manager, RedisCacheManager  # Redis cache manager
 
 # Optional cache services; guard imports so missing dependencies (e.g., schedule) do not break orchestrator
 try:
-    from data_feeds.cache_invalidation_service import get_cache_invalidation_service  # type: ignore
+    from data_feeds.cache.cache_invalidation_service import get_cache_invalidation_service  # type: ignore
 except Exception:
     get_cache_invalidation_service = None  # type: ignore
 
 try:
-    from data_feeds.cache_warming_service import get_cache_warming_service  # type: ignore
+    from data_feeds.cache.cache_warming_service import get_cache_warming_service  # type: ignore
 except Exception:
     get_cache_warming_service = None  # type: ignore
-from data_feeds.cache_service import CacheService  # SQLite-backed cache
+from data_feeds.cache.cache_service import CacheService  # SQLite-backed cache
 # Optional Investiny compact formatter
 try:
     from data_feeds.investiny_adapter import format_daily_oc as investiny_format_daily_oc
@@ -228,73 +230,6 @@ def _log_error_and_record(perf: 'PerformanceTracker', source: str, msg: str, exc
 # ============================================================================
 # Core Data Models
 # ============================================================================
-
-class DataSource(Enum):
-    """Available data sources in priority order"""
-    YFINANCE = "yfinance"
-    FINNHUB = "finnhub"
-    IEX_CLOUD = "iex_cloud"
-    REDDIT = "reddit"
-    TWITTER = "twitter"
-    GOOGLE_TRENDS = "google_trends"
-    YAHOO_NEWS = "yahoo_news"
-    FRED = "fred"
-    SEC_EDGAR = "sec_edgar"
-    TWELVE_DATA = "twelve_data"  # Deprecated (legacy placeholder)
-    FINVIZ = "finviz"
-
-class DataQuality(Enum):
-    """Data quality levels"""
-    EXCELLENT = "excellent"  # 95-100% quality score
-    GOOD = "good"           # 80-94% quality score
-    FAIR = "fair"           # 60-79% quality score
-    POOR = "poor"           # 40-59% quality score
-    UNUSABLE = "unusable"   # <40% quality score
-
-@dataclass
-class Quote:
-    symbol: str
-    price: Optional[Decimal]
-    change: Optional[Decimal]
-    change_percent: Optional[Decimal]
-    volume: Optional[int]
-    market_cap: Optional[int] = None
-    pe_ratio: Optional[Decimal] = None
-    day_low: Optional[Decimal] = None
-    day_high: Optional[Decimal] = None
-    year_low: Optional[Decimal] = None
-    year_high: Optional[Decimal] = None
-    timestamp: Optional[datetime] = None
-    source: Optional[str] = None
-    quality_score: Optional[float] = None
-
-@dataclass
-class MarketData:
-    symbol: str
-    data: pd.DataFrame
-    timeframe: str
-    source: str
-    timestamp: datetime
-    quality_score: float
-
-@dataclass
-class SentimentData:
-    symbol: str
-    sentiment_score: float  # -1 to 1
-    confidence: float      # 0 to 1
-    source: str
-    timestamp: datetime
-    sample_size: Optional[int] = None
-    raw_data: Optional[Dict] = None
-
-@dataclass
-class DataQualityMetrics:
-    source: str
-    quality_score: float
-    latency_ms: float
-    success_rate: float
-    last_updated: datetime
-    issues: List[str]
 
 # ============================================================================
 # Data Quality Framework
@@ -886,85 +821,6 @@ class RedditAdapter:
             _log_error_and_record(self.performance_tracker, self.source.value, f"Reddit sentiment error for {symbol}", e)
             return None
 
-class YahooNewsSentimentAdapter:
-    """Derive lightweight sentiment signal from latest Yahoo Finance headlines.
-    Uses existing free scraper (news_scraper.fetch_headlines_yahoo_finance) and VADER.
-    Cached briefly; provides aggregate sentiment + sample headlines for advanced engine.
-    """
-    def __init__(self, cache: SmartCache, rate_limiter: RateLimiter, performance_tracker: PerformanceTracker):
-        self.cache = cache
-        self.rate_limiter = rate_limiter
-        self.performance_tracker = performance_tracker
-        self.source = DataSource.YAHOO_NEWS
-        self.ttl_seconds = 600  # 10 minutes
-
-    def get_sentiment(self, symbol: str, limit: int = 40) -> Optional[SentimentData]:
-        cache_key = f"yahoo_news_sentiment_{symbol.upper()}"
-        cached = self.cache.get(cache_key, "sentiment")
-        if cached:
-            return cached
-        # Rate limiting at source granularity
-        if not self.rate_limiter.wait_if_needed(self.source):
-            return None
-        start_time = time.time()
-        try:
-            from data_feeds.news_scraper import fetch_headlines_yahoo_finance
-            from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-        except Exception as e:
-            logger.warning(f"YahooNewsSentiment dependencies missing: {e}")
-            return None
-        try:
-            headlines = fetch_headlines_yahoo_finance()
-            if not headlines:
-                return None
-            # Basic relevance filter: keep headlines containing the symbol uppercase or preceded by $ (e.g. $AAPL)
-            sym = symbol.upper()
-            filtered = [h for h in headlines if isinstance(h, str) and (f" {sym} " in f" {h.upper()} " or f"${sym}" in h.upper())]
-            # Fallback to top N if no direct matches (broad market sentiment still useful)
-            if not filtered:
-                filtered = [h for h in headlines if isinstance(h, str)][:limit]
-            analyzer = SentimentIntensityAnalyzer()
-            scores = []
-            indiv = []
-            texts = []
-            for h in filtered[:limit]:
-                try:
-                    vs = analyzer.polarity_scores(h)
-                    comp = vs.get('compound', 0.0)
-                    scores.append(comp)
-                    indiv.append({'headline': h[:180], 'compound': comp})
-                    texts.append(h[:160])
-                except Exception:
-                    continue
-            if not scores:
-                return None
-            avg = float(sum(scores)/len(scores))
-            # Confidence: dispersion + sample size (simple heuristic)
-            variance = sum((s-avg)**2 for s in scores)/len(scores) if len(scores) else 0.0
-            dispersion_penalty = min(0.6, variance)  # cap penalty
-            size_factor = min(1.0, len(scores)/20.0)
-            confidence = max(0.1, min(0.95, 0.5*size_factor + 0.5*(1.0 - dispersion_penalty)))
-            quality_score = (confidence * 0.6 + size_factor * 0.4) * 100
-            sentiment_data = SentimentData(
-                symbol=symbol,
-                sentiment_score=avg,
-                confidence=confidence,
-                source=self.source.value,
-                timestamp=datetime.now(),
-                sample_size=len(scores),
-                raw_data={
-                    'sample_texts': texts[:5],
-                    'individual_headline_scores': indiv[:10],
-                    'variance': variance,
-                }
-            )
-            self.performance_tracker.record_success(self.source.value, (time.time()-start_time)*1000, quality_score)
-            self.cache.set(cache_key, sentiment_data, 'sentiment', quality_score)
-            return sentiment_data
-        except Exception as e:
-            _log_error_and_record(self.performance_tracker, self.source.value, f"Yahoo news sentiment failed for {symbol}", e)
-            return None
-
 class FinVizNewsSentimentAdapter:
     """Generate sentiment from FinViz aggregated news DataFrame (if available)."""
     def __init__(self, cache: SmartCache, rate_limiter: RateLimiter, performance_tracker: PerformanceTracker):
@@ -1225,76 +1081,6 @@ class TwitterAdapter:
             _log_error_and_record(self.performance_tracker, self.source.value, f"Failed to fetch Twitter sentiment for {symbol}", e)
             return None
 
-class AdvancedSentimentAdapter:
-    """Advanced multi-model sentiment analysis adapter"""
-    
-    def __init__(self, cache: SmartCache, rate_limiter: RateLimiter, performance_tracker: PerformanceTracker):
-        self.cache = cache
-        self.rate_limiter = rate_limiter
-        self.performance_tracker = performance_tracker
-        self.source = DataSource.REDDIT  # Uses same source but enhanced processing
-        
-        # Lazy load the advanced sentiment engine
-        self._engine = None
-    
-    def get_sentiment(self, symbol: str, texts: Optional[List[str]] = None, sources: Optional[List[str]] = None) -> Optional[SentimentData]:
-        logger.debug(f"get_advanced_sentiment_data called for symbol={symbol}, texts={texts}, sources={sources}")
-        """Get advanced sentiment analysis using multi-model ensemble"""
-        cache_key = f"advanced_sentiment_{symbol}"
-        cached_data = self.cache.get(cache_key, "sentiment")
-        if cached_data:
-            return cached_data
-        
-        if not texts:
-            # No texts provided - can't analyze
-            return None
-        
-        start_time = time.time()
-        try:
-            # Lazy load the engine
-            if self._engine is None:
-                from sentiment.sentiment_engine import get_sentiment_engine
-                self._engine = get_sentiment_engine()
-            
-            # Analyze sentiment with advanced engine
-            summary = self._engine.get_symbol_sentiment_summary(symbol, texts, sources if sources is not None else None)
-            
-            # Convert to SentimentData format
-            sentiment_data = SentimentData(
-                symbol=symbol,
-                sentiment_score=summary.overall_sentiment,
-                confidence=summary.confidence,
-                source="advanced_sentiment",
-                timestamp=summary.timestamp,
-                sample_size=summary.sample_size,
-                raw_data={
-                    'bullish_mentions': summary.bullish_mentions,
-                    'bearish_mentions': summary.bearish_mentions,
-                    'neutral_mentions': summary.neutral_mentions,
-                    'trending_direction': summary.trending_direction,
-                    'quality_score': summary.quality_score,
-                    'ensemble_score': summary.overall_sentiment,
-                    'confidence': summary.confidence,
-                    'sample_size': summary.sample_size
-                }
-            )
-            
-            quality_score = summary.quality_score
-            
-            # Track performance
-            response_time = (time.time() - start_time) * 1000
-            self.performance_tracker.record_success("advanced_sentiment", response_time, quality_score)
-            
-            # Cache the result
-            self.cache.set(cache_key, sentiment_data, "sentiment", quality_score)
-            
-            return sentiment_data
-            
-        except Exception as e:
-            self.performance_tracker.record_error("advanced_sentiment", str(e))
-            logger.error(f"Advanced sentiment error for {symbol}: {e}")
-            return None
-
 # ============================================================================
 # Main DataFeedOrchestrator Class
 # ============================================================================
@@ -1376,11 +1162,13 @@ class DataFeedOrchestrator:
         self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
         
         # Initialize data source adapters
+        news_adapter = NewsAdapter(self.cache, self.rate_limiter, self.performance_tracker)
         self.adapters = {
             DataSource.YFINANCE: YFinanceAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.REDDIT: RedditAdapter(self.cache, self.rate_limiter, self.performance_tracker),
             DataSource.TWITTER: TwitterAdapter(self.cache, self.rate_limiter, self.performance_tracker),
-            DataSource.YAHOO_NEWS: YahooNewsSentimentAdapter(self.cache, self.rate_limiter, self.performance_tracker),
+            DataSource.YAHOO_NEWS: news_adapter,
+            DataSource.NEWS: news_adapter,
             DataSource.FINVIZ: FinVizAdapter(),
         }
         # Attempt to add FinVizNewsSentimentAdapter using existing FINVIZ headlines if available
@@ -1406,11 +1194,6 @@ class DataFeedOrchestrator:
                     _a.adapters_ref = self.adapters
             except Exception:
                 pass
-        
-        # Initialize advanced sentiment adapter
-        self.advanced_sentiment_adapter = AdvancedSentimentAdapter(
-            self.cache, self.rate_limiter, self.performance_tracker
-        )
         
         # Quality thresholds
         self.min_quality_score = 60.0
@@ -2683,7 +2466,7 @@ class DataFeedOrchestrator:
         # Exclude FinViz from default sentiment sources as it doesn't implement get_sentiment
         if sources is None:
             logger.debug("No sources provided, using default sentiment sources.")
-        ordered = sources if sources else [DataSource.REDDIT, DataSource.TWITTER, DataSource.YAHOO_NEWS]
+        ordered = sources if sources else [DataSource.REDDIT, DataSource.TWITTER, DataSource.NEWS]
         timings['ordered_list'] = time.time() - step_start
 
         for source in ordered:
@@ -2744,180 +2527,11 @@ class DataFeedOrchestrator:
         return sorted(set(out))
     
     def get_advanced_sentiment_data(self, symbol: str, texts: Optional[List[str]] = None, sources: Optional[List[str]] = None) -> Optional[SentimentData]:
-        logger.debug(f"get_advanced_sentiment_data called for symbol={symbol}, texts={texts}, sources={sources}")
-        """Aggregate multi-source textual signals then run advanced sentiment ensemble.
+        """Advanced sentiment has been deprecated; returns None for compatibility."""
+        logger.info("Advanced sentiment analysis is disabled; returning None")
+        return None
 
-        Sources considered: Reddit, Twitter, Yahoo headlines scraper, FinViz news, YahooNewsSentimentAdapter sample texts, RSS (if enabled).
-        Caps & truncation are applied to control token counts and cost.
-        """
-        step_start = time.time()
-        timings: Dict[str, float] = {}
 
-        # If user provided texts, time the advanced sentiment call and return
-        if texts:  # User supplied explicit corpus
-            adv_start = time.time()
-            adv = self.advanced_sentiment_adapter.get_sentiment(symbol, texts, sources if sources else None)
-            timings['advanced_sentiment_compute'] = time.time() - adv_start
-            timings['total'] = time.time() - step_start
-            logger.info(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
-            print(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
-            return adv
-
-        try:
-            max_per = int(os.getenv("ADVANCED_SENTIMENT_MAX_PER_SOURCE", "300"))
-        except Exception:
-            max_per = 300
-        truncate_len = 256
-
-        aggregated: List[str] = []
-        counts: Dict[str, int] = {}
-
-        # Reddit (use existing sentiment map)
-        try:
-            sub_start = time.time()
-            s_map = self.get_sentiment_data(symbol)
-            timings['fetch_sentiment_map'] = time.time() - sub_start
-            rd = s_map.get(DataSource.REDDIT.value) if s_map else None
-            if rd and isinstance(rd.raw_data, dict):
-                rtexts = rd.raw_data.get("sample_texts") or []
-                red = [ (t[:truncate_len] + "…") if isinstance(t,str) and len(t) > truncate_len else t for t in rtexts if isinstance(t,str)][:max_per]
-                aggregated.extend(red)
-                counts['reddit'] = len(red)
-        except Exception as e:
-            logger.debug(f"Reddit aggregation failed: {e}")
-            timings['error_reddit'] = 0.0
-
-        # Twitter
-        try:
-            sub_start = time.time()
-            tw_adapter = self.adapters.get(DataSource.TWITTER)
-            if tw_adapter and hasattr(tw_adapter, 'get_sentiment'):
-                tw_sent = tw_adapter.get_sentiment(symbol, limit=max_per)
-                timings['fetch_twitter'] = time.time() - sub_start
-                if tw_sent and isinstance(tw_sent.raw_data, dict):
-                    tweets = tw_sent.raw_data.get('tweets') or []
-                    tw_texts: List[str] = []
-                    for tw in tweets[:max_per]:
-                        txt = tw.get('text') if isinstance(tw, dict) else None
-                        if isinstance(txt, str) and txt:
-                            if len(txt) > truncate_len:
-                                txt = txt[:truncate_len] + "…"
-                            tw_texts.append(txt)
-                    aggregated.extend(tw_texts)
-                    counts['twitter'] = len(tw_texts)
-            else:
-                timings['fetch_twitter'] = time.time() - sub_start
-        except Exception as e:
-            logger.debug(f"Twitter aggregation failed: {e}")
-            timings['error_twitter'] = 0.0
-
-        # News (Yahoo scraper + FinViz + YahooNewsSentimentAdapter sample texts)
-        news: List[str] = []
-        try:
-            sub_start = time.time()
-            from data_feeds.news_scraper import fetch_headlines_yahoo_finance
-            yh_list = fetch_headlines_yahoo_finance()
-            timings['fetch_yahoo_headlines'] = time.time() - sub_start
-            if isinstance(yh_list, list):
-                news.extend([h for h in yh_list if isinstance(h,str)])
-        except Exception:
-            pass
-        try:
-            finviz_adapter = self.adapters.get(DataSource.FINVIZ)
-            if finviz_adapter and hasattr(finviz_adapter, 'get_news'):
-                finviz_news = finviz_adapter.get_news()
-                if isinstance(finviz_news, dict):
-                    df_news = finviz_news.get('news')
-                    if df_news is None:
-                        df_news = finviz_news.get('headlines')
-                    try:
-                        import pandas as pd  # type: ignore
-                        if isinstance(df_news, pd.DataFrame) and not df_news.empty:
-                            col = None
-                            for cand in ['Title','title','Headline','headline']:
-                                if cand in df_news.columns:
-                                    col = cand
-                                    break
-                            if col:
-                                for v in list(df_news[col].tolist())[:max_per]:
-                                    if isinstance(v,str) and v.strip():
-                                        news.append(v.strip())
-                    except Exception:
-                        pass
-        except Exception:
-            pass
-        try:
-            yn_adapter = self.adapters.get(DataSource.YAHOO_NEWS)
-            if yn_adapter and hasattr(yn_adapter,'get_sentiment'):
-                yn_sent = yn_adapter.get_sentiment(symbol)
-                if yn_sent and isinstance(yn_sent.raw_data, dict):
-                    for h in yn_sent.raw_data.get('sample_texts', [])[:max_per]:
-                        if isinstance(h,str):
-                            news.append(h)
-        except Exception:
-            pass
-        # RSS adapter sample texts (if exists)
-        try:
-            rss_adapter = self.adapters.get(('RSS','rss_news'))  # type: ignore
-            if rss_adapter and hasattr(rss_adapter,'get_sentiment'):
-                rss_sent = rss_adapter.get_sentiment(symbol)
-                if rss_sent and isinstance(rss_sent.raw_data, dict):
-                    for h in rss_sent.raw_data.get('sample_texts', [])[:max_per]:
-                        if isinstance(h,str):
-                            news.append(h)
-        except Exception:
-            pass
-
-        if news:
-            norm_news: List[str] = []
-            for n in news:
-                if not isinstance(n,str):
-                    continue
-                s = n.strip()
-                if not s:
-                    continue
-                if len(s) > truncate_len:
-                    s = s[:truncate_len] + "…"
-                norm_news.append(s)
-            slice_news = norm_news[:max_per]
-            aggregated.extend(slice_news)
-            counts['news'] = len(slice_news)
-
-        # Deduplicate
-        if aggregated:
-            seen = set()
-            deduped: List[str] = []
-            for txt in aggregated:
-                if not isinstance(txt,str):
-                    continue
-                k = txt.strip()
-                if not k or k in seen:
-                    continue
-                seen.add(k)
-                deduped.append(k)
-            aggregated = deduped
-            counts['total_unique'] = len(aggregated)
-
-        aggregated = aggregated[: max_per * 3]
-        if not aggregated:
-            timings['total'] = time.time() - step_start
-            logger.info(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
-            return None
-
-        # Run the advanced sentiment ensemble and time it
-        adv_start = time.time()
-        adv = self.advanced_sentiment_adapter.get_sentiment(symbol, aggregated, None)
-        timings['advanced_sentiment_compute'] = time.time() - adv_start
-        timings['total'] = time.time() - step_start
-        logger.info(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
-        print(f"[TIMING][oracle_agent_pipeline][get_advanced_sentiment_data] {timings}")
-
-        if adv:
-            if adv.raw_data is None:
-                adv.raw_data = {}
-            adv.raw_data['aggregated_counts'] = counts
-        return adv
-    
     def _init_standard_adapters(self) -> None:
         """
         Create standardized adapter wrappers using orchestrator-owned cache, rate limiter,
@@ -3657,10 +3271,6 @@ def get_market_data(symbol: str, period: str = "1y", interval: str = "1d") -> Op
 def get_sentiment_data(symbol: str) -> Dict[str, SentimentData]:
     """Get sentiment data (unified interface)"""
     return get_orchestrator().get_sentiment_data(symbol)
-
-def get_advanced_sentiment(symbol: str, texts: Optional[List[str]] = None, sources: Optional[List[str]] = None) -> Optional[SentimentData]:
-    """Get advanced multi-model sentiment analysis for a symbol"""
-    return get_orchestrator().get_advanced_sentiment_data(symbol, texts, sources)
 
 def get_system_health() -> Dict[str, Any]:
     """Get system health report (unified interface)"""

@@ -124,7 +124,7 @@ class SafeSentimentProcessor:
                 
                 try:
                     # Use the correct sentiment analysis function
-                    from data_feeds.advanced_sentiment import analyze_symbol_sentiment
+                    from sentiment.sentiment_engine import analyze_symbol_sentiment
                     batch_sentiment = analyze_symbol_sentiment(symbol, batch_texts, batch_sources)
                     
                     if batch_sentiment:

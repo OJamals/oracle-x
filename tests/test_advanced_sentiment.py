@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(level
 logging.getLogger('httpx').setLevel(logging.WARNING)  # Suppress verbose URL logs
 logging.getLogger('twscrape').setLevel(logging.WARNING)  # Suppress Twitter warnings
 
-from data_feeds.advanced_sentiment import (
+from sentiment.sentiment_engine import (
     get_sentiment_engine, 
     analyze_symbol_sentiment, 
     analyze_text_sentiment

@@ -32,7 +32,7 @@ from core.optimized_pandas import (
     efficient_groupby
 )
 
-from data_feeds.cache_service import CacheService
+from data_feeds.cache.cache_service import CacheService
 
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')

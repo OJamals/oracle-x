@@ -86,7 +86,7 @@ def main():
         from data_feeds.options_prediction_model import OptionsPredictionModel
         from data_feeds.options_valuation_engine import OptionContract, OptionType
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
         
         print('Creating direct ML prediction for AAPL...')

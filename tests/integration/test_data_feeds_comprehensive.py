@@ -196,7 +196,7 @@ def test_adapter_wrappers():
             FinnhubAdapterWrapper,
             FinanceDatabaseAdapterWrapper
         )
-        from data_feeds.cache_service import CacheService
+        from data_feeds.cache.cache_service import CacheService
         
         # Local mock classes
         class LocalMockRateLimiter:
@@ -366,7 +366,7 @@ def test_adapter_wrappers():
         
     try:
         from data_feeds.twitter_adapter import TwitterAdapter
-        from data_feeds.cache_service import CacheService
+        from data_feeds.cache.cache_service import CacheService
         
         # Mock cache and rate limiter for testing
         cache = CacheService()

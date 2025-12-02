@@ -25,7 +25,7 @@ def test_fixed_training():
         
         # Import required components with correct paths
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         print("✅ Successfully imported all dependencies")
         
         # Initialize components

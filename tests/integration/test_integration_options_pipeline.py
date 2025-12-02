@@ -35,7 +35,7 @@ from oracle_options_pipeline import (
     PipelineResult
 )
 
-from data_feeds.options_valuation_engine import (
+from data_feeds.sources.options_valuation_engine import (
     OptionsValuationEngine,
     OptionContract,
     OptionType,
@@ -44,7 +44,7 @@ from data_feeds.options_valuation_engine import (
     create_valuation_engine
 )
 
-from data_feeds.options_prediction_model import (
+from data_feeds.sources.options_prediction_model import (
     OptionsPredictionModel,
     FeatureEngineering,
     SignalAggregator,

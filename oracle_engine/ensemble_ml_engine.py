@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Import our components
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+from sentiment.sentiment_engine import AdvancedSentimentEngine
 
 # Memory-efficient processing import with fallback
 try:

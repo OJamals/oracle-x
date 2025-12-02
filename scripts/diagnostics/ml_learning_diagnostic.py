@@ -59,7 +59,7 @@ def test_ml_engine_initialization():
     try:
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         
         # Initialize required dependencies
         orchestrator = DataFeedOrchestrator()
@@ -139,7 +139,7 @@ def test_model_training():
     try:
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         
         # Initialize engine
         orchestrator = DataFeedOrchestrator()
@@ -184,7 +184,7 @@ def test_prediction_pipeline():
     try:
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine, PredictionType
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         
         # Initialize and train engine
         orchestrator = DataFeedOrchestrator()
@@ -212,7 +212,7 @@ def test_prediction_pipeline():
 def test_sentiment_integration():
     """Test sentiment data integration with ML pipeline"""
     try:
-        from data_feeds.advanced_sentiment import analyze_symbol_sentiment
+        from sentiment.sentiment_engine import analyze_symbol_sentiment
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
         
         # Initialize orchestrator for getting sentiment data
@@ -283,7 +283,7 @@ def analyze_learning_capabilities():
         # Check for ensemble capabilities
         from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
         from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-        from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+        from sentiment.sentiment_engine import AdvancedSentimentEngine
         
         try:
             orchestrator = DataFeedOrchestrator()

@@ -18,7 +18,7 @@ import pandas as pd
 from decimal import Decimal
 
 # Import existing options math functionality
-from data_feeds.options_math import (
+from data_feeds.sources.options_math import (
     bs_price, bs_greeks, implied_vol, bs_d1, bs_d2
 )
 

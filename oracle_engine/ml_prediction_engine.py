@@ -83,7 +83,7 @@ except ImportError:
 
 # Import our components
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+from sentiment.sentiment_engine import AdvancedSentimentEngine
 
 logger = logging.getLogger(__name__)
 

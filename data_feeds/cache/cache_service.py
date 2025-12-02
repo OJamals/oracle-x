@@ -3,7 +3,7 @@ SQLite-backed cache service with auto-migration and TTL support.
 Stores small/medium payloads inline as JSON; large payloads can be stored on disk with a URI pointer.
 
 Usage:
-  from data_feeds.cache_service import CacheService, CacheEntry
+  from data_feeds.cache.cache_service import CacheService, CacheEntry
   key = cache.make_key("google_trends", {"keywords": ["AAPL","MSFT"], "geo":"US", "timeframe":"now 7-d"})
   entry = cache.get(key)
   if entry and not entry.is_expired():

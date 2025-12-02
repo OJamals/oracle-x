@@ -9,14 +9,5 @@ Free, open-source scraping sources for market and financial data:
 - News scraping: headlines, sentiment (newspaper3k, requests, bs4)
 """
 
-from data_feeds.investiny_adapter import (
-    search_investing_id,
-    fetch_historical_by_id,
-    get_history,
-)
-
-__all__ = [
-    "search_investing_id",
-    "fetch_historical_by_id",
-    "get_history",
-]
+# Package exports - add as needed
+__all__ = []
