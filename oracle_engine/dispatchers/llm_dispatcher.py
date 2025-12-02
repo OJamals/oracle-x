@@ -13,12 +13,17 @@ import functools
 import hashlib
 import json
 import logging
+import os
 import time
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 
+from litellm import acompletion
+from tenacity import retry, stop_after_attempt, wait_exponential
+
 from core.config import config
 from core.unified_cache_manager import cache_manager
+from data_feeds.cache.request_cache import get_request_cache
 from oracle_engine.llm_client import get_llm_client
 from oracle_engine.model_attempt_logger import log_attempt
 
@@ -280,12 +285,3 @@ def call_llm(*args: Any, **kwargs: Any) -> str:
     """Legacy function that returns content string directly."""
     result = dispatch_chat(*args, **kwargs)
     return result.content
-
-
-__all__ = [
-    "LLMDispatchResult",
-    "dispatch_chat",
-    "dispatch_chat_async",
-    "LLMDispatcher",
-    "call_llm",
-]
