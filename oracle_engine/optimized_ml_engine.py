@@ -6,38 +6,36 @@ Targets: 2-3x faster inference, 50% smaller models
 """
 
 import logging
+import warnings
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any, Union, Callable
-from dataclasses import dataclass, field
-from enum import Enum
-import warnings
 
 warnings.filterwarnings("ignore")
 
-import pickle
-import json
-import threading
-import time
-from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from abc import ABC, abstractmethod
 import hashlib
+import json
 import mmap
 import os
+import pickle
+import threading
+import time
+from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 
 # ML libraries with fallbacks
 try:
     import sklearn
-    from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-    from sklearn.model_selection import train_test_split, cross_val_score
-    from sklearn.preprocessing import StandardScaler, LabelEncoder
-    from sklearn.metrics import (
-        mean_squared_error,
-        accuracy_score,
-        classification_report,
-    )
+    from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+    from sklearn.metrics import (accuracy_score, classification_report,
+                                 mean_squared_error)
+    from sklearn.model_selection import cross_val_score, train_test_split
+    from sklearn.preprocessing import LabelEncoder, StandardScaler
 
     SKLEARN_AVAILABLE = True
 except ImportError:

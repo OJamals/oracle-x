@@ -1,11 +1,7 @@
-from oracle_engine.chains.prompt_chain import (
-    get_signals_from_scrapers,
-    pull_similar_scenarios,
-    adjust_scenario_tree_with_boost,
-    batch_adjust_scenario_trees_with_boost,
-    generate_final_playbook,
-)
 from core.config import config
+from oracle_engine.chains.prompt_chain import (
+    adjust_scenario_tree_with_boost, batch_adjust_scenario_trees_with_boost,
+    generate_final_playbook, get_signals_from_scrapers, pull_similar_scenarios)
 
 MODEL_NAME = config.model.openai_model
 

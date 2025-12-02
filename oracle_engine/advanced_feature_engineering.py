@@ -4,22 +4,17 @@ Part of Phase 2 Optimization for Oracle-X ML System
 """
 
 import logging
+import warnings
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
 import numpy as np
 import pandas as pd
-from typing import Dict, List, Tuple, Optional, Any
-from dataclasses import dataclass
-from sklearn.feature_selection import (
-    SelectKBest,
-    f_classif,
-    f_regression,
-    mutual_info_classif,
-    mutual_info_regression,
-    RFE,
-    RFECV,
-)
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, RobustScaler
-import warnings
+from sklearn.feature_selection import (RFE, RFECV, SelectKBest, f_classif,
+                                       f_regression, mutual_info_classif,
+                                       mutual_info_regression)
+from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 
 warnings.filterwarnings("ignore")
 

@@ -15,8 +15,9 @@ by the pipeline to persist into the final playbook metadata.
 """
 
 from __future__ import annotations
+
 import time
-from typing import List, Dict, Any
+from typing import Any, Dict, List
 
 _MODEL_ATTEMPTS: List[Dict[str, Any]] = []
 

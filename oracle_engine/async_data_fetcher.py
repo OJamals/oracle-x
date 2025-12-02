@@ -8,12 +8,13 @@ Expected improvement: 81s → 25-30s (60-65% faster)
 """
 
 import asyncio
-import aiohttp
-from typing import Dict, List, Any, Optional
-from datetime import datetime
+import functools
 import logging
 from concurrent.futures import ThreadPoolExecutor
-import functools
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -372,7 +373,7 @@ async def get_signals_from_scrapers_async(
     signals["tickers"] = tickers
 
     # Add synchronous components (fast, no benefit from async)
-    from oracle_engine.chains.prompt_chain import get_sentiment, analyze_chart
+    from oracle_engine.chains.prompt_chain import analyze_chart, get_sentiment
 
     logger.debug("Adding LLM sentiment analysis...")
     signals["sentiment_llm"] = get_sentiment(prompt_text)
@@ -385,9 +386,8 @@ async def get_signals_from_scrapers_async(
 
     # Handle synthetic dark pool signals
     try:
-        from data_feeds.synthetic_darkpool_signals import (
-            generate_synthetic_darkpool_signals,
-        )
+        from data_feeds.synthetic_darkpool_signals import \
+            generate_synthetic_darkpool_signals
 
         dark_pools_enhanced = generate_synthetic_darkpool_signals(
             options_data=signals.get("options_flow", {}),
@@ -411,7 +411,8 @@ async def get_signals_from_scrapers_async(
     if enable_premium:
         try:
             logger.debug("Fetching premium data...")
-            from data_feeds.strategic_premium_feeds import fetch_premium_unique_data
+            from data_feeds.strategic_premium_feeds import \
+                fetch_premium_unique_data
 
             premium_data = await asyncio.to_thread(
                 fetch_premium_unique_data, tickers[:5]  # Limit to top 5 for premium

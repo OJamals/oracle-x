@@ -5,17 +5,12 @@ This module provides a drop-in replacement for the current OpenAI client usage
 while leveraging the multi-model provider system for enhanced scenario generation.
 """
 
-from typing import List, Dict, Any, Optional
 import logging
 import time
+from typing import Any, Dict, List, Optional
 
-from .llm_providers import (
-    get_provider_manager,
-    LLMRequest,
-    LLMResponse,
-    ModelCapability,
-    ProviderType,
-)
+from .llm_providers import (LLMRequest, LLMResponse, ModelCapability,
+                            ProviderType, get_provider_manager)
 
 logger = logging.getLogger(__name__)
 

@@ -5,8 +5,8 @@ This module contains common helper functions, prompt builders, and chain validat
 used across the oracle engine components.
 """
 
-from typing import Any, Dict, List, Optional
 import logging
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ def extract_json_from_response(response: str) -> Optional[Dict[str, Any]]:
     """Extract JSON from LLM response, handling various formats."""
     import json
     import re
-    
+
     # Try direct JSON parse
     try:
         return json.loads(response.strip())
@@ -91,6 +91,7 @@ def calculate_confidence_score(output: str, criteria: List[str]) -> float:
 
 import re
 from collections.abc import Sequence
-from typing import Dict, Any
+from typing import Any, Dict
+
 
 def clean_signals_for_llm(signals

@@ -3,18 +3,19 @@ Real-time Learning and Adaptation System
 Phase 2B/2C Implementation: Online Learning, Dynamic Model Selection, Performance Optimization
 """
 
-import logging
-import numpy as np
-import pandas as pd
-import time
 import json
+import logging
 import threading
-from typing import Dict, List, Any, Optional, Tuple, Callable
+import time
+import warnings
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from collections import deque
 from pathlib import Path
-import warnings
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
 
 warnings.filterwarnings("ignore")
 

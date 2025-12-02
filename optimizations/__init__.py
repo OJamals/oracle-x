@@ -19,7 +19,7 @@ __author__ = "Oracle-X Development Team"
 try:
     from .ticker_validator import TickerValidator, validate_tickers, is_valid_ticker
     from .smart_rate_limiter import SmartRateLimiter, get_rate_limiter
-    from .request_cache import RequestCache, get_request_cache
+    from data_feeds.cache.request_cache import RequestCache, get_request_cache
 
     __all__ = [
         "TickerValidator",

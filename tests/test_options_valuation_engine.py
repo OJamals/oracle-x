@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 # Import the module to test
-from data_feeds.options_valuation_engine import (
+from data_feeds.sources.options_valuation_engine import (
     OptionsValuationEngine,
     OptionContract,
     OptionType,

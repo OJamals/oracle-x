@@ -3,16 +3,17 @@ Ensemble ML Prediction Engine - Main orchestrator for the ML system
 Combines multiple models for robust predictions with uncertainty quantification
 """
 
-import logging
-import numpy as np
-import pandas as pd
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any, Union
-from dataclasses import dataclass, field
-from pathlib import Path
 import json
+import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import pandas as pd
 
 # Import our components
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
@@ -20,10 +21,8 @@ from sentiment.sentiment_engine import AdvancedSentimentEngine
 
 # Memory-efficient processing import with fallback
 try:
-    from core.memory_processor import (
-        get_memory_processor,
-        process_dataframe_efficiently,
-    )
+    from core.memory_processor import (get_memory_processor,
+                                       process_dataframe_efficiently)
 
     MEMORY_PROCESSOR_AVAILABLE = True
 except ImportError:
@@ -53,10 +52,8 @@ except ImportError:
 
 
 try:
-    from .advanced_learning_techniques import (
-        AdvancedLearningOrchestrator,
-        MetaLearningConfig,
-    )
+    from .advanced_learning_techniques import (AdvancedLearningOrchestrator,
+                                               MetaLearningConfig)
 
     ADVANCED_LEARNING_AVAILABLE = True
 except ImportError:
@@ -72,7 +69,8 @@ except ImportError:
 
 
 try:
-    from .realtime_learning_engine import RealTimeLearningEngine, OnlineLearningConfig
+    from .realtime_learning_engine import (OnlineLearningConfig,
+                                           RealTimeLearningEngine)
 
     REALTIME_LEARNING_AVAILABLE = True
 except ImportError:
@@ -101,11 +99,8 @@ except ImportError:
 
 # Phase 2.2: Optimized ML Engine Integration
 try:
-    from .optimized_ml_engine import (
-        OptimizedMLPredictionEngine,
-        ModelQuantizer,
-        ONNXModelOptimizer,
-    )
+    from .optimized_ml_engine import (ModelQuantizer, ONNXModelOptimizer,
+                                      OptimizedMLPredictionEngine)
 
     OPTIMIZED_ML_AVAILABLE = True
 except ImportError:
@@ -861,8 +856,8 @@ class EnsemblePredictionEngine:
             return results
 
         # Use ThreadPoolExecutor for parallel training (I/O bound operations)
-        from concurrent.futures import ThreadPoolExecutor, as_completed
         import threading
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
         max_workers = min(3, len(target_models))  # Limit concurrent training
         logger.info(

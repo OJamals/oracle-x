@@ -3,23 +3,24 @@ Advanced Learning Techniques for Oracle-X ML System
 Phase 2B Implementation: Meta-Learning, Ensemble Stacking, Transfer Learning
 """
 
-import logging
-import numpy as np
-import pandas as pd
 import json
-from typing import Dict, List, Any, Optional, Tuple, Union
+import logging
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
-import warnings
+from typing import Any, Dict, List, Optional, Tuple, Union
+
+import numpy as np
+import pandas as pd
 
 warnings.filterwarnings("ignore")
 
 # Try to import ML libraries with fallbacks
 try:
-    from sklearn.ensemble import StackingClassifier, StackingRegressor
-    from sklearn.linear_model import LogisticRegression, LinearRegression
-    from sklearn.model_selection import cross_val_score, ParameterGrid
     from sklearn.base import BaseEstimator, ClassifierMixin, RegressorMixin
+    from sklearn.ensemble import StackingClassifier, StackingRegressor
+    from sklearn.linear_model import LinearRegression, LogisticRegression
+    from sklearn.model_selection import ParameterGrid, cross_val_score
 
     SKLEARN_AVAILABLE = True
 except ImportError:
@@ -220,7 +221,8 @@ class MetaLearner:
             return model, {}
 
         try:
-            from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
+            from sklearn.model_selection import (GridSearchCV,
+                                                 RandomizedSearchCV)
 
             if config.method == "grid_search":
                 optimizer = GridSearchCV(
@@ -416,7 +418,8 @@ class MetaLearner:
             if not SKLEARN_AVAILABLE:
                 return model
 
-            from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
+            from sklearn.ensemble import (RandomForestClassifier,
+                                          RandomForestRegressor)
 
             if len(np.unique(y)) < 10:  # Classification
                 new_model = RandomForestClassifier(n_estimators=100, random_state=42)

@@ -86,7 +86,9 @@ def _make_cache_key(
         "task_type": task_type,
         "purpose": purpose,
     }
-    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode("utf-8")).hexdigest()
+    digest = hashlib.sha256(
+        json.dumps(payload, sort_keys=True).encode("utf-8")
+    ).hexdigest()
     return f"llm:{digest}"
 
 
@@ -99,7 +101,9 @@ class LLMDispatcher:
             getattr(getattr(config, "data_feeds", None), "cache_ttl_minutes", 5) or 5
         )
         self.default_ttl = max(int(ttl_minutes * 60), DEFAULT_CACHE_TTL_SECONDS)
-        self.default_model = getattr(getattr(config, "model", None), "openai_model", "gpt-4o")
+        self.default_model = getattr(
+            getattr(config, "model", None), "openai_model", "gpt-4o"
+        )
 
     def chat(
         self,
@@ -118,7 +122,13 @@ class LLMDispatcher:
         """Execute a chat completion with caching and fallback models."""
         chosen_model = model or self.default_model
         resolved_cache_key = _make_cache_key(
-            messages, chosen_model, temperature, max_tokens, task_type, purpose, cache_key
+            messages,
+            chosen_model,
+            temperature,
+            max_tokens,
+            task_type,
+            purpose,
+            cache_key,
         )
 
         if use_cache:
@@ -196,15 +206,26 @@ class LLMDispatcher:
                 )
             except Exception as exc:  # pragma: no cover - defensive guard
                 last_error = str(exc)
-                log_attempt(purpose, model, start_time=start, success=False, empty=False, error=last_error)
+                log_attempt(
+                    purpose,
+                    model,
+                    start_time=start,
+                    success=False,
+                    empty=False,
+                    error=last_error,
+                )
                 if attempt < retries:
                     time.sleep(min(0.5 * (attempt + 1), 2.0))
                 continue
 
-            response_provider = getattr(getattr(response, "provider_used", None), "value", None)
+            response_provider = getattr(
+                getattr(response, "provider_used", None), "value", None
+            )
             tokens_used = getattr(response, "tokens_used", None)
 
-            success = getattr(response, "success", False) and bool(getattr(response, "content", "").strip())
+            success = getattr(response, "success", False) and bool(
+                getattr(response, "content", "").strip()
+            )
             empty = getattr(response, "success", False) and not success
             log_attempt(
                 purpose,
@@ -261,4 +282,10 @@ def call_llm(*args: Any, **kwargs: Any) -> str:
     return result.content
 
 
-__all__ = ["LLMDispatchResult", "dispatch_chat", "dispatch_chat_async", "LLMDispatcher", "call_llm"]
+__all__ = [
+    "LLMDispatchResult",
+    "dispatch_chat",
+    "dispatch_chat_async",
+    "LLMDispatcher",
+    "call_llm",
+]

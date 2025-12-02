@@ -4072,3 +4072,7 @@ def warm_up_popular_tickers(symbols: Optional[List[str]] = None):
 def clear_enhanced_cache():
     """Clear enhanced cache layers (unified interface)"""
     return get_orchestrator().clear_enhanced_cache()
+
+def get_advanced_sentiment(self, symbol: str) -> Optional[SentimentData]:
+    """Legacy compatibility wrapper for get_advanced_sentiment_data."""
+    return self.get_advanced_sentiment_data(symbol)

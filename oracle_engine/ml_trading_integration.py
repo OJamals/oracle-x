@@ -5,22 +5,20 @@ Provides unified interface for ML-powered trading decisions
 """
 
 import logging
-import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Any
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
+import pandas as pd
+from backtest_tracker.comprehensive_backtest import BacktestEngine
 
 # Import components
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
+from oracle_engine.ensemble_ml_engine import (EnsemblePredictionEngine,
+                                              PredictionResult, PredictionType,
+                                              create_prediction_engine)
 from sentiment.sentiment_engine import AdvancedSentimentEngine
-from oracle_engine.ensemble_ml_engine import (
-    EnsemblePredictionEngine,
-    PredictionType,
-    PredictionResult,
-    create_prediction_engine,
-)
-from backtest_tracker.comprehensive_backtest import BacktestEngine
 
 logger = logging.getLogger(__name__)
 

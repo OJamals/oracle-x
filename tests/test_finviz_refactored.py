@@ -1,5 +1,5 @@
 import pandas as pd
-from data_feeds.finviz_adapter import FinVizAdapter
+from data_feeds.sources.finviz_adapter import FinVizAdapter
 from data_feeds.models import MarketBreadth, GroupPerformance
 
 
@@ -123,7 +123,7 @@ def test_finviz_scraper_directly():
     print("Testing finviz_scraper functions directly...")
     print("=" * 50)
 
-    from data_feeds.finviz_scraper import (
+    from data_feeds.sources.finviz_adapter import (
         fetch_finviz_breadth,
         fetch_finviz_sector_performance,
         fetch_finviz_news,

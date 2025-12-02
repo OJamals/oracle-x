@@ -4,12 +4,12 @@ Production ML Deployment Pipeline
 Orchestrates the complete ML system deployment, monitoring, and maintenance
 """
 
+import json
 import logging
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Any
-import json
+from typing import Any, Dict, List, Optional
 
 # Try to import schedule, fall back to basic implementation
 try:
@@ -21,10 +21,11 @@ except ImportError:
     # logger will be defined after the imports
     print("schedule package not available, using basic scheduling")
 
-# Local imports
-from oracle_engine.ml_model_manager import MLModelManager, create_ml_model_manager
-from oracle_engine.ml_prediction_engine import PredictionType
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
+# Local imports
+from oracle_engine.ml_model_manager import (MLModelManager,
+                                            create_ml_model_manager)
+from oracle_engine.ml_prediction_engine import PredictionType
 from oracle_engine.ml_trading_integration import MLTradingOrchestrator
 
 logger = logging.getLogger(__name__)

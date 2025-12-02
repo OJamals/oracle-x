@@ -82,10 +82,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.config import config
 from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat
-from oracle_engine.prompts.prompt_optimization import (
-    get_optimization_engine,
-    MarketCondition,
-)
+from oracle_engine.prompts.prompt_optimization import (MarketCondition,
+                                                       get_optimization_engine)
 
 logger = logging.getLogger(__name__)
 
@@ -213,21 +211,20 @@ def _extracted_from_extract_scenario_tree_42(match, arg1) -> Dict[str, Any]:
     return scenario_tree
 
 
-from vector_db.local_store import query_similar
-from vector_db.prompt_booster import build_boosted_prompt, batch_build_boosted_prompts
-
+from data_feeds.dark_pools import fetch_dark_pool_data
+from data_feeds.earnings_calendar import fetch_earnings_calendar
 # 🧩 Import your local scraper modules
 from data_feeds.market_internals import fetch_market_internals
-from data_feeds.sources.options_flow import fetch_options_flow
-from data_feeds.dark_pools import fetch_dark_pool_data
-from sentiment.sentiment_engine import fetch_sentiment_data
-from data_feeds.earnings_calendar import fetch_earnings_calendar
-from oracle_engine.tools import get_sentiment, analyze_chart
-
 # (Legacy) twitter sentiment import retained if needed elsewhere
 from data_feeds.news_scraper import fetch_headlines_yahoo_finance
 from data_feeds.sources.finviz_scraper import fetch_finviz_breadth
+from data_feeds.sources.options_flow import fetch_options_flow
 from data_feeds.ticker_universe import fetch_ticker_universe
+from oracle_engine.tools import analyze_chart, get_sentiment
+from sentiment.sentiment_engine import fetch_sentiment_data
+from vector_db.local_store import query_similar
+from vector_db.prompt_booster import (batch_build_boosted_prompts,
+                                      build_boosted_prompt)
 
 # Ticker validation is optional; fall back to a no-op if the optimizer module
 # is unavailable in the runtime environment.
@@ -279,8 +276,12 @@ def get_signals_from_scrapers(
     tickers = fetch_ticker_universe(sample_size=40)
 
     # Core market data (yfinance - FREE)
-    internals = fetch_market_internals() if config.data_feeds.fetch_market_internals else {}
-    options_flow = fetch_options_flow(tickers) if config.data_feeds.fetch_options_flow else []
+    internals = (
+        fetch_market_internals() if config.data_feeds.fetch_market_internals else {}
+    )
+    options_flow = (
+        fetch_options_flow(tickers) if config.data_feeds.fetch_options_flow else []
+    )
     dark_pools = {}
     if config.data_feeds.fetch_dark_pool_data:
         # Dark pool detection with synthetic signal enhancement
@@ -293,9 +294,8 @@ def get_signals_from_scrapers(
 
         # Generate synthetic dark pool signals from options flow correlation
         try:
-            from data_feeds.synthetic_darkpool_signals import (
-                generate_synthetic_darkpool_signals,
-            )
+            from data_feeds.synthetic_darkpool_signals import \
+                generate_synthetic_darkpool_signals
 
             dark_pools_list = generate_synthetic_darkpool_signals(
                 options_data=options_flow, real_darkpool_data=real_dark_pools_list
@@ -322,17 +322,31 @@ def get_signals_from_scrapers(
             print(f"[WARN] Synthetic dark pool signal generation failed: {e}")
             print(f"[DEBUG] Traceback: {traceback.format_exc()}")
             dark_pools = real_dark_pools_dict
-    earnings = fetch_earnings_calendar(tickers) if config.data_feeds.fetch_earnings_calendar else []
+    earnings = (
+        fetch_earnings_calendar(tickers)
+        if config.data_feeds.fetch_earnings_calendar
+        else []
+    )
 
     # Sentiment data (Reddit + Twitter - FREE)
-    sentiment_web = fetch_sentiment_data(tickers) if config.data_feeds.fetch_sentiment_web else {}
+    sentiment_web = (
+        fetch_sentiment_data(tickers) if config.data_feeds.fetch_sentiment_web else {}
+    )
 
     # News and breadth (web scraping - FREE)
-    yahoo_headlines = fetch_headlines_yahoo_finance() if config.data_feeds.fetch_news_yahoo else []
-    finviz_breadth = fetch_finviz_breadth() if config.data_feeds.fetch_finviz_breadth else ""
+    yahoo_headlines = (
+        fetch_headlines_yahoo_finance() if config.data_feeds.fetch_news_yahoo else []
+    )
+    finviz_breadth = (
+        fetch_finviz_breadth() if config.data_feeds.fetch_finviz_breadth else ""
+    )
 
     # LLM-based analysis (local - FREE)
-    sentiment_llm = get_sentiment(prompt_text, model_name=MODEL_NAME) if config.data_feeds.fetch_sentiment_llm else ""
+    sentiment_llm = (
+        get_sentiment(prompt_text, model_name=MODEL_NAME)
+        if config.data_feeds.fetch_sentiment_llm
+        else ""
+    )
 
     # Chart analysis (local vision model - FREE)
     import base64
@@ -343,7 +357,9 @@ def get_signals_from_scrapers(
             chart_bytes = base64.b64decode(chart_image_b64)
         except Exception as e:
             print(f"[DEBUG] Failed to decode chart_image_b64: {e}")
-    chart_analysis = analyze_chart(chart_bytes, model_name=MODEL_NAME) if chart_image_b64 else ""
+    chart_analysis = (
+        analyze_chart(chart_bytes, model_name=MODEL_NAME) if chart_image_b64 else ""
+    )
 
     # Optional: Premium unique data (if API keys available)
     premium_data = None
@@ -466,7 +482,10 @@ Explain how the past scenarios influence your adjustments.
 
     result = dispatch_chat(
         messages=[
-            {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+            {
+                "role": "system",
+                "content": "You are ORACLE-X, an adaptive scenario engine.",
+            },
             {"role": "user", "content": prompt},
         ],
         model=model_name,
@@ -611,7 +630,10 @@ Explain how the past scenarios influence your adjustments.
     )
     result = dispatch_chat(
         messages=[
-            {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+            {
+                "role": "system",
+                "content": "You are ORACLE-X, an adaptive scenario engine.",
+            },
             {"role": "user", "content": boosted_prompt},
         ],
         model=model_name,
@@ -660,7 +682,10 @@ Explain how the past scenarios influence your adjustments.
     for boosted_prompt in boosted_prompts:
         dispatch_result = dispatch_chat(
             messages=[
-                {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+                {
+                    "role": "system",
+                    "content": "You are ORACLE-X, an adaptive scenario engine.",
+                },
                 {"role": "user", "content": boosted_prompt},
             ],
             model=model_name,
@@ -816,7 +841,10 @@ DO NOT include any text before or after the JSON. Output only the JSON object.
 
     result = dispatch_chat(
         messages=[
-            {"role": "system", "content": "You are ORACLE-X, the final Playbook composer."},
+            {
+                "role": "system",
+                "content": "You are ORACLE-X, the final Playbook composer.",
+            },
             {"role": "user", "content": prompt},
         ],
         model=model_name,
