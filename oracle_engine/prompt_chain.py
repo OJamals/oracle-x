@@ -73,19 +73,20 @@ def clean_signals_for_llm(signals: dict, max_items: int = 5) -> dict:
     return cleaned
 
 
-import re
 import json
-import os
 import logging
+import re
 import time
 from datetime import datetime
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+from core.config import config
+from oracle_engine.llm_dispatcher import dispatch_chat
 from oracle_engine.prompt_optimization import (
     get_optimization_engine,
     MarketCondition,
     PromptStrategy,
 )
-from oracle_engine.llm_dispatcher import call_llm
 
 
 def _sanitize_llm_json(text: str) -> str:
@@ -211,7 +212,6 @@ def _extracted_from_extract_scenario_tree_42(match, arg1) -> Dict[str, Any]:
     return scenario_tree
 
 
-from openai import OpenAI
 from vector_db.local_store import query_similar
 from vector_db.prompt_booster import build_boosted_prompt, batch_build_boosted_prompts
 
@@ -239,15 +239,7 @@ except Exception:  # pragma: no cover - optional dependency
         return tickers
 
 
-from core.config import config
-
-API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config.model.openai_api_base or os.environ.get(
-    "OPENAI_API_BASE", "https://api.githubcopilot.com/v1"
-)
 MODEL_NAME = config.model.openai_model
-
-# client = OpenAI(api_key=API_KEY, base_url=API_BASE)  # Now using dispatcher
 
 
 def get_signals_from_scrapers(
@@ -488,20 +480,17 @@ Explain how the past scenarios influence your adjustments.
         print(f"[DEBUG] Trying model: {model}")
         start = time.time()
         try:
-            content = call_llm(
-                model=model,
+            content = dispatch_chat(
                 messages=[
-                    {
-                        "role": "system",
-                        "content": "You are ORACLE-X, an adaptive scenario engine.",
-                    },
-                    {"role": "user", "content": prompt},
+                    {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+                    {"role": "user", "content": prompt}
                 ],
+                model=model,
                 max_tokens=600,
                 temperature=0.7,
-                use_cache=False,  # Don't cache scenario trees
-                retries=3,
-            )
+                purpose="adjust_scenario_tree",
+                retries=3
+            ).content
             if content:
                 if model != model_name:
                     print(
