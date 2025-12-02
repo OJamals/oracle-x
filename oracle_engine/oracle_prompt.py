@@ -1,17 +1,11 @@
-from oracle_engine.dispatchers.llm_dispatcher import call_llm
+"""Oracle prompt helpers routed through the centralized LLM dispatcher."""
 
+from typing import Dict
 
-def _iter_fallback_models(primary: str):
-    try:
-        fallback = config.model.fallback_models
-    except Exception:
-        fallback = []
-    ordered = [primary] + [m for m in fallback if m != primary]
-    seen = set()
-    for m in ordered:
-        if m not in seen:
-            seen.add(m)
-            yield m
+from core.config import config
+from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat
+
+MODEL_NAME = config.model.openai_model
 
 
 def generate_oracle_prompt(data: Dict) -> str:
@@ -46,55 +40,21 @@ def generate_oracle_prompt(data: Dict) -> str:
 
 
 def get_oracle_playbook(prompt: str) -> str:
-    for model in _iter_fallback_models(MODEL_NAME):
-        start = time.time()
-        try:
-            content = call_llm(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "You are ORACLE-X."},
-                    {"role": "user", "content": prompt},
-                ],
-                max_tokens=1024,
-                temperature=0.3,
-                use_cache=False,
-                retries=3
-            )
-            if content:
-                if model != MODEL_NAME:
-                    print(
-                        f"[INFO] Fallback model '{model}' succeeded for oracle_prompt."
-                    )
-                log_attempt(
-                    "oracle_prompt",
-                    model,
-                    start_time=start,
-                    success=True,
-                    empty=False,
-                    error=None,
-                )
-                return content
-            log_attempt(
-                "oracle_prompt",
-                model,
-                start_time=start,
-                success=False,
-                empty=True,
-                error=None,
-            )
-            print(
-                f"[DEBUG] Model {model} returned empty content – falling back (oracle_prompt)."
-            )
-        except Exception as e:
-            log_attempt(
-                "oracle_prompt",
-                model,
-                start_time=start,
-                success=False,
-                empty=False,
-                error=str(e),
-            )
-            print(f"[DEBUG] Model {model} failed (oracle_prompt): {e}")
-            continue
-    print("[WARN] All models failed for oracle_prompt.")
-    return ""
+    """Generate an Oracle playbook via the unified dispatcher with built-in fallbacks."""
+    result = dispatch_chat(
+        messages=[
+            {"role": "system", "content": "You are ORACLE-X."},
+            {"role": "user", "content": prompt},
+        ],
+        model=MODEL_NAME,
+        max_tokens=1024,
+        temperature=0.3,
+        task_type="analytical",
+        purpose="oracle_prompt",
+        retries=2,
+        use_cache=False,
+    )
+    return result.content
+
+
+__all__ = ["generate_oracle_prompt", "get_oracle_playbook"]

@@ -1,4 +1,3 @@
-from openai import OpenAI
 from oracle_engine.chains.prompt_chain import (
     get_signals_from_scrapers,
     pull_similar_scenarios,
@@ -6,16 +5,9 @@ from oracle_engine.chains.prompt_chain import (
     batch_adjust_scenario_trees_with_boost,
     generate_final_playbook,
 )
-import os
 from core.config import config
 
-API_KEY = os.environ.get("OPENAI_API_KEY")
-API_BASE = config.model.openai_api_base or os.environ.get(
-    "OPENAI_API_BASE", "https://api.githubcopilot.com/v1"
-)
 MODEL_NAME = config.model.openai_model
-
-client = OpenAI(api_key=API_KEY, base_url=API_BASE)
 
 from typing import Optional
 

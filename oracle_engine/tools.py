@@ -1,85 +1,35 @@
-from oracle_engine.dispatchers.llm_dispatcher import call_llm
+"""LLM-backed utility helpers routed through the centralized dispatcher."""
+
+from __future__ import annotations
+
+import base64
+from typing import Optional
+
+from core.config import config
+from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat
+
+MODEL_NAME = config.model.openai_model
 
 
-def _iter_fallback_models(primary: str):
-    try:
-        fallback = config.model.fallback_models
-    except Exception:
-        fallback = []
-    ordered = [primary] + [m for m in fallback if m != primary]
-    seen = set()
-    for m in ordered:
-        if m not in seen:
-            seen.add(m)
-            yield m
-
-
-# 🔑 TOOL: Real-time sentiment analyzer
 def get_sentiment(text: str, model_name: str = MODEL_NAME) -> str:
-    """Return sentiment label for given text using LLM with fallback."""
-    for model in _iter_fallback_models(model_name):
-        start = time.time()
-        try:
-            msg = call_llm(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a sentiment analysis engine.",
-                    },
-                    {"role": "user", "content": f'Analyze sentiment: "{text}"'},
-                ],
-                max_tokens=20,
-                temperature=0.7,
-                use_cache=True,  # Cache sentiment analysis
-                retries=3
-            )
-            if msg:
-                if model != model_name:
-                    print(f"[INFO] Fallback model '{model}' succeeded for sentiment.")
-                log_attempt(
-                    "sentiment",
-                    model,
-                    start_time=start,
-                    success=True,
-                    empty=False,
-                    error=None,
-                )
-                return msg
-            else:
-                log_attempt(
-                    "sentiment",
-                    model,
-                    start_time=start,
-                    success=False,
-                    empty=True,
-                    error=None,
-                )
-                print(
-                    f"[DEBUG] Sentiment model {model} returned empty content – falling back."
-                )
-        except Exception as e:
-            log_attempt(
-                "sentiment",
-                model,
-                start_time=start,
-                success=False,
-                empty=False,
-                error=str(e),
-            )
-            print(f"[DEBUG] Sentiment model {model} failed: {e}")
-            continue
-    print("[WARN] All models failed for sentiment analysis.")
-    return "Unknown"
-
-
-# 🔑 TOOL: Visual chart analyzer
-import io
-from PIL import Image
+    """Return sentiment label for given text using the LLM dispatcher."""
+    result = dispatch_chat(
+        messages=[
+            {"role": "system", "content": "You are a sentiment analysis engine."},
+            {"role": "user", "content": f'Analyze sentiment: "{text}"'},
+        ],
+        model=model_name,
+        max_tokens=20,
+        temperature=0.3,
+        task_type="analytical",
+        purpose="sentiment",
+        retries=2,
+    )
+    return result.content or "Unknown"
 
 
 def analyze_chart(image_bytes: Optional[bytes], model_name: str = MODEL_NAME) -> str:
-    """Analyze a chart image and summarize signals using LLM with fallback."""
+    """Analyze a chart image and summarize signals using the dispatcher."""
     try:
         if isinstance(image_bytes, bytes):
             b64_str = base64.b64encode(image_bytes).decode("utf-8")
@@ -89,63 +39,24 @@ def analyze_chart(image_bytes: Optional[bytes], model_name: str = MODEL_NAME) ->
             return "No chart provided."
         else:
             raise ValueError("image_bytes must be bytes, base64 string, or None")
-    except Exception as e:
-        print(f"[DEBUG] Chart input preparation failed: {e}")
+    except Exception as exc:
+        print(f"[DEBUG] Chart input preparation failed: {exc}")
         return "Unknown"
 
-    for model in _iter_fallback_models(model_name):
-        start = time.time()
-        try:
-            msg = call_llm(
-                model=model,
-                messages=[
-                    {"role": "system", "content": "You are a chart analysis engine."},
-                    {
-                        "role": "user",
-                        "content": f"Analyze this chart (base64): {b64_str}",
-                    },
-                ],
-                max_tokens=60,
-                temperature=0.7,
-                use_cache=True,  # Cache chart analysis
-                retries=3
-            )
-            if msg:
-                if model != model_name:
-                    print(
-                        f"[INFO] Fallback model '{model}' succeeded for chart analysis."
-                    )
-                log_attempt(
-                    "chart_analysis",
-                    model,
-                    start_time=start,
-                    success=True,
-                    empty=False,
-                    error=None,
-                )
-                return msg
-            else:
-                log_attempt(
-                    "chart_analysis",
-                    model,
-                    start_time=start,
-                    success=False,
-                    empty=True,
-                    error=None,
-                )
-                print(
-                    f"[DEBUG] Chart model {model} returned empty content – falling back."
-                )
-        except Exception as e:
-            log_attempt(
-                "chart_analysis",
-                model,
-                start_time=start,
-                success=False,
-                empty=False,
-                error=str(e),
-            )
-            print(f"[DEBUG] Chart model {model} failed: {e}")
-            continue
-    print("[WARN] All models failed for chart analysis.")
-    return "Unknown"
+    result = dispatch_chat(
+        messages=[
+            {"role": "system", "content": "You are a chart analysis engine."},
+            {"role": "user", "content": f"Analyze this chart (base64): {b64_str}"},
+        ],
+        model=model_name,
+        max_tokens=60,
+        temperature=0.3,
+        task_type="analytical",
+        purpose="chart_analysis",
+        retries=2,
+        use_cache=True,
+    )
+    return result.content or "Unknown"
+
+
+__all__ = ["get_sentiment", "analyze_chart"]
