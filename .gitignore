@@ -107,3 +107,6 @@ data/vector_db/*.sqlite3-*
 # Additional cache files
 *.db-shm
 *.db-wal
+
+# MyPy cache
+.mypy_cache/
