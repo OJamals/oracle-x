@@ -253,4 +253,10 @@ async def dispatch_chat_async(*args: Any, **kwargs: Any) -> LLMDispatchResult:
     return await loop.run_in_executor(None, func)
 
 
-__all__ = ["LLMDispatchResult", "dispatch_chat", "dispatch_chat_async", "LLMDispatcher"]
+def call_llm(*args: Any, **kwargs: Any) -> str:
+    """Legacy function that returns content string directly."""
+    result = dispatch_chat(*args, **kwargs)
+    return result.content
+
+
+__all__ = ["LLMDispatchResult", "dispatch_chat", "dispatch_chat_async", "LLMDispatcher", "call_llm"]

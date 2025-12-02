@@ -476,60 +476,19 @@ Analyze and output a scenario tree with updated probabilities for base/bull/bear
 Explain how the past scenarios influence your adjustments.
 """.strip()
 
-    for model in _iter_fallback_models(model_name):
-        print(f"[DEBUG] Trying model: {model}")
-        start = time.time()
-        try:
-            content = dispatch_chat(
-                messages=[
-                    {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
-                    {"role": "user", "content": prompt}
-                ],
-                model=model,
-                max_tokens=600,
-                temperature=0.7,
-                purpose="adjust_scenario_tree",
-                retries=3
-            ).content
-            if content:
-                if model != model_name:
-                    print(
-                        f"[INFO] Fallback model '{model}' succeeded for adjust_scenario_tree."
-                    )
-                else:
-                    print(f"[DEBUG] Model {model} returned non-empty response.")
-                log_attempt(
-                    "adjust_scenario_tree",
-                    model,
-                    start_time=start,
-                    success=True,
-                    empty=False,
-                    error=None,
-                )
-                return content
-            else:
-                log_attempt(
-                    "adjust_scenario_tree",
-                    model,
-                    start_time=start,
-                    success=False,
-                    empty=True,
-                    error=None,
-                )
-                print(f"[DEBUG] Model {model} returned empty content – falling back.")
-        except Exception as e:
-            log_attempt(
-                "adjust_scenario_tree",
-                model,
-                start_time=start,
-                success=False,
-                empty=False,
-                error=str(e),
-            )
-            print(f"[DEBUG] Model {model} failed: {e}")
-            continue
-    print("[WARN] All models returned empty or failed for adjust_scenario_tree.")
-    return ""
+    result = dispatch_chat(
+        messages=[
+            {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+            {"role": "user", "content": prompt},
+        ],
+        model=model_name,
+        max_tokens=600,
+        temperature=0.3,
+        task_type="analytical",
+        purpose="adjust_scenario_tree",
+        retries=2,
+    )
+    return result.content
 
 
 def _adjust_scenario_tree_optimized(
@@ -559,96 +518,40 @@ def _adjust_scenario_tree_optimized(
         f"Using template: {prompt_metadata['template_id']} for {market_condition.value} market"
     )
 
-    # Execute LLM call with optimized prompt
     start_time = time.time()
-    attempts = []
+    result = dispatch_chat(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        model=model_name,
+        max_tokens=600,
+        temperature=0.3,
+        task_type="analytical",
+        purpose="adjust_scenario_tree_optimized",
+        retries=2,
+        use_cache=False,
+    )
+    attempts = [
+        {
+            "purpose": "adjust_scenario_tree_optimized",
+            "model": result.model or model_name,
+            "success": bool(result.content),
+            "empty": not bool(result.content),
+            "error": result.error,
+            "latency_sec": round(time.time() - start_time, 4),
+        }
+    ]
 
-    try:
-        content = call_llm(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            max_tokens=600,
-            temperature=0.3,
-            use_cache=False,
-            retries=3
-        )
-
-        if content:
-            log_attempt(
-                "adjust_scenario_tree_optimized",
-                model_name,
-                start_time=start_time,
-                success=True,
-                empty=False,
-                error=None,
-            )
-            attempts.append(
-                {
-                    "purpose": "adjust_scenario_tree_optimized",
-                    "model": model_name,
-                    "success": True,
-                    "empty": False,
-                    "error": None,
-                    "latency_sec": time.time() - start_time,
-                }
-            )
-        else:
-            log_attempt(
-                "adjust_scenario_tree_optimized",
-                model_name,
-                start_time=start_time,
-                success=False,
-                empty=True,
-                error=None,
-            )
-            attempts.append(
-                {
-                    "purpose": "adjust_scenario_tree_optimized",
-                    "model": model_name,
-                    "success": False,
-                    "empty": True,
-                    "error": None,
-                    "latency_sec": time.time() - start_time,
-                }
-            )
-            content = ""
-
-    except Exception as e:
-        log_attempt(
-            "adjust_scenario_tree_optimized",
-            model_name,
-            start_time=start_time,
-            success=False,
-            empty=False,
-            error=str(e),
-        )
-        attempts.append(
-            {
-                "purpose": "adjust_scenario_tree_optimized",
-                "model": model_name,
-                "success": False,
-                "empty": False,
-                "error": str(e),
-                "latency_sec": time.time() - start_time,
-            }
-        )
-        content = ""
-        logger.error(f"Model call failed: {e}")
-
-    # Record performance for optimization
     engine.record_prompt_performance(prompt_metadata, attempts)
 
-    # Add optimization metadata to response
     optimization_metadata = {
         "prompt_metadata": prompt_metadata,
         "performance_data": attempts,
         "market_condition": market_condition.value,
     }
 
-    return content, optimization_metadata
+    return result.content, optimization_metadata
 
 
 def adjust_scenario_tree_with_boost(
@@ -706,67 +609,20 @@ Explain how the past scenarios influence your adjustments.
     boosted_prompt = build_boosted_prompt(
         base_prompt, str(signals.get("chart_analysis", ""))
     )
-    for model in _iter_fallback_models(model_name):
-        print(f"[DEBUG] Trying model: {model} (boosted)")
-        start = time.time()
-        try:
-            content = call_llm(
-                model=model,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are ORACLE-X, an adaptive scenario engine.",
-                    },
-                    {"role": "user", "content": boosted_prompt},
-                ],
-                max_tokens=600,
-                temperature=0.7,
-                use_cache=False,
-                retries=3,
-            )
-            if content:
-                if model != model_name:
-                    print(
-                        f"[INFO] Fallback model '{model}' succeeded for adjust_scenario_tree_with_boost."
-                    )
-                else:
-                    print(
-                        f"[DEBUG] Model {model} returned non-empty response (boosted)."
-                    )
-                log_attempt(
-                    "adjust_scenario_tree_with_boost",
-                    model,
-                    start_time=start,
-                    success=True,
-                    empty=False,
-                    error=None,
-                )
-                return content
-            else:
-                log_attempt(
-                    "adjust_scenario_tree_with_boost",
-                    model,
-                    start_time=start,
-                    success=False,
-                    empty=True,
-                    error=None,
-                )
-                print(
-                    f"[DEBUG] Model {model} returned empty content (boosted) – falling back."
-                )
-        except Exception as e:
-            log_attempt(
-                "adjust_scenario_tree_with_boost",
-                model,
-                start_time=start,
-                success=False,
-                empty=False,
-                error=str(e),
-            )
-            print(f"[DEBUG] Model {model} failed (boosted): {e}")
-            continue
-    print("[WARN] All models returned empty or failed (boosted).")
-    return ""
+    result = dispatch_chat(
+        messages=[
+            {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+            {"role": "user", "content": boosted_prompt},
+        ],
+        model=model_name,
+        max_tokens=600,
+        temperature=0.3,
+        task_type="analytical",
+        purpose="adjust_scenario_tree_with_boost",
+        retries=2,
+        use_cache=False,
+    )
+    return result.content
 
 
 def batch_adjust_scenario_trees_with_boost(
@@ -802,28 +658,20 @@ Explain how the past scenarios influence your adjustments.
     boosted_prompts = batch_build_boosted_prompts(base_prompts, trade_theses)
     results = []
     for boosted_prompt in boosted_prompts:
-        try:
-            content = call_llm(
-                model=model_name,
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are ORACLE-X, an adaptive scenario engine.",
-                    },
-                    {"role": "user", "content": boosted_prompt},
-                ],
-                max_tokens=600,
-                temperature=0.7,
-                use_cache=False,
-                retries=3,
-            )
-            if content:
-                results.append(content)
-            else:
-                results.append("")
-        except Exception as e:
-            print(f"[DEBUG] Batch model {model_name} failed: {e}")
-            results.append("")
+        dispatch_result = dispatch_chat(
+            messages=[
+                {"role": "system", "content": "You are ORACLE-X, an adaptive scenario engine."},
+                {"role": "user", "content": boosted_prompt},
+            ],
+            model=model_name,
+            max_tokens=600,
+            temperature=0.3,
+            task_type="analytical",
+            purpose="batch_adjust_scenario_trees_with_boost",
+            retries=2,
+            use_cache=False,
+        )
+        results.append(dispatch_result.content)
     return results
 
 
