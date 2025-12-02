@@ -100,3 +100,10 @@ old_*.py
 backup_*.py
 test_temp_*
 *_temp_test*
+# Vector database files
+data/vector_db/*.sqlite3
+data/vector_db/*.sqlite3-*
+
+# Additional cache files
+*.db-shm
+*.db-wal
