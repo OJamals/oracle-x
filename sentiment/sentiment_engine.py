@@ -984,3 +984,11 @@ def batch_analyze_sentiment(texts: Optional[List[str]], symbols: Optional[List[s
     if not isinstance(symbols, list):
         symbols = list(symbols)
     return get_sentiment_engine().analyze_batch(texts, symbols, sources)
+
+def fetch_sentiment_data(tickers: List[str]) -> List[SentimentSummary]:
+    """
+    Legacy compatibility function for prompt_chain.py and data feeds.
+    Returns sentiment summaries for given tickers using empty text lists.
+    """
+    engine = get_sentiment_engine()
+    return [engine.get_symbol_sentiment_summary(ticker, []) for ticker in tickers]

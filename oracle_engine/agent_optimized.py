@@ -7,10 +7,10 @@ providing intelligent prompt selection, performance tracking, and continuous lea
 
 import logging
 from typing import Optional, List, Dict, Any, Tuple
-from oracle_engine.prompt_chain_optimized import (
-    get_signals_from_scrapers_optimized,
-    adjust_scenario_tree_optimized,
-    generate_final_playbook_optimized,
+from oracle_engine.prompt_chain import (
+    get_signals_from_scrapers,
+    adjust_scenario_tree,
+    generate_final_playbook,
     run_optimization_experiment,
     get_optimization_analytics,
     evolve_prompt_templates
@@ -67,9 +67,8 @@ class OracleAgentOptimized:
             stage_start = time.time()
             
             if self.optimization_enabled:
-                signals = get_signals_from_scrapers_optimized(prompt_text, chart_image_b64 or "")
+                signals = get_signals_from_scrapers(prompt_text, chart_image_b64 or "", optimize=True)
             else:
-                from oracle_engine.prompt_chain import get_signals_from_scrapers
                 signals = get_signals_from_scrapers(prompt_text, chart_image_b64 or "")
             
             metadata['stages']['signal_collection'] = {
@@ -98,12 +97,12 @@ class OracleAgentOptimized:
             stage_start = time.time()
             
             if self.optimization_enabled:
-                scenario_tree, scenario_metadata = adjust_scenario_tree_optimized(
-                    signals, similar_scenarios, template_id=template_override
+                scenario_tree = adjust_scenario_tree(
+                    signals, similar_scenarios, optimize=True, template_id=template_override
                 )
+                scenario_metadata = {}  # For compatibility
             else:
-                from oracle_engine.prompt_chain import adjust_scenario_tree_with_boost
-                scenario_tree = adjust_scenario_tree_with_boost(signals, similar_scenarios)
+                scenario_tree = adjust_scenario_tree(signals, similar_scenarios)
                 scenario_metadata = {}
             
             metadata['stages']['scenario_tree'] = {
@@ -119,11 +118,11 @@ class OracleAgentOptimized:
             stage_start = time.time()
             
             if self.optimization_enabled:
-                final_playbook, playbook_metadata = generate_final_playbook_optimized(
-                    signals, scenario_tree, template_id=template_override
+                final_playbook = generate_final_playbook(
+                    signals, scenario_tree, optimize=True, template_id=template_override
                 )
+                playbook_metadata = {}  # For compatibility
             else:
-                from oracle_engine.prompt_chain import generate_final_playbook
                 final_playbook = generate_final_playbook(signals, scenario_tree)
                 playbook_metadata = {}
             

@@ -36,7 +36,7 @@ except ImportError:
     LIGHTGBM_AVAILABLE = False
 
 # Import existing components
-from data_feeds.options_valuation_engine import (
+from data_feeds.sources.options_valuation_engine import (
     OptionsValuationEngine, OptionContract, OptionType
 )
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator

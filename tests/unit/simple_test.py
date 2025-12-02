@@ -8,7 +8,7 @@ print("🚀 Testing Twitter Sentiment -> ML Integration")
 try:
     # Import components
     from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-    from data_feeds.advanced_sentiment import AdvancedSentimentEngine  
+    from sentiment.sentiment_engine import AdvancedSentimentEngine  
     from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine, PredictionType
     
     print("✅ Imports successful")

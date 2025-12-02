@@ -16,7 +16,7 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(__file__))
 
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator, SentimentData
-from data_feeds.advanced_sentiment import AdvancedSentimentEngine
+from sentiment.sentiment_engine import AdvancedSentimentEngine
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine, PredictionType
 
 def test_ml_sentiment_integration_fixed():

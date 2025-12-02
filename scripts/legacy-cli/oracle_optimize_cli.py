@@ -19,7 +19,7 @@ sys.path.append(str(Path(__file__).parent))
 
 from oracle_engine.prompt_optimization import get_optimization_engine, MarketCondition, PromptStrategy
 from oracle_engine.agent_optimized import get_optimized_agent
-from oracle_engine.prompt_chain_optimized import get_optimization_analytics, evolve_prompt_templates
+from oracle_engine.prompt_chain import get_optimization_analytics, evolve_prompt_templates
 
 def print_header(title: str):
     """Print formatted header"""
