@@ -17,7 +17,7 @@ def test_data_feed_integration():
     """Test integration with oracle_engine pipeline"""
     print("Testing Oracle Engine Integration...")
     try:
-        from oracle_engine.prompt_chain import get_signals_from_scrapers
+        from oracle_engine.chains.prompt_chain import get_signals_from_scrapers
 
         start_time = time.time()
         signals = get_signals_from_scrapers(

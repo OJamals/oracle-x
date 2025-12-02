@@ -372,7 +372,7 @@ async def get_signals_from_scrapers_async(
     signals["tickers"] = tickers
 
     # Add synchronous components (fast, no benefit from async)
-    from oracle_engine.prompt_chain import get_sentiment, analyze_chart
+    from oracle_engine.chains.prompt_chain import get_sentiment, analyze_chart
 
     logger.debug("Adding LLM sentiment analysis...")
     signals["sentiment_llm"] = get_sentiment(prompt_text)

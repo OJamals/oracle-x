@@ -30,7 +30,7 @@ class TestPromptOptimization(unittest.TestCase):
 
     def setUp(self):
         """Setup test environment"""
-        from oracle_engine.prompt_optimization import (
+        from oracle_engine.prompts.prompt_optimization import (
             get_optimization_engine,
             MarketCondition,
             PromptStrategy,
@@ -240,7 +240,7 @@ class TestOptimizedAgent(unittest.TestCase):
 
     def test_experiment_management(self):
         """Test A/B experiment management"""
-        from oracle_engine.prompt_optimization import MarketCondition
+        from oracle_engine.prompts.prompt_optimization import MarketCondition
 
         experiment_id = self.agent.start_optimization_experiment(
             "template_a", "template_b", MarketCondition.BULLISH, 1
@@ -263,7 +263,7 @@ class TestIntegration(unittest.TestCase):
     def test_module_imports(self):
         """Test all optimization modules can be imported"""
         try:
-            from oracle_engine.prompt_optimization import get_optimization_engine
+            from oracle_engine.prompts.prompt_optimization import get_optimization_engine
             from oracle_engine.agent_optimized import get_optimized_agent
             from oracle_engine.prompt_chain_optimized import get_optimization_analytics
 
@@ -278,7 +278,7 @@ class TestIntegration(unittest.TestCase):
 
     def test_database_connectivity(self):
         """Test database connectivity"""
-        from oracle_engine.prompt_optimization import get_optimization_engine
+        from oracle_engine.prompts.prompt_optimization import get_optimization_engine
 
         engine = get_optimization_engine()
 
@@ -295,7 +295,7 @@ class PerformanceBenchmark:
 
     def benchmark_template_selection(self, iterations=100):
         """Benchmark template selection performance"""
-        from oracle_engine.prompt_optimization import (
+        from oracle_engine.prompts.prompt_optimization import (
             get_optimization_engine,
             MarketCondition,
             PromptStrategy,

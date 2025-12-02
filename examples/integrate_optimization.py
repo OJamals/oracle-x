@@ -46,9 +46,9 @@ def test_pipeline_integration():
 
     try:
         # Test that optimization modules can be imported
-        from oracle_engine.prompt_optimization import get_optimization_engine
+        from oracle_engine.prompts.prompt_optimization import get_optimization_engine
         from oracle_engine.agent_optimized import get_optimized_agent
-        from oracle_engine.prompt_chain import get_optimization_analytics
+        from oracle_engine.chains.prompt_chain import get_optimization_analytics
 
         print("✅ Optimization modules imported successfully")
 

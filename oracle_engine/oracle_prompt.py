@@ -1,4 +1,4 @@
-from oracle_engine.llm_dispatcher import call_llm
+from oracle_engine.dispatchers.llm_dispatcher import call_llm
 
 
 def _iter_fallback_models(primary: str):

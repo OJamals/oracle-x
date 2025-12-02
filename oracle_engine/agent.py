@@ -1,5 +1,5 @@
 from openai import OpenAI
-from oracle_engine.prompt_chain import (
+from oracle_engine.chains.prompt_chain import (
     get_signals_from_scrapers,
     pull_similar_scenarios,
     adjust_scenario_tree_with_boost,

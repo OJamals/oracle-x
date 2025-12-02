@@ -12,7 +12,7 @@ import random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 try:
-    from oracle_engine.prompt_optimization import (
+    from oracle_engine.prompts.prompt_optimization import (
         PromptOptimizationEngine,
         MarketCondition,
         PromptStrategy,

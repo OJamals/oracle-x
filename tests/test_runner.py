@@ -113,7 +113,7 @@ tests = {
     "Data Orchestrator": "from data_feeds.data_feed_orchestrator import DataFeedOrchestrator",
     "Environment Config": "from core.config import config, load_config; load_config()",
     "ML Model Manager": "from oracle_engine.ml_model_manager import MLModelManager",
-    "Prompt Chain": "from oracle_engine.prompt_chain import adjust_scenario_tree"
+    "Prompt Chain": "from oracle_engine.chains.prompt_chain import adjust_scenario_tree"
 }
 
 results = {}

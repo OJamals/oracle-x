@@ -15,7 +15,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from oracle_engine.prompt_chain import (
+    from oracle_engine.chains.prompt_chain import (
         extract_scenario_tree,
         _extracted_from_extract_scenario_tree_42,
     )

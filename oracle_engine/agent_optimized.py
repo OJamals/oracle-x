@@ -7,7 +7,7 @@ providing intelligent prompt selection, performance tracking, and continuous lea
 
 import logging
 from typing import Optional, List, Dict, Any, Tuple
-from oracle_engine.prompt_chain import (
+from oracle_engine.chains.prompt_chain import (
     get_signals_from_scrapers,
     adjust_scenario_tree,
     generate_final_playbook,
@@ -15,8 +15,8 @@ from oracle_engine.prompt_chain import (
     get_optimization_analytics,
     evolve_prompt_templates,
 )
-from oracle_engine.prompt_chain import pull_similar_scenarios
-from oracle_engine.prompt_optimization import get_optimization_engine, MarketCondition
+from oracle_engine.chains.prompt_chain import pull_similar_scenarios
+from oracle_engine.prompts.prompt_optimization import get_optimization_engine, MarketCondition
 from core.config import config
 import time
 import json

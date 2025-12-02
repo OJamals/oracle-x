@@ -204,6 +204,17 @@ class DataFeedConfig:
     api_rate_limit_delay: float = 1.0
     enable_api_fallback: bool = True
 
+    # Data Source Toggles
+    fetch_options_flow: bool = True
+    fetch_dark_pool_data: bool = True
+    fetch_market_internals: bool = True
+    fetch_sentiment_web: bool = True
+    fetch_sentiment_llm: bool = True
+    fetch_news_yahoo: bool = True
+    fetch_finviz_breadth: bool = True
+    fetch_earnings_calendar: bool = True
+    enable_premium_feeds: bool = False
+
     def __post_init__(self):
         """Override from environment variables"""
         self.financial_modeling_prep_api_key = (
@@ -233,6 +244,17 @@ class DataFeedConfig:
         self.google_news_api_key = os.environ.get(
             "GOOGLE_NEWS_API_KEY", self.google_news_api_key
         )
+
+        # Data source toggles from env
+        self.fetch_options_flow = os.environ.get("FETCH_OPTIONS_FLOW", str(self.fetch_options_flow)).lower() == "true"
+        self.fetch_dark_pool_data = os.environ.get("FETCH_DARK_POOL_DATA", str(self.fetch_dark_pool_data)).lower() == "true"
+        self.fetch_market_internals = os.environ.get("FETCH_MARKET_INTERNALS", str(self.fetch_market_internals)).lower() == "true"
+        self.fetch_sentiment_web = os.environ.get("FETCH_SENTIMENT_WEB", str(self.fetch_sentiment_web)).lower() == "true"
+        self.fetch_sentiment_llm = os.environ.get("FETCH_SENTIMENT_LLM", str(self.fetch_sentiment_llm)).lower() == "true"
+        self.fetch_news_yahoo = os.environ.get("FETCH_NEWS_YAHOO", str(self.fetch_news_yahoo)).lower() == "true"
+        self.fetch_finviz_breadth = os.environ.get("FETCH_FINVIZ_BREADTH", str(self.fetch_finviz_breadth)).lower() == "true"
+        self.fetch_earnings_calendar = os.environ.get("FETCH_EARNINGS_CALENDAR", str(self.fetch_earnings_calendar)).lower() == "true"
+        self.enable_premium_feeds = os.environ.get("ENABLE_PREMIUM_FEEDS", str(self.enable_premium_feeds)).lower() == "true"
 
 
 @dataclass

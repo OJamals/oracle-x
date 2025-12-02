@@ -180,7 +180,7 @@ def handle_optimize_analytics(args):
 
     try:
         from oracle_engine.agent_optimized import get_optimized_agent
-        from oracle_engine.prompt_chain import get_optimization_analytics
+        from oracle_engine.chains.prompt_chain import get_optimization_analytics
 
         analytics = get_optimization_analytics()
         agent = get_optimized_agent()

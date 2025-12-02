@@ -17,13 +17,13 @@ from typing import Dict, Any, List, Optional
 # Add project root to Python path
 sys.path.append(str(Path(__file__).parent))
 
-from oracle_engine.prompt_optimization import (
+from oracle_engine.prompts.prompt_optimization import (
     get_optimization_engine,
     MarketCondition,
     PromptStrategy,
 )
 from oracle_engine.agent_optimized import get_optimized_agent
-from oracle_engine.prompt_chain import (
+from oracle_engine.chains.prompt_chain import (
     get_optimization_analytics,
     evolve_prompt_templates,
 )

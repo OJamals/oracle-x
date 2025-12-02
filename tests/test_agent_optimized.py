@@ -154,7 +154,7 @@ def test_ab_testing_framework(agent):
         engine = agent.engine
 
         # Test A/B test creation
-        from oracle_engine.prompt_optimization import MarketCondition
+        from oracle_engine.prompts.prompt_optimization import MarketCondition
 
         experiment_id = engine.start_ab_test(
             "conservative_balanced",

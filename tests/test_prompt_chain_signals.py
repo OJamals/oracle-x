@@ -16,7 +16,7 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 try:
-    from oracle_engine.prompt_chain import clean_signals_for_llm
+    from oracle_engine.chains.prompt_chain import clean_signals_for_llm
 except ImportError as e:
     pytest.skip(f"Could not import module: {e}", allow_module_level=True)
 
