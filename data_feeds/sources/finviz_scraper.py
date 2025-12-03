@@ -1,9 +1,10 @@
-import pandas as pd
-from decimal import Decimal
-from typing import List, Dict, Optional
-import re
-import requests
 import os
+import re
+from decimal import Decimal
+from typing import Dict, List, Optional
+
+import pandas as pd
+import requests
 from bs4 import BeautifulSoup
 
 # Import optimized HTTP client
@@ -29,14 +30,15 @@ try:
 except ImportError:
     pass
 
-# Import finvizfinance modules
-from finvizfinance.group.performance import Performance
-from finvizfinance.group.overview import Overview
-from finvizfinance.news import News
-from finvizfinance.insider import Insider
+from finvizfinance.crypto import Crypto
 from finvizfinance.earnings import Earnings
 from finvizfinance.forex import Forex
-from finvizfinance.crypto import Crypto
+from finvizfinance.group.overview import Overview
+
+# Import finvizfinance modules
+from finvizfinance.group.performance import Performance
+from finvizfinance.insider import Insider
+from finvizfinance.news import News
 
 
 def fetch_finviz_breadth() -> dict:

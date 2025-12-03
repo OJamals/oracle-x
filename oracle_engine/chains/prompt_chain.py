@@ -73,6 +73,7 @@ def clean_signals_for_llm(signals: dict, max_items: int = 5) -> dict:
     return cleaned
 
 
+import asyncio
 import json
 import logging
 import re
@@ -82,12 +83,11 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from core.config import config
 from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat
-from oracle_engine.prompts.prompt_optimization import (MarketCondition,
-                                                       get_optimization_engine)
-import asyncio
 from oracle_engine.prompts.prompt_optimization import (
+    MarketCondition,
+    batch_build_boosted_prompts,
     build_boosted_prompt,
-    batch_build_boosted_prompts
+    get_optimization_engine,
 )
 
 logger = logging.getLogger(__name__)
@@ -218,8 +218,10 @@ def _extracted_from_extract_scenario_tree_42(match, arg1) -> Dict[str, Any]:
 
 from data_feeds.dark_pools import fetch_dark_pool_data
 from data_feeds.earnings_calendar import fetch_earnings_calendar
+
 # 🧩 Import your local scraper modules
 from data_feeds.market_internals import fetch_market_internals
+
 # (Legacy) twitter sentiment import retained if needed elsewhere
 from data_feeds.news_scraper import fetch_headlines_yahoo_finance
 from data_feeds.sources.finviz_scraper import fetch_finviz_breadth
@@ -228,8 +230,7 @@ from data_feeds.ticker_universe import fetch_ticker_universe
 from oracle_engine.tools import analyze_chart, get_sentiment
 from sentiment.sentiment_engine import fetch_sentiment_data
 from vector_db.local_store import query_similar
-from vector_db.prompt_booster import (batch_build_boosted_prompts,
-                                      build_boosted_prompt)
+from vector_db.prompt_booster import batch_build_boosted_prompts, build_boosted_prompt
 
 # Ticker validation is optional; fall back to a no-op if the optimizer module
 # is unavailable in the runtime environment.
@@ -299,8 +300,9 @@ def get_signals_from_scrapers(
 
         # Generate synthetic dark pool signals from options flow correlation
         try:
-            from data_feeds.synthetic_darkpool_signals import \
-                generate_synthetic_darkpool_signals
+            from data_feeds.synthetic_darkpool_signals import (
+                generate_synthetic_darkpool_signals,
+            )
 
             dark_pools_list = generate_synthetic_darkpool_signals(
                 options_data=options_flow, real_darkpool_data=real_dark_pools_list
@@ -603,7 +605,7 @@ When analyzing dark pool signals, consider the data source and confidence level:
    - Use as supporting evidence only
 
 2. SOURCE: 'synthetic_options_correlation' (enhanced method)
-   - Confidence: 50-65% accuracy  
+   - Confidence: 50-65% accuracy
    - Generated from large options sweeps (volume >50k, V/OI ratio >3.0)
    - When dark_pool_probability > 0.7 AND confidence > 0.65: HIGH INSTITUTIONAL ACTIVITY
    - When dark_pool_probability > 0.5 AND confidence > 0.5: ELEVATED INSTITUTIONAL ACTIVITY

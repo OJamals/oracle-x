@@ -3,14 +3,15 @@ FinanceToolkit and FinanceDatabase Integration for Consolidated Data Feed
 Adds comprehensive financial analysis capabilities using FinanceToolkit
 """
 
-import os
 import logging
+import os
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Union, Any, TYPE_CHECKING
-import pandas as pd
-from dataclasses import dataclass
 from enum import Enum
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+
+import pandas as pd
 
 if TYPE_CHECKING:
     from financetoolkit import Toolkit

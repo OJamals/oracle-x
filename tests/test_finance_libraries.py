@@ -686,9 +686,7 @@ def main():
         print(f"{test_name.replace('_', ' ').title()}: {status}")
 
     all_passed = all(results.values())
-    print(
-        f"\nOverall: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}"
-    )
+    print(f"\nOverall: {'✅ ALL TESTS PASSED' if all_passed else '❌ SOME TESTS FAILED'}")
 
     return results
 

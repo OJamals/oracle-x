@@ -258,9 +258,9 @@ class UnifiedLearningOrchestrator:
                 if self.feature_engineer:
                     df_features = self.feature_engineer.engineer_features(df)
                     self.feature_cache["latest"] = df_features
-                    results["feature_importance"] = (
-                        self.feature_engineer.get_feature_importance()
-                    )
+                    results[
+                        "feature_importance"
+                    ] = self.feature_engineer.get_feature_importance()
                 else:
                     df_features = df
 

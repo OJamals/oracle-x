@@ -371,9 +371,7 @@ def test_enhanced_neural_network():
 
         # Test prediction
         predictions, confidence = nn_classifier.predict(X.iloc[:10])
-        print(
-            f"✅ Neural network predictions generated: {len(predictions)} predictions"
-        )
+        print(f"✅ Neural network predictions generated: {len(predictions)} predictions")
 
         # Test regression neural network
         nn_regressor = NeuralNetworkPredictor(

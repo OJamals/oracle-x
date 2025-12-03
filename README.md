@@ -19,6 +19,44 @@ ORACLE-X is an AI-driven trading scenario engine that integrates real-time marke
 - **examples/**: Example implementations and training scripts.
 - **tests/**: Comprehensive test suite with unit, integration, and validation tests.
 
+
+## 🏗️ Post-Refactor Architecture (P1-P5 Complete)
+
+```mermaid
+graph TD
+    A[External Data Sources<br/>Finnhub Finviz Twitter etc.] --> B[data_feeds/sources/ Adapters]
+    B --> C[data_feeds/orchestrator/ Submodules<br/>core.py utils/ validation/]
+    C --> D[core/cache/<br/>unified_cache_manager.py]
+    C --> E[sentiment/<br/>sentiment_engine.py]
+    D --> F[oracle_engine/<br/>agent.py chains/ prompts/]
+    E --> F
+    F --> G[CLI oracle_cli.py<br/>main.py signals_runner.py]
+    F --> H[Dashboard app.py]
+    style C fill:#e1f5fe
+    style D fill:#f3e5f5
+    style E fill:#f3e5f5
+    style F fill:#fff3e0
+```
+
+### Unified Components
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **Unified Cache** | [`core/cache/unified_cache_manager.py`](core/cache/unified_cache_manager.py) | Multi-level caching (memory/redis/SQLite), invalidation, warming |
+| **Sentiment Engine** | [`sentiment/sentiment_engine.py`](sentiment/sentiment_engine.py) | Aggregates Reddit/Twitter/news/FinBERT/VADER; composite scores |
+| **Orchestrator Submodules** | [`data_feeds/orchestrator/`](data_feeds/orchestrator/) | core.py (main), utils/helpers.py performance_tracker.py, validation/data_validator.py |
+| **Structured Exceptions** | Module-specific (e.g. DataFeedError patterns) | Replace generic try/except; better debugging/fallbacks |
+
+### Changes Summary
+From [`refactoring_plan.md`](refactoring_plan.md):
+- **P1**: Split 4000+ line monolith → maintainable submodules.
+- **P2**: Cache unification → single interface, no fragmentation.
+- **P3**: Sentiment consolidation → one engine, no duplicates.
+- **P4**: Error handling → specific exceptions.
+- **P5**: Cleanup/dead code removal.
+- **Validation**: pytest 100%, perf stable.
+
+**AI Agents**: Follow [`docs/copilot-instructions.md`](docs/copilot-instructions.md) for patterns.
+
 ## Setup
 1. Install dependencies:
    ```sh

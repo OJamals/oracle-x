@@ -386,8 +386,9 @@ async def get_signals_from_scrapers_async(
 
     # Handle synthetic dark pool signals
     try:
-        from data_feeds.synthetic_darkpool_signals import \
-            generate_synthetic_darkpool_signals
+        from data_feeds.synthetic_darkpool_signals import (
+            generate_synthetic_darkpool_signals,
+        )
 
         dark_pools_enhanced = generate_synthetic_darkpool_signals(
             options_data=signals.get("options_flow", {}),
@@ -411,8 +412,7 @@ async def get_signals_from_scrapers_async(
     if enable_premium:
         try:
             logger.debug("Fetching premium data...")
-            from data_feeds.strategic_premium_feeds import \
-                fetch_premium_unique_data
+            from data_feeds.strategic_premium_feeds import fetch_premium_unique_data
 
             premium_data = await asyncio.to_thread(
                 fetch_premium_unique_data, tickers[:5]  # Limit to top 5 for premium

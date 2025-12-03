@@ -12,7 +12,7 @@ import logging
 from dataclasses import dataclass
 from functools import wraps
 
-from core.types import DataSource
+from core.types_internal import DataSource
 from core.cache.redis_manager import get_cache_manager
 from core.cache.sqlite_manager import get_sqlite_cache_manager
 

@@ -21,22 +21,21 @@ Notes:
 
 from __future__ import annotations
 
-from typing import Dict, Any, Optional, Set, List
 import logging
+from typing import Any, Dict, List, Optional, Set
 
 import pandas as pd
 
 from data_feeds.adapter_protocol import SourceAdapterProtocol
+from data_feeds.consolidated_data_feed import DataCache  # Import the DataCache class
+from data_feeds.consolidated_data_feed import CompanyInfo
 from data_feeds.consolidated_data_feed import (
-    YFinanceAdapter as ConsolidatedYF,
-    FMPAdapter as ConsolidatedFMP,
-    FinnhubAdapter as ConsolidatedFinnhub,
     FinanceDatabaseAdapter as ConsolidatedFinanceDB,
-    DataCache,  # Import the DataCache class
-    Quote,
-    CompanyInfo,
-    NewsItem,
 )
+from data_feeds.consolidated_data_feed import FinnhubAdapter as ConsolidatedFinnhub
+from data_feeds.consolidated_data_feed import FMPAdapter as ConsolidatedFMP
+from data_feeds.consolidated_data_feed import NewsItem, Quote
+from data_feeds.consolidated_data_feed import YFinanceAdapter as ConsolidatedYF
 
 logger = logging.getLogger(__name__)
 

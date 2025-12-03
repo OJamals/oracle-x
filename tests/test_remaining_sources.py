@@ -311,9 +311,9 @@ def test_quantsumore_comprehensive():
 
         results["status"] = "PARTIAL_SUCCESS"
         results["rate_limit"] = "Free with limitations - equity endpoints disrupted"
-        results["data_coverage"] = (
-            "Economic data (CPI, Treasury), technical analysis tools"
-        )
+        results[
+            "data_coverage"
+        ] = "Economic data (CPI, Treasury), technical analysis tools"
         results["limitations"] = "Yahoo Finance disruption affects equity endpoints"
 
     except Exception as e:
@@ -479,9 +479,9 @@ def test_stockdex_comprehensive():
 
         results["status"] = "SUCCESS"
         results["rate_limit"] = "Free with web scraping limitations"
-        results["data_coverage"] = (
-            "Comprehensive stock data including financials, options, insider trades"
-        )
+        results[
+            "data_coverage"
+        ] = "Comprehensive stock data including financials, options, insider trades"
 
     except Exception as e:
         results["status"] = f"ERROR: {str(e)}"

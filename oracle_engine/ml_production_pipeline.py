@@ -22,9 +22,9 @@ except ImportError:
     print("schedule package not available, using basic scheduling")
 
 from oracle_engine.ensemble_ml_engine import EnsemblePredictionEngine
+
 # Local imports
-from oracle_engine.ml_model_manager import (MLModelManager,
-                                            create_ml_model_manager)
+from oracle_engine.ml_model_manager import MLModelManager, create_ml_model_manager
 from oracle_engine.ml_prediction_engine import PredictionType
 from oracle_engine.ml_trading_integration import MLTradingOrchestrator
 

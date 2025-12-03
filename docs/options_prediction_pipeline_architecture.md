@@ -22,41 +22,41 @@ graph TB
         SA[Sentiment Analysis]
         MD[Market Data]
     end
-    
+
     subgraph Processing Layer
         OV[Options Valuation Module]
         SE[Signal Aggregation Engine]
         ML[ML Prediction Engine]
         RA[Risk Assessment Framework]
     end
-    
+
     subgraph Decision Layer
         OS[Opportunity Scoring System]
         PO[Portfolio Optimizer]
         RM[Risk Manager]
     end
-    
+
     subgraph Output Layer
         API[REST API]
         WS[WebSocket Stream]
         DB[Database Storage]
         AL[Alert System]
     end
-    
+
     DF --> OV
     OF --> SE
     SA --> SE
     MD --> OV
     MD --> ML
-    
+
     OV --> OS
     SE --> OS
     ML --> OS
-    
+
     OS --> RA
     RA --> PO
     PO --> RM
-    
+
     RM --> API
     RM --> WS
     RM --> DB
@@ -75,7 +75,7 @@ class OptionsValuationModule:
     """
     Calculates theoretical option values and identifies mispricing
     """
-    
+
     def __init__(self):
         self.pricing_models = {
             'black_scholes': BlackScholesModel(),
@@ -84,7 +84,7 @@ class OptionsValuationModule:
         }
         self.iv_calculator = ImpliedVolatilityCalculator()
         self.greeks_engine = GreeksCalculator()
-    
+
     def evaluate_option(self, option_data: OptionContract) -> ValuationResult:
         """
         Returns:
@@ -113,7 +113,7 @@ class SignalAggregationEngine:
     """
     Aggregates and weights signals from multiple sources
     """
-    
+
     def __init__(self):
         self.signal_sources = {
             'technical': TechnicalSignalGenerator(),
@@ -123,7 +123,7 @@ class SignalAggregationEngine:
             'ml_predictions': MLSignalGenerator()
         }
         self.weight_optimizer = DynamicWeightOptimizer()
-    
+
     def aggregate_signals(self, symbol: str, expiry: str) -> AggregatedSignal:
         """
         Returns:
@@ -169,7 +169,7 @@ class OpportunityScoringSystem:
     """
     Scores and ranks options opportunities
     """
-    
+
     def calculate_opportunity_score(self, option: OptionOpportunity) -> OpportunityScore:
         """
         Score Components:
@@ -180,7 +180,7 @@ class OpportunityScoringSystem:
         - Liquidity Score
         - Signal Strength
         """
-        
+
         score = (
             self.expected_return_weight * expected_return_score +
             self.probability_weight * probability_score +
@@ -188,7 +188,7 @@ class OpportunityScoringSystem:
             self.liquidity_weight * liquidity_score +
             self.signal_weight * signal_strength
         )
-        
+
         return OpportunityScore(
             total_score=score,
             components=component_scores,
@@ -214,7 +214,7 @@ class RiskAssessmentFramework:
     """
     Calculates comprehensive risk metrics
     """
-    
+
     def assess_risk(self, position: OptionPosition) -> RiskProfile:
         return RiskProfile(
             max_loss=self.calculate_max_loss(position),
@@ -255,14 +255,14 @@ class PortfolioOptimizer:
     """
     Optimizes portfolio allocation and hedging
     """
-    
-    def optimize_portfolio(self, 
+
+    def optimize_portfolio(self,
                           opportunities: List[OptionOpportunity],
                           constraints: PortfolioConstraints) -> PortfolioAllocation:
         """
         Uses Modern Portfolio Theory with options-specific adjustments
         """
-        
+
         return PortfolioAllocation(
             positions=self.calculate_optimal_positions(opportunities),
             position_sizes=self.calculate_position_sizes(risk_budget),
@@ -293,7 +293,7 @@ sequenceDiagram
     participant ML as ML Engine
     participant DE as Decision Engine
     participant API as API Layer
-    
+
     DF->>CE: Stream market data
     CE->>PP: Filtered data
     PP->>ML: Feature vectors
@@ -312,7 +312,7 @@ graph LR
         MT --> BT[Backtesting]
         BT --> PU[Parameter Update]
     end
-    
+
     subgraph Intraday Batch
         SC[Scan Universe] --> EO[Evaluate Options]
         EO --> RS[Risk Scoring]
@@ -338,7 +338,7 @@ class OptionContract:
     open_interest: int
     implied_volatility: float
     greeks: Greeks
-    
+
 @dataclass
 class Greeks:
     delta: float
@@ -371,26 +371,26 @@ class PredictionSignal:
 ```python
 class OptionRecommendation:
     """API response for option recommendations"""
-    
+
     recommendation_id: str
     timestamp: datetime
     contract: OptionContract
     action: str  # 'buy', 'sell', 'hold'
-    
+
     scores: {
         'opportunity_score': float,
         'risk_score': float,
         'expected_return': float,
         'win_probability': float
     }
-    
+
     analysis: {
         'valuation': ValuationResult,
         'signals': Dict[str, float],
         'risk_metrics': RiskProfile,
         'position_sizing': PositionSize
     }
-    
+
     metadata: {
         'confidence': float,
         'market_regime': str,
@@ -435,16 +435,16 @@ REST API Endpoints:
       - min_score: float
       - max_risk: float
       - strategies: List[str]
-  
+
   /api/v1/opportunity/{id}:
     GET: Detailed opportunity analysis
-    
+
   /api/v1/portfolio/optimize:
     POST: Optimize portfolio allocation
     body:
       - opportunities: List[OpportunityId]
       - constraints: PortfolioConstraints
-      
+
   /api/v1/risk/assess:
     POST: Assess position risk
     body:
@@ -454,10 +454,10 @@ REST API Endpoints:
 WebSocket Streams:
   /ws/opportunities:
     Real-time opportunity updates
-    
+
   /ws/signals:
     Real-time signal updates
-    
+
   /ws/risk:
     Real-time risk alerts
 ```
@@ -472,17 +472,17 @@ system:
   processing_interval: 60  # seconds
   cache_ttl: 300  # seconds
   max_concurrent_evaluations: 100
-  
+
 data_sources:
   market_data:
     providers: ["yfinance", "twelve_data", "finviz"]
     fallback_enabled: true
     quality_threshold: 0.8
-    
+
   options_data:
     providers: ["yfinance"]
     update_frequency: 300  # seconds
-    
+
   sentiment_data:
     providers: ["reddit", "twitter", "news"]
     aggregation_method: "weighted_average"
@@ -504,10 +504,10 @@ valuation:
       enabled: true
       weight: 0.3
       simulations: 10000
-      
+
   risk_free_rate: 0.05
   dividend_yield: "auto"  # or fixed value
-  
+
 signal_aggregation:
   weights:
     technical: 0.25
@@ -515,7 +515,7 @@ signal_aggregation:
     sentiment: 0.20
     options_flow: 0.20
     ml_predictions: 0.15
-    
+
   min_signal_confidence: 0.6
   signal_decay_hours: 24
 ```
@@ -527,17 +527,17 @@ risk_management:
   max_position_size: 0.05  # 5% of portfolio
   max_sector_exposure: 0.30  # 30% in one sector
   max_correlation: 0.70
-  
+
   var_confidence: 0.95
   stress_test_scenarios:
     - market_crash: -20%
     - volatility_spike: +50%
     - liquidity_crisis: -80%
-    
+
   stop_loss:
     enabled: true
     percentage: 0.20  # 20% loss
-    
+
   greeks_limits:
     portfolio_delta: [-0.3, 0.3]
     portfolio_gamma: [-0.1, 0.1]
@@ -554,12 +554,12 @@ scoring:
     risk_adjusted_return: 0.20
     liquidity: 0.15
     signal_strength: 0.10
-    
+
   thresholds:
     min_opportunity_score: 70
     min_liquidity_score: 60
     min_win_probability: 0.55
-    
+
   filters:
     min_volume: 100
     min_open_interest: 500
@@ -575,7 +575,7 @@ scoring:
 ```python
 class CacheStrategy:
     """Multi-tier caching for performance"""
-    
+
     tiers = {
         'L1_memory': {
             'ttl': 60,  # seconds
@@ -600,18 +600,18 @@ class CacheStrategy:
 ```python
 class ParallelProcessor:
     """Parallel processing for scalability"""
-    
+
     def process_opportunities(self, symbols: List[str]):
         with ThreadPoolExecutor(max_workers=10) as executor:
             futures = []
             for symbol in symbols:
                 future = executor.submit(self.evaluate_symbol, symbol)
                 futures.append(future)
-            
+
             results = []
             for future in as_completed(futures):
                 results.append(future.result())
-        
+
         return results
 ```
 
@@ -623,16 +623,16 @@ resources:
     evaluation_threads: 8
     ml_inference_threads: 4
     data_processing_threads: 4
-    
+
   memory:
     max_heap_size: "8GB"
     cache_size: "2GB"
     model_cache: "1GB"
-    
+
   database:
     connection_pool_size: 20
     query_timeout: 30  # seconds
-    
+
   api:
     rate_limiting:
       requests_per_minute: 1000
@@ -650,13 +650,13 @@ monitoring:
     - memory_usage
     - api_latency
     - processing_queue_size
-    
+
   business_metrics:
     - opportunities_identified
     - recommendation_accuracy
     - portfolio_performance
     - risk_violations
-    
+
   data_quality_metrics:
     - data_freshness
     - data_completeness
@@ -673,13 +673,13 @@ alerts:
     - data_feed_failure
     - risk_limit_breach
     - model_failure
-    
+
   warning:
     - high_latency
     - low_data_quality
     - model_drift_detected
     - unusual_market_conditions
-    
+
   info:
     - new_opportunity_found
     - position_update_recommended
@@ -712,14 +712,14 @@ services:
     resources:
       cpu: 2
       memory: 4GB
-      
+
   valuation-engine:
     image: oracle-x/valuation-engine:latest
     replicas: 3
     resources:
       cpu: 4
       memory: 8GB
-      
+
   ml-engine:
     image: oracle-x/ml-engine:latest
     replicas: 2
@@ -727,7 +727,7 @@ services:
       cpu: 8
       memory: 16GB
       gpu: optional
-      
+
   api-gateway:
     image: oracle-x/api-gateway:latest
     replicas: 3
@@ -745,7 +745,7 @@ autoscaling:
     max_replicas: 10
     target_cpu_utilization: 70%
     target_memory_utilization: 80%
-    
+
   vertical:
     enabled: true
     max_cpu: 16

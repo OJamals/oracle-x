@@ -25,9 +25,9 @@ print(f"Sentiment Score: {sentiment['reddit'].sentiment_score}")
 
 #### `get_quote(symbol: str, preferred_sources: Optional[List[DataSource]] = None) -> Optional[Quote]`
 
-**Purpose**: Get real-time stock quote with intelligent source fallback  
-**Performance**: ~384ms average response time  
-**Quality**: Automatic validation with 80-100 quality scores  
+**Purpose**: Get real-time stock quote with intelligent source fallback
+**Performance**: ~384ms average response time
+**Quality**: Automatic validation with 80-100 quality scores
 
 **Returns**: Quote object with:
 - `symbol`: Stock symbol
@@ -56,7 +56,7 @@ if quote:
 quote = orchestrator.get_quote("TSLA", preferred_sources=[DataSource.YFINANCE, DataSource.TWELVE_DATA])
 ```
 
-**Data Sources**: YFinance (primary), TwelveData (fallback), FMP, Finnhub  
+**Data Sources**: YFinance (primary), TwelveData (fallback), FMP, Finnhub
 **Fallback Logic**: Automatic failover with performance tracking
 
 ---
@@ -65,9 +65,9 @@ quote = orchestrator.get_quote("TSLA", preferred_sources=[DataSource.YFINANCE, D
 
 #### `get_market_data(symbol: str, period: str = "1y", interval: str = "1d", preferred_sources: Optional[List[DataSource]] = None) -> Optional[MarketData]`
 
-**Purpose**: Get historical OHLCV data with quality validation  
-**Performance**: ~595ms average response time  
-**Quality**: 100/100 quality score for YFinance data  
+**Purpose**: Get historical OHLCV data with quality validation
+**Performance**: ~595ms average response time
+**Quality**: 100/100 quality score for YFinance data
 
 **Parameters**:
 - `period`: "1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"
@@ -96,7 +96,7 @@ if market_data:
 intraday = orchestrator.get_market_data("SPY", period="1d", interval="5m")
 ```
 
-**Data Sources**: YFinance (primary), TwelveData (fallback), Investiny  
+**Data Sources**: YFinance (primary), TwelveData (fallback), Investiny
 **Quality Validation**: Missing data detection, outlier analysis, completeness scoring
 
 ---
@@ -105,9 +105,9 @@ intraday = orchestrator.get_market_data("SPY", period="1d", interval="5m")
 
 #### `get_sentiment_data(symbol: str, sources: Optional[List[DataSource]] = None) -> Dict[str, SentimentData]`
 
-**Purpose**: Aggregate sentiment from multiple sources with confidence scoring  
-**Performance**: ~4.1s total (Reddit: 1.86s, Twitter: 1.84s, Yahoo: 0.42s)  
-**Quality**: FinBERT-enhanced sentiment with confidence metrics  
+**Purpose**: Aggregate sentiment from multiple sources with confidence scoring
+**Performance**: ~4.1s total (Reddit: 1.86s, Twitter: 1.84s, Yahoo: 0.42s)
+**Quality**: FinBERT-enhanced sentiment with confidence metrics
 
 **Returns**: Dictionary of SentimentData objects with:
 - `symbol`: Stock symbol
@@ -126,16 +126,16 @@ for source, sentiment in sentiment_data.items():
     score = sentiment.sentiment_score
     confidence = sentiment.confidence
     samples = sentiment.sample_size or 0
-    
+
     trend = "🟢 Bullish" if score > 0.1 else "🔴 Bearish" if score < -0.1 else "🟡 Neutral"
     print(f"{source}: {score:+.3f} ({confidence:.3f} confidence, {samples} samples) {trend}")
 
 # Reddit sentiment: +0.992 (0.520 confidence, 8 tickers) 🟢 Bullish
-# Twitter sentiment: +0.330 (0.439 confidence, 20 samples) 🟢 Bullish  
+# Twitter sentiment: +0.330 (0.439 confidence, 20 samples) 🟢 Bullish
 # Yahoo sentiment: +0.150 (0.850 confidence, 15 samples) 🟢 Bullish
 ```
 
-**Data Sources**: Reddit (8+ tickers), Twitter (FinBERT-enhanced), Yahoo News  
+**Data Sources**: Reddit (8+ tickers), Twitter (FinBERT-enhanced), Yahoo News
 **Caching**: 5-minute TTL on Reddit data for 30% performance improvement
 
 ---
@@ -144,7 +144,7 @@ for source, sentiment in sentiment_data.items():
 
 #### `get_company_info(symbol: str) -> Optional[CompanyInfo]`
 
-**Purpose**: Get comprehensive company fundamentals and information  
+**Purpose**: Get comprehensive company fundamentals and information
 
 **Returns**: CompanyInfo object with:
 - Basic company details (name, description, industry, sector)
@@ -168,7 +168,7 @@ if info:
 
 #### `get_news(symbol: str, limit: int = 10) -> List[NewsItem]`
 
-**Purpose**: Get latest news articles for a symbol  
+**Purpose**: Get latest news articles for a symbol
 
 **Returns**: List of NewsItem objects with:
 - `title`: Article headline
@@ -194,8 +194,8 @@ for article in news[:3]:
 
 #### `get_market_breadth() -> Optional[MarketBreadth]`
 
-**Purpose**: Get market-wide statistics and breadth indicators  
-**Performance**: ~305ms response time  
+**Purpose**: Get market-wide statistics and breadth indicators
+**Performance**: ~305ms response time
 
 **Returns**: MarketBreadth object with:
 - `advancers`: Number of advancing stocks (int)
@@ -224,8 +224,8 @@ if breadth:
 
 #### `get_sector_performance() -> List[GroupPerformance]`
 
-**Purpose**: Get performance metrics for all market sectors  
-**Performance**: ~136ms response time  
+**Purpose**: Get performance metrics for all market sectors
+**Performance**: ~136ms response time
 
 **Returns**: List of GroupPerformance objects with:
 - `name`: Sector name (str)
@@ -252,7 +252,7 @@ for sector in sorted(sectors, key=lambda x: x.performance_1d, reverse=True):
 
 #### `get_earnings_calendar_detailed(tickers: Optional[List[str]] = None) -> Optional[List[dict]]`
 
-**Purpose**: Get detailed earnings calendar with estimates and actuals  
+**Purpose**: Get detailed earnings calendar with estimates and actuals
 
 **Agent Example**:
 ```python
@@ -272,7 +272,7 @@ for event in earnings[:5]:
 
 #### `get_options_analytics(symbol: str, include: Optional[List[str]] = None) -> Optional[dict]`
 
-**Purpose**: Get options data and analytics for a symbol  
+**Purpose**: Get options data and analytics for a symbol
 
 **Agent Example**:
 ```python
@@ -288,7 +288,7 @@ if options:
 
 #### `get_financial_statements(symbol: str) -> Dict[str, Optional[pd.DataFrame]]`
 
-**Purpose**: Get comprehensive financial statements  
+**Purpose**: Get comprehensive financial statements
 
 **Returns**: Dictionary with:
 - `balance_sheet`: Balance sheet data (DataFrame)
@@ -345,7 +345,7 @@ print(f"💹 Market Cap: {FinancialCalculator.calculate_market_cap_billions(metr
 
 #### `get_multiple_quotes(symbols: List[str]) -> List[Quote]`
 
-**Purpose**: Get quotes for multiple symbols efficiently  
+**Purpose**: Get quotes for multiple symbols efficiently
 
 **Agent Example**:
 ```python
@@ -367,7 +367,7 @@ for quote in quotes:
 
 #### `get_data_quality_report() -> Dict[str, DataQualityMetrics]`
 
-**Purpose**: Get performance metrics for all data sources  
+**Purpose**: Get performance metrics for all data sources
 
 **Returns**: Dictionary of DataQualityMetrics with:
 - `source`: Data source name
@@ -398,17 +398,17 @@ for source, metrics in quality_report.items():
 ```python
 def get_reliable_quote(symbol: str, max_retries: int = 3) -> Optional[Quote]:
     """Agent pattern: Reliable quote with quality validation"""
-    
+
     for attempt in range(max_retries):
         quote = orchestrator.get_quote(symbol)
-        
+
         if quote and quote.quality_score and quote.quality_score >= 80:
             return quote
-        
+
         if attempt < max_retries - 1:
             print(f"⚠️  Quality score {quote.quality_score}/100, retrying...")
             time.sleep(1)
-    
+
     return quote  # Return best available even if quality is low
 
 # Usage
@@ -420,28 +420,28 @@ quote = get_reliable_quote("AAPL")
 ```python
 def analyze_market_sentiment(symbol: str) -> dict:
     """Agent pattern: Comprehensive sentiment analysis"""
-    
+
     sentiment_data = orchestrator.get_sentiment_data(symbol)
-    
+
     # Calculate weighted average sentiment
     total_weight = 0
     weighted_sentiment = 0
-    
+
     source_weights = {"reddit": 0.4, "twitter": 0.4, "yahoo_news": 0.2}
-    
+
     for source, sentiment in sentiment_data.items():
         weight = source_weights.get(source, 0.1) * sentiment.confidence
         weighted_sentiment += sentiment.sentiment_score * weight
         total_weight += weight
-    
+
     if total_weight > 0:
         weighted_sentiment /= total_weight
-    
+
     return {
         "symbol": symbol,
         "weighted_sentiment": weighted_sentiment,
         "confidence": total_weight / sum(source_weights.values()),
-        "sources": {source: {"score": s.sentiment_score, "confidence": s.confidence} 
+        "sources": {source: {"score": s.sentiment_score, "confidence": s.confidence}
                    for source, s in sentiment_data.items()},
         "trend": "bullish" if weighted_sentiment > 0.1 else "bearish" if weighted_sentiment < -0.1 else "neutral"
     }
@@ -456,17 +456,17 @@ print(f"🎯 {analysis['symbol']} Sentiment: {analysis['weighted_sentiment']:+.3
 ```python
 def create_market_overview() -> dict:
     """Agent pattern: Comprehensive market overview"""
-    
+
     # Get major indices
     indices = ["SPY", "QQQ", "IWM", "VTI"]
     index_quotes = orchestrator.get_multiple_quotes(indices)
-    
+
     # Get market breadth
     breadth = orchestrator.get_market_breadth()
-    
+
     # Get sector performance
     sectors = orchestrator.get_sector_performance()
-    
+
     # Get sentiment for major stocks
     major_stocks = ["AAPL", "MSFT", "GOOGL", "TSLA"]
     sentiment_overview = {}
@@ -475,9 +475,9 @@ def create_market_overview() -> dict:
         if sentiment_data:
             avg_sentiment = sum(s.sentiment_score for s in sentiment_data.values()) / len(sentiment_data)
             sentiment_overview[stock] = avg_sentiment
-    
+
     return {
-        "indices": {q.symbol: {"price": float(q.price), "change_pct": float(q.change_percent)} 
+        "indices": {q.symbol: {"price": float(q.price), "change_pct": float(q.change_percent)}
                    for q in index_quotes if q},
         "breadth": {
             "advancers": breadth.advancers,
@@ -536,9 +536,9 @@ print(f"Best performing source: {best_source[0]} ({best_source[1].quality_score:
 ```python
 def get_stock_analysis(symbol: str) -> dict:
     """Agent pattern: Resilient stock analysis with graceful degradation"""
-    
+
     analysis = {"symbol": symbol, "status": "partial", "data": {}}
-    
+
     # Try to get quote
     try:
         quote = orchestrator.get_quote(symbol)
@@ -552,7 +552,7 @@ def get_stock_analysis(symbol: str) -> dict:
     except Exception as e:
         analysis["errors"] = analysis.get("errors", [])
         analysis["errors"].append(f"Quote error: {str(e)}")
-    
+
     # Try to get sentiment (non-blocking)
     try:
         sentiment_data = orchestrator.get_sentiment_data(symbol)
@@ -564,7 +564,7 @@ def get_stock_analysis(symbol: str) -> dict:
     except Exception as e:
         analysis["errors"] = analysis.get("errors", [])
         analysis["errors"].append(f"Sentiment error: {str(e)}")
-    
+
     # Try to get market data (non-blocking)
     try:
         market_data = orchestrator.get_market_data(symbol, period="5d")
@@ -578,7 +578,7 @@ def get_stock_analysis(symbol: str) -> dict:
     except Exception as e:
         analysis["errors"] = analysis.get("errors", [])
         analysis["errors"].append(f"Market data error: {str(e)}")
-    
+
     return analysis
 
 # Usage
@@ -620,11 +620,11 @@ else:
 
 ## 🎯 Current System Status
 
-**Overall Performance**: 🟢 Excellent  
-**Test Success Rate**: ✅ 100% (24/24 tests passing)  
+**Overall Performance**: 🟢 Excellent
+**Test Success Rate**: ✅ 100% (24/24 tests passing)
 **Average Response Times**:
 - Quote retrieval: 384ms
-- Market data: 595ms  
+- Market data: 595ms
 - Sentiment analysis: 4.1s (multi-source)
 - Market breadth: 305ms
 - Sector performance: 136ms

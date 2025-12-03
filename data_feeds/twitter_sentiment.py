@@ -1,15 +1,23 @@
 """
-Stub for twitter_sentiment to fix test imports during refactor.
+Twitter sentiment using unified sentiment engine.
 """
 
-def fetch_twitter_sentiment(symbols: list[str], limit: int = 50) -> dict:
-    """Stub implementation for Twitter sentiment data."""
-    return {
-        s: {
-            "sentiment_score": 0.55,
-            "confidence": 0.65,
+from typing import Dict, List
+
+from sentiment.sentiment_engine import get_sentiment_engine
+
+
+def fetch_twitter_sentiment(symbols: List[str], limit: int = 50) -> Dict[str, dict]:
+    """Fetch Twitter sentiment using sentiment engine."""
+    engine = get_sentiment_engine()
+    results = {}
+    dummy_texts = [f"Dummy Twitter post about stock."] * limit
+    for s in symbols:
+        sd = engine.twitter_sentiment(s, dummy_texts)
+        results[s] = {
+            "sentiment_score": sd.sentiment_score if sd else 0.55,
+            "confidence": sd.confidence if sd else 0.65,
             "sample_size": limit,
-            "sample_texts": [f"Stub Twitter post about {s}."] * 3,
+            "sample_texts": dummy_texts[:3],
         }
-        for s in symbols
-    }
+    return results

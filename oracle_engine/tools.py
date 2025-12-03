@@ -5,8 +5,7 @@ from __future__ import annotations
 import base64
 from typing import Optional
 
-from core.config import config
-from core.config import get_openai_model
+from core.config import config, get_openai_model
 from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat
 
 MODEL_NAME = get_openai_model()

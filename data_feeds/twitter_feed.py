@@ -1,21 +1,21 @@
 """
-Twitter Sentiment Feed using twscrape for tweet collection and analysis.
-Provides TwitterSentimentFeed class for fetching and analyzing Twitter sentiment.
+Twitter Sentiment Feed using twscrape for tweet collection.
+Features pre-compiled regex for tickers, cleaning.
 """
 
 import logging
 import re
 import time
-from typing import Dict, List, Optional, Any
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class TwitterSentimentFeed:
     """
-    Twitter sentiment feed using twscrape for tweet collection.
-    Features pre-compiled regex for tickers, cleaning, and sentiment analysis.
+    Twitter feed using twscrape for tweet collection.
+    Features pre-compiled regex for tickers and cleaning.
     """
 
     def __init__(self):
@@ -47,33 +47,16 @@ class TwitterSentimentFeed:
         matches = self.ticker_pattern.findall(text.upper())
         return list(set(matches))  # Remove duplicates
 
-    def _analyze_sentiment_basic(self, text: str) -> Dict[str, Any]:
-        """Basic sentiment analysis using VADER as fallback."""
-        try:
-            from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
-
-            analyzer = SentimentIntensityAnalyzer()
-            scores = analyzer.polarity_scores(text)
-            return {
-                "compound": scores["compound"],
-                "pos": scores["pos"],
-                "neu": scores["neu"],
-                "neg": scores["neg"],
-            }
-        except ImportError:
-            logger.warning("VADER not available, using neutral sentiment")
-            return {"compound": 0.0, "pos": 0.0, "neu": 1.0, "neg": 0.0}
-
     def fetch(self, query: str, limit: int = 20) -> List[Dict[str, Any]]:
         """
-        Fetch tweets for a given query with sentiment analysis.
+        Fetch tweets for a given query.
 
         Args:
             query: Search query (ticker symbol or search term)
             limit: Maximum number of tweets to fetch
 
         Returns:
-            List of tweet dictionaries with sentiment analysis
+            List of tweet dictionaries with text and tickers
         """
         # Check cache first
         cache_key = f"{query}_{limit}"
@@ -141,15 +124,11 @@ class TwitterSentimentFeed:
                         # Extract tickers
                         tickers = self._extract_tickers(tweet_text)
 
-                        # Analyze sentiment
-                        sentiment = self._analyze_sentiment_basic(clean_text)
-
-                        # Create tweet dict
+                        # Create tweet dict without sentiment
                         tweet_dict = {
                             "text": clean_text,
                             "raw_text": tweet_text,
                             "tickers": tickers,
-                            "sentiment": sentiment,
                             "timestamp": datetime.now(),
                             "tweet_id": getattr(tweet, "id", None),
                             "username": getattr(tweet, "username", None),

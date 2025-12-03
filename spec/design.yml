@@ -130,7 +130,7 @@ risk_mitigations:
   - risk: Poor data quality affecting predictions
     mitigation: Multi-source data validation with quality scoring
     monitoring: Automated data quality alerts
-    
+
   - risk: Model overfitting to historical data
     mitigation: Walk-forward validation and out-of-sample testing
     monitoring: Performance degradation alerts

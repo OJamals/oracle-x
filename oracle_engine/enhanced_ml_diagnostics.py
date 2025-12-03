@@ -19,9 +19,16 @@ warnings.filterwarnings("ignore")
 
 # Try to import ML libraries with fallbacks
 try:
-    from sklearn.metrics import (accuracy_score, f1_score, mean_absolute_error,
-                                 mean_squared_error, precision_score, r2_score,
-                                 recall_score, roc_auc_score)
+    from sklearn.metrics import (
+        accuracy_score,
+        f1_score,
+        mean_absolute_error,
+        mean_squared_error,
+        precision_score,
+        r2_score,
+        recall_score,
+        roc_auc_score,
+    )
 
     SKLEARN_AVAILABLE = True
 except ImportError:

@@ -23,15 +23,19 @@ import re
 
 logger = logging.getLogger(__name__)
 
+
 class ValidationSeverity(Enum):
     """Severity levels for validation issues"""
-    CRITICAL = "critical"      # Data unusable, pipeline should stop
-    WARNING = "warning"        # Data questionable, use with caution
-    INFO = "info"             # Minor issues, data still usable
+
+    CRITICAL = "critical"  # Data unusable, pipeline should stop
+    WARNING = "warning"  # Data questionable, use with caution
+    INFO = "info"  # Minor issues, data still usable
+
 
 @dataclass
 class ValidationResult:
     """Result of a validation check"""
+
     field: str
     rule: str
     passed: bool
@@ -41,9 +45,11 @@ class ValidationResult:
     expected_range: Tuple = None
     actual_value: Any = None
 
+
 @dataclass
 class DataQualityReport:
     """Comprehensive quality report for a dataset"""
+
     timestamp: datetime = field(default_factory=datetime.now)
     data_source: str = ""
     record_count: int = 0
@@ -79,8 +85,9 @@ class DataQualityReport:
             "critical_issues_count": len(self.critical_issues),
             "warnings_count": len(self.warnings),
             "validation_time": self.validation_time,
-            "data_age_hours": self.data_age_hours
+            "data_age_hours": self.data_age_hours,
         }
+
 
 class DataValidator:
     """Core data validation engine"""
@@ -97,11 +104,21 @@ class DataValidator:
         # Market data schema
         self.schemas["market_data"] = {
             "ticker": {"type": "string", "required": True, "pattern": r"^[A-Z]{1,5}$"},
-            "current_price": {"type": "numeric", "required": True, "min": 0.01, "max": 100000},
-            "price_change_30d": {"type": "numeric", "required": False, "min": -100, "max": 1000},
+            "current_price": {
+                "type": "numeric",
+                "required": True,
+                "min": 0.01,
+                "max": 100000,
+            },
+            "price_change_30d": {
+                "type": "numeric",
+                "required": False,
+                "min": -100,
+                "max": 1000,
+            },
             "volume": {"type": "numeric", "required": True, "min": 0},
             "volatility": {"type": "numeric", "required": False, "min": 0, "max": 200},
-            "timestamp": {"type": "datetime", "required": True}
+            "timestamp": {"type": "datetime", "required": True},
         }
 
         # Earnings data schema
@@ -110,16 +127,21 @@ class DataValidator:
             "next_earnings_date": {"type": "datetime", "required": False},
             "pe_ratio": {"type": "numeric", "required": False, "min": 0, "max": 1000},
             "earnings_per_share": {"type": "numeric", "required": False},
-            "timestamp": {"type": "datetime", "required": True}
+            "timestamp": {"type": "datetime", "required": True},
         }
 
         # Sentiment data schema
         self.schemas["sentiment"] = {
             "ticker": {"type": "string", "required": True, "pattern": r"^[A-Z]{1,5}$"},
-            "sentiment_score": {"type": "numeric", "required": True, "min": -1, "max": 1},
+            "sentiment_score": {
+                "type": "numeric",
+                "required": True,
+                "min": -1,
+                "max": 1,
+            },
             "confidence": {"type": "numeric", "required": False, "min": 0, "max": 1},
             "article_count": {"type": "numeric", "required": False, "min": 0},
-            "timestamp": {"type": "datetime", "required": True}
+            "timestamp": {"type": "datetime", "required": True},
         }
 
     def _init_validation_rules(self):
@@ -139,17 +161,25 @@ class DataValidator:
 
         # Sentiment validation rules
         self.validation_rules["sentiment_bounds"] = self._validate_sentiment_bounds
-        self.validation_rules["sentiment_confidence"] = self._validate_sentiment_confidence
+        self.validation_rules[
+            "sentiment_confidence"
+        ] = self._validate_sentiment_confidence
 
         # Timestamp validation rules
         self.validation_rules["timestamp_recent"] = self._validate_timestamp_recent
         self.validation_rules["timestamp_format"] = self._validate_timestamp_format
 
         # Cross-field validation rules
-        self.validation_rules["price_volume_correlation"] = self._validate_price_volume_correlation
-        self.validation_rules["market_cap_consistency"] = self._validate_market_cap_consistency
+        self.validation_rules[
+            "price_volume_correlation"
+        ] = self._validate_price_volume_correlation
+        self.validation_rules[
+            "market_cap_consistency"
+        ] = self._validate_market_cap_consistency
 
-    def validate_data(self, data: Dict[str, Any], schema_name: str = "market_data") -> DataQualityReport:
+    def validate_data(
+        self, data: Dict[str, Any], schema_name: str = "market_data"
+    ) -> DataQualityReport:
         """Validate data against schema and business rules"""
         start_time = time.time()
 
@@ -185,17 +215,21 @@ class DataValidator:
 
         except Exception as e:
             logger.error(f"Validation error for {schema_name}: {e}")
-            report.critical_issues.append(ValidationResult(
-                field="validation_system",
-                rule="system_check",
-                passed=False,
-                severity=ValidationSeverity.CRITICAL,
-                message=f"Validation system error: {e}"
-            ))
+            report.critical_issues.append(
+                ValidationResult(
+                    field="validation_system",
+                    rule="system_check",
+                    passed=False,
+                    severity=ValidationSeverity.CRITICAL,
+                    message=f"Validation system error: {e}",
+                )
+            )
 
         return report
 
-    def _validate_schema(self, data: Dict[str, Any], schema: Dict[str, Any]) -> List[ValidationResult]:
+    def _validate_schema(
+        self, data: Dict[str, Any], schema: Dict[str, Any]
+    ) -> List[ValidationResult]:
         """Validate data against schema definition"""
         results = []
 
@@ -204,14 +238,16 @@ class DataValidator:
 
             # Required field check
             if rules.get("required", False) and (value is None or value == ""):
-                results.append(ValidationResult(
-                    field=field,
-                    rule="required",
-                    passed=False,
-                    severity=ValidationSeverity.CRITICAL,
-                    message=f"Required field '{field}' is missing or empty",
-                    value=value
-                ))
+                results.append(
+                    ValidationResult(
+                        field=field,
+                        rule="required",
+                        passed=False,
+                        severity=ValidationSeverity.CRITICAL,
+                        message=f"Required field '{field}' is missing or empty",
+                        value=value,
+                    )
+                )
                 continue
 
             # Skip validation if field is not present and not required
@@ -223,15 +259,17 @@ class DataValidator:
             if expected_type:
                 type_valid = self._validate_type(value, expected_type)
                 if not type_valid["passed"]:
-                    results.append(ValidationResult(
-                        field=field,
-                        rule="type_check",
-                        passed=False,
-                        severity=ValidationSeverity.CRITICAL,
-                        message=type_valid["message"],
-                        value=value,
-                        expected_range=(expected_type,)
-                    ))
+                    results.append(
+                        ValidationResult(
+                            field=field,
+                            rule="type_check",
+                            passed=False,
+                            severity=ValidationSeverity.CRITICAL,
+                            message=type_valid["message"],
+                            value=value,
+                            expected_range=(expected_type,),
+                        )
+                    )
 
             # Range validation
             min_val = rules.get("min")
@@ -239,30 +277,34 @@ class DataValidator:
             if min_val is not None or max_val is not None:
                 range_valid = self._validate_range(value, min_val, max_val)
                 if not range_valid["passed"]:
-                    results.append(ValidationResult(
-                        field=field,
-                        rule="range_check",
-                        passed=False,
-                        severity=ValidationSeverity.WARNING,
-                        message=range_valid["message"],
-                        value=value,
-                        expected_range=(min_val, max_val)
-                    ))
+                    results.append(
+                        ValidationResult(
+                            field=field,
+                            rule="range_check",
+                            passed=False,
+                            severity=ValidationSeverity.WARNING,
+                            message=range_valid["message"],
+                            value=value,
+                            expected_range=(min_val, max_val),
+                        )
+                    )
 
             # Pattern validation
             pattern = rules.get("pattern")
             if pattern:
                 pattern_valid = self._validate_pattern(value, pattern)
                 if not pattern_valid["passed"]:
-                    results.append(ValidationResult(
-                        field=field,
-                        rule="pattern_check",
-                        passed=False,
-                        severity=ValidationSeverity.WARNING,
-                        message=pattern_valid["message"],
-                        value=value,
-                        expected_range=(pattern,)
-                    ))
+                    results.append(
+                        ValidationResult(
+                            field=field,
+                            rule="pattern_check",
+                            passed=False,
+                            severity=ValidationSeverity.WARNING,
+                            message=pattern_valid["message"],
+                            value=value,
+                            expected_range=(pattern,),
+                        )
+                    )
 
         return results
 
@@ -273,7 +315,7 @@ class DataValidator:
             "numeric": (int, float),
             "integer": int,
             "boolean": bool,
-            "datetime": datetime
+            "datetime": datetime,
         }
 
         expected_types = type_map.get(expected_type)
@@ -287,7 +329,10 @@ class DataValidator:
             type_valid = isinstance(value, expected_types)
 
         if not type_valid:
-            return {"passed": False, "message": f"Expected {expected_type}, got {type(value).__name__}"}
+            return {
+                "passed": False,
+                "message": f"Expected {expected_type}, got {type(value).__name__}",
+            }
 
         return {"passed": True, "message": ""}
 
@@ -295,23 +340,37 @@ class DataValidator:
         """Validate numeric range"""
         try:
             if min_val is not None and float(value) < float(min_val):
-                return {"passed": False, "message": f"Value {value} below minimum {min_val}"}
+                return {
+                    "passed": False,
+                    "message": f"Value {value} below minimum {min_val}",
+                }
             if max_val is not None and float(value) > float(max_val):
-                return {"passed": False, "message": f"Value {value} above maximum {max_val}"}
+                return {
+                    "passed": False,
+                    "message": f"Value {value} above maximum {max_val}",
+                }
             return {"passed": True, "message": ""}
         except (ValueError, TypeError):
-            return {"passed": False, "message": f"Cannot validate range for value: {value}"}
+            return {
+                "passed": False,
+                "message": f"Cannot validate range for value: {value}",
+            }
 
     def _validate_pattern(self, value: str, pattern: str) -> Dict[str, Any]:
         """Validate string pattern"""
         try:
             if not re.match(pattern, str(value)):
-                return {"passed": False, "message": f"Value '{value}' does not match pattern '{pattern}'"}
+                return {
+                    "passed": False,
+                    "message": f"Value '{value}' does not match pattern '{pattern}'",
+                }
             return {"passed": True, "message": ""}
         except Exception as e:
             return {"passed": False, "message": f"Pattern validation error: {e}"}
 
-    def _validate_business_rules(self, data: Dict[str, Any], schema_name: str) -> List[ValidationResult]:
+    def _validate_business_rules(
+        self, data: Dict[str, Any], schema_name: str
+    ) -> List[ValidationResult]:
         """Apply business logic validation rules"""
         results = []
 
@@ -322,28 +381,32 @@ class DataValidator:
             if ticker:
                 ticker_result = self.validation_rules["ticker_format"](ticker)
                 if not ticker_result["passed"]:
-                    results.append(ValidationResult(
-                        field="ticker",
-                        rule="ticker_format",
-                        passed=False,
-                        severity=ValidationSeverity.CRITICAL,
-                        message=ticker_result["message"],
-                        value=ticker
-                    ))
+                    results.append(
+                        ValidationResult(
+                            field="ticker",
+                            rule="ticker_format",
+                            passed=False,
+                            severity=ValidationSeverity.CRITICAL,
+                            message=ticker_result["message"],
+                            value=ticker,
+                        )
+                    )
 
             # Price validation
             price = data.get("current_price")
             if price is not None:
                 price_result = self.validation_rules["price_range"](price)
                 if not price_result["passed"]:
-                    results.append(ValidationResult(
-                        field="current_price",
-                        rule="price_range",
-                        passed=False,
-                        severity=ValidationSeverity.WARNING,
-                        message=price_result["message"],
-                        value=price
-                    ))
+                    results.append(
+                        ValidationResult(
+                            field="current_price",
+                            rule="price_range",
+                            passed=False,
+                            severity=ValidationSeverity.WARNING,
+                            message=price_result["message"],
+                            value=price,
+                        )
+                    )
 
         elif schema_name == "sentiment":
             # Sentiment bounds validation
@@ -351,14 +414,16 @@ class DataValidator:
             if sentiment is not None:
                 sentiment_result = self.validation_rules["sentiment_bounds"](sentiment)
                 if not sentiment_result["passed"]:
-                    results.append(ValidationResult(
-                        field="sentiment_score",
-                        rule="sentiment_bounds",
-                        passed=False,
-                        severity=ValidationSeverity.WARNING,
-                        message=sentiment_result["message"],
-                        value=sentiment
-                    ))
+                    results.append(
+                        ValidationResult(
+                            field="sentiment_score",
+                            rule="sentiment_bounds",
+                            passed=False,
+                            severity=ValidationSeverity.WARNING,
+                            message=sentiment_result["message"],
+                            value=sentiment,
+                        )
+                    )
 
         return results
 
@@ -376,18 +441,26 @@ class DataValidator:
                 price, volume, avg_volume
             )
             if not correlation_result["passed"]:
-                results.append(ValidationResult(
-                    field="price_volume",
-                    rule="price_volume_correlation",
-                    passed=False,
-                    severity=ValidationSeverity.INFO,
-                    message=correlation_result["message"],
-                    value={"price": price, "volume": volume, "avg_volume": avg_volume}
-                ))
+                results.append(
+                    ValidationResult(
+                        field="price_volume",
+                        rule="price_volume_correlation",
+                        passed=False,
+                        severity=ValidationSeverity.INFO,
+                        message=correlation_result["message"],
+                        value={
+                            "price": price,
+                            "volume": volume,
+                            "avg_volume": avg_volume,
+                        },
+                    )
+                )
 
         return results
 
-    def _calculate_quality_scores(self, report: DataQualityReport, data: Dict[str, Any]):
+    def _calculate_quality_scores(
+        self, report: DataQualityReport, data: Dict[str, Any]
+    ):
         """Calculate quality scores based on validation results"""
         total_checks = len(report.validation_results)
         if total_checks == 0:
@@ -397,10 +470,14 @@ class DataValidator:
             return
 
         # Completeness score (fields present)
-        required_fields = sum(1 for result in report.validation_results
-                            if result.rule == "required")
-        present_fields = sum(1 for result in report.validation_results
-                           if result.rule == "required" and result.passed)
+        required_fields = sum(
+            1 for result in report.validation_results if result.rule == "required"
+        )
+        present_fields = sum(
+            1
+            for result in report.validation_results
+            if result.rule == "required" and result.passed
+        )
 
         if required_fields > 0:
             report.completeness_score = (present_fields / required_fields) * 100
@@ -417,9 +494,9 @@ class DataValidator:
         # Overall score (weighted average)
         weights = {"completeness": 0.3, "accuracy": 0.5, "timeliness": 0.2}
         report.overall_score = (
-            report.completeness_score * weights["completeness"] +
-            report.accuracy_score * weights["accuracy"] +
-            report.timeliness_score * weights["timeliness"]
+            report.completeness_score * weights["completeness"]
+            + report.accuracy_score * weights["accuracy"]
+            + report.timeliness_score * weights["timeliness"]
         )
 
     def _calculate_timeliness_score(self, data: Dict[str, Any]) -> float:
@@ -430,7 +507,7 @@ class DataValidator:
 
         try:
             if isinstance(timestamp, str):
-                timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
             age_hours = (datetime.now() - timestamp).total_seconds() / 3600
 
@@ -453,7 +530,7 @@ class DataValidator:
 
         try:
             if isinstance(timestamp, str):
-                timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
             return (datetime.now() - timestamp).total_seconds() / 3600
 
@@ -514,7 +591,10 @@ class DataValidator:
             try:
                 ratio = float(volume) / float(avg_volume)
                 if ratio > 100:  # 100x average volume is suspicious
-                    return {"passed": False, "message": f"Volume {ratio".1f"}x average seems excessive"}
+                    return {
+                        "passed": False,
+                        "message": f"Volume {ratio:.1f}x average seems excessive",
+                    }
             except (ValueError, TypeError, ZeroDivisionError):
                 pass
 
@@ -525,7 +605,10 @@ class DataValidator:
         try:
             sentiment_float = float(sentiment)
             if sentiment_float < -1 or sentiment_float > 1:
-                return {"passed": False, "message": "Sentiment must be between -1 and 1"}
+                return {
+                    "passed": False,
+                    "message": "Sentiment must be between -1 and 1",
+                }
             return {"passed": True, "message": ""}
         except (ValueError, TypeError):
             return {"passed": False, "message": "Sentiment must be numeric"}
@@ -542,7 +625,10 @@ class DataValidator:
                 confidence_float = float(confidence)
 
                 if sentiment_abs > 0.5 and confidence_float < 0.3:
-                    return {"passed": False, "message": "High sentiment magnitude with low confidence is suspicious"}
+                    return {
+                        "passed": False,
+                        "message": "High sentiment magnitude with low confidence is suspicious",
+                    }
 
             except (ValueError, TypeError):
                 pass
@@ -553,12 +639,15 @@ class DataValidator:
         """Validate timestamp is recent"""
         try:
             if isinstance(timestamp, str):
-                timestamp = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                timestamp = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
 
             age_hours = (datetime.now() - timestamp).total_seconds() / 3600
 
             if age_hours > 24:
-                return {"passed": False, "message": f"Data is {age_hours".1f"} hours old"}
+                return {
+                    "passed": False,
+                    "message": f"Data is {age_hours:.1f} hours old",
+                }
 
             return {"passed": True, "message": ""}
 
@@ -569,14 +658,16 @@ class DataValidator:
         """Validate timestamp format"""
         if isinstance(timestamp, str):
             try:
-                datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
+                datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
                 return {"passed": True, "message": ""}
             except ValueError:
                 return {"passed": False, "message": "Invalid timestamp format"}
 
         return {"passed": False, "message": "Timestamp must be a string"}
 
-    def _validate_price_volume_correlation(self, price: Any, volume: Any, avg_volume: Any) -> Dict[str, Any]:
+    def _validate_price_volume_correlation(
+        self, price: Any, volume: Any, avg_volume: Any
+    ) -> Dict[str, Any]:
         """Validate price-volume correlation makes sense"""
         try:
             price_float = float(price)
@@ -587,8 +678,13 @@ class DataValidator:
                 volume_ratio = volume_float / avg_volume_float
 
                 # High volume with minimal price movement might indicate issues
-                if volume_ratio > 5 and abs(price_float) < 0.01:  # 5x volume but tiny price
-                    return {"passed": False, "message": "Unusual volume-price relationship"}
+                if (
+                    volume_ratio > 5 and abs(price_float) < 0.01
+                ):  # 5x volume but tiny price
+                    return {
+                        "passed": False,
+                        "message": "Unusual volume-price relationship",
+                    }
 
         except (ValueError, TypeError, ZeroDivisionError):
             pass
@@ -600,30 +696,35 @@ class DataValidator:
         # Implementation would check if market cap = price * shares outstanding
         return {"passed": True, "message": ""}
 
+
 # Global validator instance
 data_validator = DataValidator()
+
 
 # Convenience functions
 def validate_market_data(data: Dict[str, Any]) -> DataQualityReport:
     """Validate market data"""
     return data_validator.validate_data(data, "market_data")
 
+
 def validate_earnings_data(data: Dict[str, Any]) -> DataQualityReport:
     """Validate earnings data"""
     return data_validator.validate_data(data, "earnings")
+
 
 def validate_sentiment_data(data: Dict[str, Any]) -> DataQualityReport:
     """Validate sentiment data"""
     return data_validator.validate_data(data, "sentiment")
 
+
 # Export key classes and functions
 __all__ = [
-    'DataValidator',
-    'DataQualityReport',
-    'ValidationResult',
-    'ValidationSeverity',
-    'data_validator',
-    'validate_market_data',
-    'validate_earnings_data',
-    'validate_sentiment_data'
+    "DataValidator",
+    "DataQualityReport",
+    "ValidationResult",
+    "ValidationSeverity",
+    "data_validator",
+    "validate_market_data",
+    "validate_earnings_data",
+    "validate_sentiment_data",
 ]

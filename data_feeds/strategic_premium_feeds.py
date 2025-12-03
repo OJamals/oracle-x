@@ -16,12 +16,12 @@ Premium APIs provide UNIQUE data:
 - FMP: Analyst estimates, institutional ownership changes, insider transactions, DCF valuations
 """
 
+import logging
 import os
 import time
-from typing import Dict, List, Any, Optional
-from datetime import datetime, timedelta
 from collections import deque
-import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 try:  # Ensure local .env values are available when module is imported directly
     from dotenv import load_dotenv
@@ -167,7 +167,9 @@ class StrategicPremiumFeeds:
                             "sentiment": (
                                 "bullish"
                                 if total_buy > total_sell
-                                else "bearish" if total_sell > total_buy else "neutral"
+                                else "bearish"
+                                if total_sell > total_buy
+                                else "neutral"
                             ),
                         }
 
@@ -318,7 +320,9 @@ class StrategicPremiumFeeds:
                             "net_sentiment": (
                                 "bullish"
                                 if len(buys) > len(sells)
-                                else "bearish" if len(sells) > len(buys) else "neutral"
+                                else "bearish"
+                                if len(sells) > len(buys)
+                                else "neutral"
                             ),
                             "total_transactions": len(data),
                         }

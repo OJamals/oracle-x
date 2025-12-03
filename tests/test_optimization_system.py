@@ -263,7 +263,9 @@ class TestIntegration(unittest.TestCase):
     def test_module_imports(self):
         """Test all optimization modules can be imported"""
         try:
-            from oracle_engine.prompts.prompt_optimization import get_optimization_engine
+            from oracle_engine.prompts.prompt_optimization import (
+                get_optimization_engine,
+            )
             from oracle_engine.agent_optimized import get_optimized_agent
             from oracle_engine.prompt_chain_optimized import get_optimization_analytics
 

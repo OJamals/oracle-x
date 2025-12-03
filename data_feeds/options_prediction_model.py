@@ -7,11 +7,13 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List
 
+
 @dataclass
 class TechnicalSignals:
     rsi: float = 50.0
     momentum_score: float = 0.5
     volatility_regime: str = "normal"
+
 
 @dataclass
 class OptionsFlowSignals:
@@ -19,15 +21,18 @@ class OptionsFlowSignals:
     unusual_activity_score: float = 0.0
     smart_money_indicator: float = 0.0
 
+
 @dataclass
 class SentimentSignals:
     overall_sentiment: float = 0.0
     social_sentiment: float = 0.0
 
+
 @dataclass
 class MarketStructureSignals:
     gex_level: float = 0.0
     vix_regime: str = "normal"
+
 
 @dataclass
 class AggregatedSignals:
@@ -38,15 +43,18 @@ class AggregatedSignals:
     valuation_score: float = 0.0
     quality_score: float = 0.0
 
+
 class PredictionConfidence(Enum):
     HIGH = "high"
     MEDIUM = "medium"
     LOW = "low"
 
+
 class SignalType(Enum):
     BULLISH = "bullish"
     BEARISH = "bearish"
     NEUTRAL = "neutral"
+
 
 @dataclass
 class PredictionResult:
@@ -57,12 +65,14 @@ class PredictionResult:
     recommendation: str = "hold"
     signals: AggregatedSignals = None
 
+
 @dataclass
 class ModelPerformance:
     accuracy: float = 0.0
     precision: float = 0.0
     recall: float = 0.0
     f1_score: float = 0.0
+
 
 class FeatureEngineering:
     def engineer_features(self, market_data: Any, options_data: Any) -> Any:
@@ -73,6 +83,7 @@ class FeatureEngineering:
 
     # Add other stub methods as needed
 
+
 class SignalAggregator:
     def __init__(self, orchestrator: Any):
         self.orchestrator = orchestrator
@@ -81,6 +92,7 @@ class SignalAggregator:
         return AggregatedSignals()
 
     # Add other stub methods
+
 
 class OptionsPredictionModel:
     def __init__(self, orchestrator: Any, valuation_engine: Any):
@@ -91,7 +103,9 @@ class OptionsPredictionModel:
     def predict_price_movement(self, symbol: str, contract: Any) -> PredictionResult:
         return PredictionResult()
 
-    def calculate_opportunity_score(self, valuation: Any, signals: AggregatedSignals, prob: float) -> float:
+    def calculate_opportunity_score(
+        self, valuation: Any, signals: AggregatedSignals, prob: float
+    ) -> float:
         return 50.0
 
     # Add other stub methods

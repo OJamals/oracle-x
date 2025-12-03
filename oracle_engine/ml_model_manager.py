@@ -346,7 +346,7 @@ class ModelMonitor:
 
         cursor.execute(
             """
-            INSERT INTO model_performance 
+            INSERT INTO model_performance
             (model_name, timestamp, accuracy, error_rate, confidence, prediction_count)
             VALUES (?, ?, ?, ?, ?, ?)
         """,
@@ -370,7 +370,7 @@ class ModelMonitor:
 
         cursor.execute(
             """
-            INSERT INTO retraining_events 
+            INSERT INTO retraining_events
             (model_name, timestamp, trigger_reason, old_accuracy, success)
             VALUES (?, ?, ?, ?, ?)
         """,

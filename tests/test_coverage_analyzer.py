@@ -277,11 +277,11 @@ except ImportError as e:
 
 class Test{module_name}(unittest.TestCase):
     """Test suite for {module_name}"""
-    
+
     def setUp(self):
         """Set up test fixtures before each test method."""
         pass
-    
+
     def tearDown(self):
         """Tear down test fixtures after each test method."""
         pass
@@ -296,7 +296,7 @@ class Test{module_name}(unittest.TestCase):
         """Test {func} function"""
         # TODO: Implement test for {func}
         self.skipTest("Test not implemented yet")
-    
+
 '''
 
         # Add test classes for classes
@@ -305,12 +305,12 @@ class Test{module_name}(unittest.TestCase):
         """Test {cls} instantiation"""
         # TODO: Implement test for {cls} creation
         self.skipTest("Test not implemented yet")
-    
+
     def test_{cls.lower()}_methods(self):
         """Test {cls} methods"""
         # TODO: Implement test for {cls} methods
         self.skipTest("Test not implemented yet")
-    
+
 '''
 
         template += """

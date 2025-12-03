@@ -11,15 +11,19 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 from core.config import config
-from oracle_engine.chains.prompt_chain import (adjust_scenario_tree,
-                                               evolve_prompt_templates,
-                                               generate_final_playbook,
-                                               get_optimization_analytics,
-                                               get_signals_from_scrapers,
-                                               pull_similar_scenarios,
-                                               run_optimization_experiment)
-from oracle_engine.prompts.prompt_optimization import (MarketCondition,
-                                                       get_optimization_engine)
+from oracle_engine.chains.prompt_chain import (
+    adjust_scenario_tree,
+    evolve_prompt_templates,
+    generate_final_playbook,
+    get_optimization_analytics,
+    get_signals_from_scrapers,
+    pull_similar_scenarios,
+    run_optimization_experiment,
+)
+from oracle_engine.prompts.prompt_optimization import (
+    MarketCondition,
+    get_optimization_engine,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -405,9 +409,7 @@ class OracleAgentOptimized:
         experiment_id = self.engine.start_ab_test(
             template_a, template_b, market_condition, duration_hours
         )
-        logger.info(
-            f"🧪 Started A/B test {experiment_id}: {template_a} vs {template_b}"
-        )
+        logger.info(f"🧪 Started A/B test {experiment_id}: {template_a} vs {template_b}")
         return experiment_id
 
     def enable_adaptive_learning(self, enable: bool = True):

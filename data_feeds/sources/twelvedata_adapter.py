@@ -1,11 +1,13 @@
 from __future__ import annotations
-import os
-import requests
+
 import asyncio
+import os
 import time
 from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
-from typing import Optional, Dict, Any, List
+from typing import Any, Dict, List, Optional
+
+import requests
 
 # Optimized HTTP client import with fallback
 try:
@@ -224,7 +226,7 @@ class TwelveDataAdapter:
         return data
 
     def _models(self):
-        from data_feeds.data_feed_orchestrator import Quote, MarketData
+        from data_feeds.data_feed_orchestrator import MarketData, Quote
 
         return Quote, MarketData
 

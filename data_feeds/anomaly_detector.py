@@ -1,6 +1,7 @@
-import pandas as pd
+from typing import Dict, List, Union
+
 import numpy as np
-from typing import List, Dict, Union
+import pandas as pd
 
 
 def _as_numeric_series(

@@ -12,7 +12,7 @@ from enum import Enum, auto
 from dataclasses import dataclass, field
 
 
-from core.types import MarketData, OptionContract, DataSource
+from core.types_internal import MarketData, OptionContract, DataSource
 from core.validation.advanced_validators import ValidationResult
 
 
@@ -84,9 +84,9 @@ class DataQualityAssessor:
         self.confidence_level = confidence_level
         self.historical_data: Dict[str, List[MarketData]] = {}
         self.historical_options: Dict[str, List[OptionContract]] = {}
-        self.source_performance: Dict[DataSource, List[bool]] = (
-            {}
-        )  # Track source success/failure
+        self.source_performance: Dict[
+            DataSource, List[bool]
+        ] = {}  # Track source success/failure
 
     def assess_market_data_quality(self, data: MarketData) -> QualityAssessment:
         """Comprehensive quality assessment for MarketData."""

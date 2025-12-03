@@ -364,9 +364,11 @@ class OracleXOptimizationTester:
             for data in test_data:
                 try:
                     characteristics = selector.analyze_data_characteristics(data)
-                    algorithm_name, algorithm_func, confidence = (
-                        selector.select_optimal_algorithm(data)
-                    )
+                    (
+                        algorithm_name,
+                        algorithm_func,
+                        confidence,
+                    ) = selector.select_optimal_algorithm(data)
                     results.append(
                         {
                             "characteristics": characteristics,

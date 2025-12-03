@@ -19,12 +19,14 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Sequence
 
 from litellm import acompletion
+from litellm import completion
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.config import config
 from core.unified_cache_manager import cache_manager
 from data_feeds.cache.request_cache import get_request_cache
-from oracle_engine.llm_client import get_llm_client
+
+#
 from oracle_engine.model_attempt_logger import log_attempt
 
 logger = logging.getLogger(__name__)
@@ -100,8 +102,8 @@ def _make_cache_key(
 class LLMDispatcher:
     """Dispatch chat completion requests with caching and retries."""
 
+    #
     def __init__(self):
-        self.client = get_llm_client()
         ttl_minutes = (
             getattr(getattr(config, "data_feeds", None), "cache_ttl_minutes", 5) or 5
         )
@@ -266,6 +268,20 @@ class LLMDispatcher:
         )
 
 
+def _detect_provider(self, model: str) -> str:
+    """Detect provider from model name for logging."""
+    model_lower = model.lower()
+    if model.startswith("openai/") or "gpt" in model_lower:
+        return "openai"
+    elif model.startswith("anthropic/") or "claude" in model_lower:
+        return "anthropic"
+    elif model.startswith("groq/"):
+        return "groq"
+    elif model.startswith("google/") or "gemini" in model_lower:
+        return "google"
+    return "unknown"
+
+
 _dispatcher = LLMDispatcher()
 
 
@@ -285,3 +301,13 @@ def call_llm(*args: Any, **kwargs: Any) -> str:
     """Legacy function that returns content string directly."""
     result = dispatch_chat(*args, **kwargs)
     return result.content
+
+
+async def dispatch_batch_async(
+    prompts: List[Sequence[Dict[str, Any]]],
+    model: Optional[str] = None,
+    temperature: float = 0.3,
+    max_tokens: Optional[int] = None,
+    task_type: str = "general",
+):
+    pass

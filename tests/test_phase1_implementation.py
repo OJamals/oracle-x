@@ -16,7 +16,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import our Phase 1 components
-from core.types import (
+from core.types_internal import (
     OptionContract,
     DataSource,
     validate_market_data,

@@ -95,9 +95,11 @@ class TechnicalIndicatorGenerator:
 
                 # Momentum indicators
                 result_df["rsi"] = talib.RSI(prices, timeperiod=14)
-                result_df["macd"], result_df["macd_signal"], result_df["macd_hist"] = (
-                    talib.MACD(prices)
-                )
+                (
+                    result_df["macd"],
+                    result_df["macd_signal"],
+                    result_df["macd_hist"],
+                ) = talib.MACD(prices)
                 result_df["stoch_k"], result_df["stoch_d"] = talib.STOCH(
                     df.get("high", prices), df.get("low", prices), prices
                 )

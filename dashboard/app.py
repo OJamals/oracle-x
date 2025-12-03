@@ -206,9 +206,9 @@ if os.environ.get("STREAMLIT") or __name__ == "__main__":
     )
 
     if "prompt_text" not in st.session_state:
-        st.session_state["prompt_text"] = (
-            "TSLA, NVDA, SPY trending bullish after earnings beats. Options sweeps unusually high. Reddit sentiment surging."
-        )
+        st.session_state[
+            "prompt_text"
+        ] = "TSLA, NVDA, SPY trending bullish after earnings beats. Options sweeps unusually high. Reddit sentiment surging."
 
     col1, col2 = st.columns([4, 1])
     auto_generate = False

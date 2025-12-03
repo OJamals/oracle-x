@@ -10,7 +10,13 @@ from decimal import Decimal
 # Add the project root to Python path
 sys.path.insert(0, "/Users/omar/Documents/Projects/oracle-x")
 
-from core.types import MarketData, OptionContract, DataSource, OptionType, OptionStyle
+from core.types_internal import (
+    MarketData,
+    OptionContract,
+    DataSource,
+    OptionType,
+    OptionStyle,
+)
 from core.validation.advanced_validators import (
     AdvancedValidators,
     ValidationLevel,

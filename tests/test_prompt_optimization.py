@@ -95,9 +95,9 @@ class TestPromptOptimizationEngine(unittest.TestCase):
     def test_classify_market_condition_bearish(self):
         """Test market condition classification with bearish signals"""
         signals = self.sample_signals.copy()
-        signals["sentiment_llm"] = (
-            "Bearish outlook with negative sentiment and breakdown risk."
-        )
+        signals[
+            "sentiment_llm"
+        ] = "Bearish outlook with negative sentiment and breakdown risk."
         signals["market_internals"] = "Bearish trends with declining volume."
 
         condition = self.engine.classify_market_condition(signals)
@@ -120,9 +120,9 @@ class TestPromptOptimizationEngine(unittest.TestCase):
     def test_classify_market_condition_volatile(self):
         """Test market condition classification with volatile signals"""
         signals = self.sample_signals.copy()
-        signals["market_internals"] = (
-            "Market showing high volatility with erratic swings."
-        )
+        signals[
+            "market_internals"
+        ] = "Market showing high volatility with erratic swings."
         signals["sentiment_llm"] = "Uncertainty dominates with volatile price action."
 
         condition = self.engine.classify_market_condition(signals)

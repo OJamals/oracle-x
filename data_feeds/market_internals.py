@@ -1,10 +1,11 @@
-import yfinance as yf
-import pandas as pd
-from typing import Dict, Any
-from datetime import datetime, timedelta
 import logging
-from functools import wraps
 import time
+from datetime import datetime, timedelta
+from functools import wraps
+from typing import Any, Dict
+
+import pandas as pd
+import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +148,9 @@ def fetch_market_internals() -> dict:
             "market_sentiment": (
                 "bullish"
                 if avg_change > 1.0
-                else "bearish" if avg_change < -1.0 else "neutral"
+                else "bearish"
+                if avg_change < -1.0
+                else "neutral"
             ),
             "timestamp": datetime.now().isoformat(),
             "data_source": "yfinance_calculated",

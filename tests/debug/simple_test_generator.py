@@ -34,15 +34,15 @@ sys.path.insert(0, str(project_root))
 
 class {class_name}(unittest.TestCase):
     """Test suite for {module_name}"""
-    
+
     def setUp(self):
         """Set up test fixtures before each test method."""
         pass
-    
+
     def tearDown(self):
         """Tear down test fixtures after each test method."""
         pass
-    
+
     def test_module_import(self):
         """Test that the module can be imported without errors"""
         try:
@@ -51,7 +51,7 @@ class {class_name}(unittest.TestCase):
             self.assertTrue(True, "Module imported successfully")
         except ImportError as e:
             self.skipTest(f"Could not import module: {{e}}")
-    
+
     @patch('requests.get')
     @patch('os.getenv')
     def test_basic_functionality(self, mock_env, mock_requests):
@@ -59,15 +59,15 @@ class {class_name}(unittest.TestCase):
         mock_env.return_value = 'test_value'
         mock_requests.return_value.status_code = 200
         mock_requests.return_value.json.return_value = {{"test": "data"}}
-        
+
         # TODO: Add specific functionality tests
         self.skipTest("Basic functionality test needs implementation")
-    
+
     def test_error_handling(self):
         """Test error handling patterns"""
         # TODO: Test error handling
         self.skipTest("Error handling test needs implementation")
-    
+
     def test_data_validation(self):
         """Test data validation logic"""
         # TODO: Test data validation
@@ -143,7 +143,7 @@ def main():
 ## Next Steps
 
 1. **Implement Test Logic**: Replace `self.skipTest()` calls with actual test implementations
-2. **Add Mocking**: Implement proper mocking for external dependencies  
+2. **Add Mocking**: Implement proper mocking for external dependencies
 3. **Run Tests**: Execute `pytest tests/unit/` to verify tests work
 4. **Measure Coverage**: Use `pytest --cov` to measure coverage improvements
 5. **Iterate**: Add more specific tests based on module functionality

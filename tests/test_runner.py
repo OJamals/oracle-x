@@ -109,7 +109,7 @@ import traceback
 
 tests = {
     "Main Pipeline": "import main",
-    "Options Pipeline": "import oracle_options_pipeline", 
+    "Options Pipeline": "import oracle_options_pipeline",
     "Data Orchestrator": "from data_feeds.data_feed_orchestrator import DataFeedOrchestrator",
     "Environment Config": "from core.config import config, load_config; load_config()",
     "ML Model Manager": "from oracle_engine.ml_model_manager import MLModelManager",

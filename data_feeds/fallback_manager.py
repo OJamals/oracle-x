@@ -3,14 +3,14 @@ Fallback Manager for Data Sources
 Handles intelligent fallback when data sources encounter rate limits or other failures.
 """
 
-import time
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Tuple
-from dataclasses import dataclass, field
-from enum import Enum
-from collections import defaultdict, deque
 import threading
+import time
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from datetime import datetime, timedelta
+from enum import Enum
+from typing import Any, Dict, List, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 

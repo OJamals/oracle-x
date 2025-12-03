@@ -15,9 +15,12 @@ from backtest_tracker.comprehensive_backtest import BacktestEngine
 
 # Import components
 from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
-from oracle_engine.ensemble_ml_engine import (EnsemblePredictionEngine,
-                                              PredictionResult, PredictionType,
-                                              create_prediction_engine)
+from oracle_engine.ensemble_ml_engine import (
+    EnsemblePredictionEngine,
+    PredictionResult,
+    PredictionType,
+    create_prediction_engine,
+)
 from sentiment.sentiment_engine import AdvancedSentimentEngine
 
 logger = logging.getLogger(__name__)
@@ -96,7 +99,6 @@ class MLTradingOrchestrator:
         sentiment_engine: AdvancedSentimentEngine,
         config: MLTradingConfig = None,
     ):
-
         self.data_orchestrator = data_orchestrator
         self.sentiment_engine = sentiment_engine
         self.config = config or MLTradingConfig()

@@ -12,7 +12,7 @@ import statistics
 from dataclasses import dataclass, field
 
 
-from core.types import MarketData, OptionContract, DataSource
+from core.types_internal import MarketData, OptionContract, DataSource
 
 
 class ValidationLevel(Enum):

@@ -14,8 +14,8 @@ Usage:
 from __future__ import annotations
 
 import datetime as _dt
-from typing import Any, Dict, List, Optional, Tuple
 import os
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 
@@ -45,7 +45,7 @@ try:
     # Official public API per docs:
     # - search_assets(query, limit=..., type=..., exchange=...)
     # - historical_data(investing_id=..., from_date="MM/DD/YYYY", to_date="MM/DD/YYYY", interval=...)
-    from investiny import search_assets, historical_data
+    from investiny import historical_data, search_assets
 except Exception as e:  # pragma: no cover
     raise ImportError(
         "The 'investiny' package is required. Install with: pip install investiny"

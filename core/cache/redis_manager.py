@@ -12,7 +12,7 @@ from redis.connection import ConnectionPool
 import logging
 from functools import wraps
 
-from core.types import MarketData, OptionContract, DataSource
+from core.types_internal import MarketData, OptionContract, DataSource
 
 # Type variable for generic caching
 T = TypeVar("T")

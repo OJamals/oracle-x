@@ -21,8 +21,10 @@ from sentiment.sentiment_engine import AdvancedSentimentEngine
 
 # Memory-efficient processing import with fallback
 try:
-    from core.memory_processor import (get_memory_processor,
-                                       process_dataframe_efficiently)
+    from core.memory_processor import (
+        get_memory_processor,
+        process_dataframe_efficiently,
+    )
 
     MEMORY_PROCESSOR_AVAILABLE = True
 except ImportError:
@@ -52,8 +54,10 @@ except ImportError:
 
 
 try:
-    from .advanced_learning_techniques import (AdvancedLearningOrchestrator,
-                                               MetaLearningConfig)
+    from .advanced_learning_techniques import (
+        AdvancedLearningOrchestrator,
+        MetaLearningConfig,
+    )
 
     ADVANCED_LEARNING_AVAILABLE = True
 except ImportError:
@@ -69,8 +73,7 @@ except ImportError:
 
 
 try:
-    from .realtime_learning_engine import (OnlineLearningConfig,
-                                           RealTimeLearningEngine)
+    from .realtime_learning_engine import OnlineLearningConfig, RealTimeLearningEngine
 
     REALTIME_LEARNING_AVAILABLE = True
 except ImportError:
@@ -99,8 +102,11 @@ except ImportError:
 
 # Phase 2.2: Optimized ML Engine Integration
 try:
-    from .optimized_ml_engine import (ModelQuantizer, ONNXModelOptimizer,
-                                      OptimizedMLPredictionEngine)
+    from .optimized_ml_engine import (
+        ModelQuantizer,
+        ONNXModelOptimizer,
+        OptimizedMLPredictionEngine,
+    )
 
     OPTIMIZED_ML_AVAILABLE = True
 except ImportError:
@@ -1086,7 +1092,6 @@ class EnsemblePredictionEngine:
                     and model.is_trained
                     and model_key in self.model_weights
                 ):
-
                     try:
                         pred, uncertainty = model.predict(X)
                         weight = float(self.model_weights.get(model_key, 0.0))

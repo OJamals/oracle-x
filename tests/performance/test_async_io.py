@@ -354,7 +354,6 @@ class TestAsyncIOManager:
         with patch("aiohttp.ClientSession.get") as mock_get, patch(
             "aiohttp.ClientSession.post"
         ) as mock_post:
-
             mock_response = AsyncMock()
             mock_response.status = 200
             mock_response.json = AsyncMock(return_value={"success": True})

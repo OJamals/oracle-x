@@ -1,9 +1,10 @@
 import contextlib
-import requests
-from bs4 import BeautifulSoup
-import random
-import yaml
 import os
+import random
+
+import requests
+import yaml
+from bs4 import BeautifulSoup
 
 # Optimized HTTP client import with fallback
 try:

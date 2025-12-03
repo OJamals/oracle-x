@@ -288,7 +288,7 @@ from tests.integration.test_integration_options_pipeline import initialize_optio
 def test_my_feature():
     orchestrator = Mock(spec=DataFeedOrchestrator)
     model = initialize_options_model(orchestrator)
-    
+
     # Mock returns expected structure
     result = model.predict('AAPL', mock_contract)
     assert result.price_increase_probability > 0.5

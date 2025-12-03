@@ -1,25 +1,72 @@
 """
-LLM Client - Unified interface for multi-model LLM system
+LLM Client - Backward compatibility wrapper over centralized llm_dispatcher.
 
-This module provides a drop-in replacement for the current OpenAI client usage
-while leveraging the multi-model provider system for enhanced scenario generation.
+All LLM calls now route through the centralized dispatcher with caching, retries, and unified provider handling.
 """
 
 import logging
-import time
 from typing import Any, Dict, List, Optional
 
-from .llm_providers import (LLMRequest, LLMResponse, ModelCapability,
-                            ProviderType, get_provider_manager)
+from dataclasses import dataclass
+from enum import Enum
+
+from oracle_engine.dispatchers.llm_dispatcher import dispatch_chat, LLMDispatchResult
+from oracle_engine.tools import get_sentiment, analyze_chart
 
 logger = logging.getLogger(__name__)
 
 
+class ProviderType(Enum):
+    """Supported LLM providers for compatibility."""
+
+    OPENAI = "openai"
+    ANTHROPIC = "anthropic"
+    GOOGLE = "google"
+    GROQ = "groq"
+
+
+class ModelCapability(Enum):
+    """Model capabilities for compatibility."""
+
+    FAST = "fast"
+    BALANCED = "balanced"
+    HIGH_QUALITY = "high_quality"
+    CREATIVE = "creative"
+    ANALYTICAL = "analytical"
+    LONG_CONTEXT = "long_context"
+
+
+@dataclass
+class LLMRequest:
+    """Request structure for compatibility."""
+
+    messages: List[Dict[str, str]]
+    max_tokens: Optional[int] = None
+    temperature: float = 0.7
+    model_preferences: Optional[List[ModelCapability]] = None
+    cost_optimization: bool = True
+    task_type: str = "general"
+
+
+@dataclass
+class LLMResponse:
+    """Response structure for compatibility."""
+
+    content: str
+    model_used: str
+    provider_used: str
+    tokens_used: Dict[str, int]
+    cost: float
+    response_time: float
+    success: bool
+    error_message: Optional[str] = None
+
+
 class LLMClient:
-    """Unified LLM client that works with multiple providers"""
+    """Unified LLM client wrapper over dispatcher."""
 
     def __init__(self):
-        self.provider_manager = get_provider_manager()
+        pass
 
     def create_chat_completion(
         self,
@@ -30,140 +77,75 @@ class LLMClient:
         task_type: str = "general",
         cost_optimization: bool = True,
     ) -> LLMResponse:
-        """
-        Create a chat completion using the multi-model system.
-
-        This method provides a drop-in replacement for OpenAI's chat.completions.create()
-        while leveraging multiple providers with failover and optimization.
-
-        Args:
-            messages: List of message dictionaries with 'role' and 'content'
-            model: Model name or "auto" for intelligent selection
-            max_tokens: Maximum tokens to generate
-            temperature: Sampling temperature
-            task_type: Type of task for model selection
-            cost_optimization: Whether to optimize for cost
-
-        Returns:
-            LLMResponse object with the completion
-        """
-
-        # Determine model preferences based on task type
-        model_preferences = []
-        if task_type == "analytical":
-            model_preferences = [
-                ModelCapability.ANALYTICAL,
-                ModelCapability.HIGH_QUALITY,
-            ]
-        elif task_type == "creative":
-            model_preferences = [ModelCapability.CREATIVE, ModelCapability.BALANCED]
-        elif task_type == "fast":
-            model_preferences = [ModelCapability.FAST]
-        else:
-            model_preferences = [ModelCapability.BALANCED]
-
-        # Create request
-        request = LLMRequest(
+        """Create chat completion using dispatcher."""
+        result: LLMDispatchResult = dispatch_chat(
             messages=messages,
+            model=model,
             max_tokens=max_tokens,
             temperature=temperature,
-            model_preferences=model_preferences,
-            cost_optimization=cost_optimization,
             task_type=task_type,
         )
-
-        # If specific model requested, try to use it first
-        if model != "auto":
-            specific_model = self.provider_manager.models.get(model)
-            if specific_model and specific_model.is_available:
-                provider = self.provider_manager.providers.get(specific_model.provider)
-                if provider:
-                    response = provider.make_request(request, specific_model)
-                    if response.success:
-                        return response
-
-        # Use intelligent selection with fallback
-        return self.provider_manager.make_request_with_fallback(request)
+        provider_str = result.provider or "openai"
+        provider_enum = ProviderType.OPENAI  # default
+        try:
+            provider_enum = ProviderType[provider_str.upper()]
+        except KeyError:
+            pass
+        return LLMResponse(
+            content=result.content,
+            model_used=result.model,
+            provider_used=provider_enum.value,
+            tokens_used=result.tokens_used or {"input_tokens": 0, "output_tokens": 0},
+            cost=0.0,
+            response_time=0.0,
+            success=result.error is None,
+            error_message=result.error,
+        )
 
     def get_available_models(self) -> List[str]:
-        """Get list of available model names"""
-        return list(self.provider_manager.models.keys())
+        """Compatibility stub."""
+        return ["gpt-4o", "gpt-4o-mini", "claude-3-sonnet"]
 
     def get_model_info(self, model_name: str) -> Optional[Dict[str, Any]]:
-        """Get information about a specific model"""
-        model = self.provider_manager.models.get(model_name)
-        if not model:
-            return None
-
-        return {
-            "name": model.name,
-            "provider": model.provider.value,
-            "capabilities": [cap.value for cap in model.capabilities],
-            "cost_per_1k_input": model.cost_per_1k_input,
-            "cost_per_1k_output": model.cost_per_1k_output,
-            "max_tokens": model.max_tokens,
-            "context_window": model.context_window,
-            "is_available": model.is_available,
-        }
+        """Compatibility stub."""
+        return None
 
     def get_analytics(self) -> Dict[str, Any]:
-        """Get performance analytics"""
-        return self.provider_manager.get_analytics()
+        """Compatibility stub."""
+        return {}
 
     def enable_provider(self, provider_type: str) -> bool:
-        """Enable a specific provider"""
-        try:
-            provider_enum = ProviderType(provider_type)
-            provider = self.provider_manager.providers.get(provider_enum)
-            if provider:
-                for model in provider.models:
-                    model.is_available = True
-                return True
-        except ValueError:
-            pass
-        return False
+        """Compatibility stub."""
+        return True
 
     def disable_provider(self, provider_type: str) -> bool:
-        """Disable a specific provider"""
-        try:
-            provider_enum = ProviderType(provider_type)
-            provider = self.provider_manager.providers.get(provider_enum)
-            if provider:
-                for model in provider.models:
-                    model.is_available = False
-                return True
-        except ValueError:
-            pass
+        """Compatibility stub."""
         return False
 
 
-# Global client instance
+# Global client instance (wrapper)
 _llm_client = LLMClient()
 
 
 def get_llm_client() -> LLMClient:
-    """Get the global LLM client instance"""
+    """Get the global LLM client instance."""
     return _llm_client
 
 
 def create_chat_completion(*args, **kwargs) -> LLMResponse:
-    """
-    Convenience function for creating chat completions.
-    This provides a drop-in replacement for openai.ChatCompletion.create()
-    """
+    """Convenience function."""
     return _llm_client.create_chat_completion(*args, **kwargs)
 
 
-# Compatibility layer for existing code
+# Compatibility layer for OpenAI
 class ChatCompletions:
-    """Drop-in replacement for OpenAI's ChatCompletions"""
+    """Drop-in replacement for OpenAI's ChatCompletions."""
 
     @staticmethod
     def create(*args, **kwargs) -> Any:
-        """Create a chat completion"""
+        """Create a chat completion."""
         response = _llm_client.create_chat_completion(*args, **kwargs)
 
-        # Return in OpenAI-compatible format
         class Choice:
             def __init__(self, content):
                 self.message = type("Message", (), {"content": content})()
@@ -186,9 +168,8 @@ class ChatCompletions:
         return OpenAIResponse(response)
 
 
-# Mock OpenAI client for compatibility
 class OpenAI:
-    """Mock OpenAI client that uses the multi-model system"""
+    """Mock OpenAI client."""
 
     def __init__(self, api_key=None, base_url=None, timeout=None):
         self.api_key = api_key
@@ -197,51 +178,36 @@ class OpenAI:
         self.chat = type("Chat", (), {"completions": ChatCompletions()})()
 
 
+# Compatibility functions using tools/dispatcher
 def get_sentiment(
     text: str, model_name: str = "auto", task_type: str = "analytical"
 ) -> str:
-    """
-    Enhanced sentiment analysis using multi-model system
-    """
-    messages = [
-        {
-            "role": "system",
-            "content": "Analyze the sentiment of the following text and provide a brief analysis.",
-        },
-        {"role": "user", "content": text},
-    ]
-
-    response = _llm_client.create_chat_completion(
-        messages=messages, model=model_name, max_tokens=300, task_type=task_type
-    )
-
-    return response.content if response.success else "Sentiment analysis failed"
+    """Sentiment analysis using dispatcher/tools."""
+    return get_sentiment(text)
 
 
 def analyze_chart(
     image_data: Optional[bytes], model_name: str = "auto", task_type: str = "analytical"
 ) -> str:
-    """
-    Enhanced chart analysis using multi-model system
-    """
-    if not image_data:
-        return "No chart data provided"
+    """Chart analysis using dispatcher/tools."""
+    return analyze_chart(image_data)
 
-    # For now, we'll use text-based analysis since the multi-modal aspect
-    # would require provider-specific implementations
-    messages = [
-        {
-            "role": "system",
-            "content": "Analyze the following chart data and provide insights.",
-        },
-        {
-            "role": "user",
-            "content": f"Chart data length: {len(image_data)} bytes. Provide technical analysis.",
-        },
-    ]
 
-    response = _llm_client.create_chat_completion(
-        messages=messages, model=model_name, max_tokens=500, task_type=task_type
-    )
+# Dummy provider manager for compatibility
+class LLMProviderManager:
+    def __init__(self):
+        self.providers = {}
+        self.models = {}
 
-    return response.content if response.success else "Chart analysis failed"
+    def make_request_with_fallback(self, request: LLMRequest) -> LLMResponse:
+        """Fallback to client."""
+        return _llm_client.create_chat_completion(
+            messages=request.messages,
+            max_tokens=request.max_tokens,
+            temperature=request.temperature,
+            task_type=request.task_type,
+        )
+
+
+def get_provider_manager() -> LLMProviderManager:
+    return LLMProviderManager()

@@ -8,7 +8,13 @@ from datetime import datetime, timezone, timedelta
 from decimal import Decimal
 from unittest.mock import Mock, patch
 
-from core.types import MarketData, OptionContract, DataSource, OptionType, OptionStyle
+from core.types_internal import (
+    MarketData,
+    OptionContract,
+    DataSource,
+    OptionType,
+    OptionStyle,
+)
 from core.quality.data_quality_engine import (
     DataQualityAssessor,
     QualityAssessment,

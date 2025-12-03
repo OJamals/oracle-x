@@ -82,9 +82,9 @@ def main() -> int:
         end_open = _num(df.loc[df.index[-1], "open"])
         end_close = _num(df.loc[df.index[-1], "close"])
 
-        out[sym] = (
-            f"{first_dt} o:{start_open}, c:{start_close} - {last_dt} o:{end_open}, c:{end_close}"
-        )
+        out[
+            sym
+        ] = f"{first_dt} o:{start_open}, c:{start_close} - {last_dt} o:{end_open}, c:{end_close}"
 
     # Output: { "SYMBOL": "$startdate o:$open, c:$close - $enddate o:$open, c:$close", ... }
     print(json.dumps(out, separators=(",", ":")))

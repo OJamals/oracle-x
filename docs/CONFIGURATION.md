@@ -30,7 +30,7 @@ Oracle-X uses a centralized configuration system through `env_config.py` for con
 - `.env` - Main environment variables (copy from .env.example)
 - `env_config.py` - Centralized configuration loader
 
-### Specialized Configuration  
+### Specialized Configuration
 - `optimization.env` - Optimization system parameters
 - `rss_feeds_config.env` - RSS feed configuration
 - `optimization_config.json` - Detailed optimization parameters

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""""
+"""
 Comprehensive Integration Testing for Oracle-X Optimized Pipeline
 
 Tests all major components working together:
@@ -12,7 +12,7 @@ Tests all major components working together:
 
 Usage:
     python test_optimized_pipeline.py [--verbose] [--benchmark]
-""""
+"""
 
 import asyncio
 import json
@@ -32,9 +32,13 @@ try:
 
     from core.async_data_pipeline import AsyncDataPipeline, fetch_yfinance_data
     from core.unified_cache_manager import UnifiedCacheManager, cache_manager
-    from core.unified_ml_interface import (UnifiedMLInterface,
-                                           predict_direction, predict_price)
+    from core.unified_ml_interface import (
+        UnifiedMLInterface,
+        predict_direction,
+        predict_price,
+    )
     from data_feeds.data_feed_orchestrator import DataFeedOrchestrator
+
     COMPONENTS_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Could not import optimized components: {e}")
@@ -46,11 +50,12 @@ TEST_CONFIG = {
     "benchmark_iterations": 3,
     "performance_threshold": 10.0,  # seconds
     "cache_hit_target": 0.3,  # 30% cache hit rate
-    "concurrent_requests": 5
+    "concurrent_requests": 5,
 }
 
+
 class PipelineTester:
-    """"Comprehensive testing for the optimized Oracle-X pipeline""""
+    """Comprehensive testing for the optimized Oracle-X pipeline"""
 
     def __init__(self, verbose: bool = False):
         self.verbose = verbose
@@ -61,7 +66,7 @@ class PipelineTester:
             raise ImportError("Optimized components not available for testing")
 
     async def run_comprehensive_tests(self) -> Dict[str, Any]:
-        """"Run all comprehensive tests"""
+        """Run all comprehensive tests"""
         self.logger.info("Starting comprehensive Oracle-X pipeline tests...")
 
         test_results = {
@@ -70,7 +75,7 @@ class PipelineTester:
             "performance_tests": {},
             "integration_tests": {},
             "benchmark_results": {},
-            "overall_status": "unknown"
+            "overall_status": "unknown",
         }
 
         try:
@@ -107,7 +112,7 @@ class PipelineTester:
             return test_results
 
     async def test_component_availability(self, results: Dict[str, Any]):
-        """"Test that all required components are available""""
+        """Test that all required components are available"""
         self.logger.info("Testing component availability...")
 
         components = {
@@ -116,7 +121,7 @@ class PipelineTester:
             "AsyncDataPipeline": AsyncDataPipeline,
             "UnifiedCacheManager": UnifiedCacheManager,
             "UnifiedMLInterface": UnifiedMLInterface,
-            "DataFeedOrchestrator": DataFeedOrchestrator
+            "DataFeedOrchestrator": DataFeedOrchestrator,
         }
 
         available_components = []
@@ -147,12 +152,16 @@ class PipelineTester:
         results["components_tested"] = available_components
 
         if len(available_components) >= 4:  # At least 4 core components
-            self.logger.info(f"✅ Component availability: {len(available_components)}/{len(components)} components working")
+            self.logger.info(
+                f"✅ Component availability: {len(available_components)}/{len(components)} components working"
+            )
         else:
-            raise Exception(f"Insufficient components available: {len(available_components)}/{len(components)}")
+            raise Exception(
+                f"Insufficient components available: {len(available_components)}/{len(components)}"
+            )
 
     async def test_async_data_pipeline(self, results: Dict[str, Any]):
-        """"Test async data pipeline performance""""
+        """Test async data pipeline performance"""
         self.logger.info("Testing async data pipeline...")
 
         # Create pipeline
@@ -166,13 +175,17 @@ class PipelineTester:
         request_ids = []
         for ticker in tickers:
             request_id = await pipeline.submit_request(
-                type('DataRequest', (), {
-                    'request_id': f"test_{ticker}",
-                    'source': 'yfinance',
-                    'priority': type('Priority', (), {'MEDIUM': 3})(),
-                    'callback': fetch_yfinance_data,
-                    'args': (ticker,)
-                })()
+                type(
+                    "DataRequest",
+                    (),
+                    {
+                        "request_id": f"test_{ticker}",
+                        "source": "yfinance",
+                        "priority": type("Priority", (), {"MEDIUM": 3})(),
+                        "callback": fetch_yfinance_data,
+                        "args": (ticker,),
+                    },
+                )()
             )
             request_ids.append(request_id)
 
@@ -188,13 +201,13 @@ class PipelineTester:
             "processing_time": processing_time,
             "requests_submitted": len(request_ids),
             "pipeline_stats": stats,
-            "status": "passed" if processing_time < 5.0 else "slow"
+            "status": "passed" if processing_time < 5.0 else "slow",
         }
 
         self.logger.info(f"✅ Async pipeline test completed in {processing_time:.2f}s")
 
     async def test_cache_manager(self, results: Dict[str, Any]):
-        """"Test unified cache manager effectiveness"""
+        """Test unified cache manager effectiveness"""
         self.logger.info("Testing cache manager...")
 
         # Clear cache first
@@ -225,13 +238,17 @@ class PipelineTester:
             "get_time": first_get_time,
             "cache_hit": cache_hit,
             "stats": stats,
-            "status": "passed" if cache_hit and first_get_time < first_set_time else "failed"
+            "status": "passed"
+            if cache_hit and first_get_time < first_set_time
+            else "failed",
         }
 
-        self.logger.info(f"✅ Cache manager test: hit={cache_hit}, get_time={first_get_time:.4f}s")
+        self.logger.info(
+            f"✅ Cache manager test: hit={cache_hit}, get_time={first_get_time:.4f}s"
+        )
 
     async def test_ml_interface(self, results: Dict[str, Any]):
-        """"Test ML interface functionality""""
+        """Test ML interface functionality"""
         self.logger.info("Testing ML interface...")
 
         ml_interface = UnifiedMLInterface()
@@ -250,20 +267,24 @@ class PipelineTester:
 
         # Check results
         price_valid = price_prediction is not None and price_prediction.confidence > 0
-        direction_valid = direction_prediction is not None and direction_prediction.confidence > 0
+        direction_valid = (
+            direction_prediction is not None and direction_prediction.confidence > 0
+        )
 
         results["integration_tests"]["ml_interface"] = {
             "price_prediction_time": price_pred_time,
             "direction_prediction_time": direction_pred_time,
             "price_prediction_valid": price_valid,
             "direction_prediction_valid": direction_valid,
-            "status": "passed" if price_valid and direction_valid else "partial"
+            "status": "passed" if price_valid and direction_valid else "partial",
         }
 
-        self.logger.info(f"✅ ML interface test: price_pred={price_valid}, direction_pred={direction_valid}")
+        self.logger.info(
+            f"✅ ML interface test: price_pred={price_valid}, direction_pred={direction_valid}"
+        )
 
     async def test_data_orchestrator(self, results: Dict[str, Any]):
-        """"Test data feed orchestrator integration""""
+        """Test data feed orchestrator integration"""
         self.logger.info("Testing data orchestrator...")
 
         orchestrator = DataFeedOrchestrator()
@@ -275,20 +296,26 @@ class PipelineTester:
 
         # Validate results
         has_data_sources = len(signals.get("data_sources", {})) > 0
-        has_trading_signals = len(signals.get("trading_signals", {}).get("bullish_signals", [])) >= 0
+        has_trading_signals = (
+            len(signals.get("trading_signals", {}).get("bullish_signals", [])) >= 0
+        )
 
         results["integration_tests"]["data_orchestrator"] = {
             "processing_time": processing_time,
             "tickers_processed": len(tickers),
             "data_sources_count": len(signals.get("data_sources", {})),
-            "trading_signals_count": len(signals.get("trading_signals", {}).get("bullish_signals", [])),
-            "status": "passed" if has_data_sources and processing_time < 10.0 else "slow"
+            "trading_signals_count": len(
+                signals.get("trading_signals", {}).get("bullish_signals", [])
+            ),
+            "status": "passed"
+            if has_data_sources and processing_time < 10.0
+            else "slow",
         }
 
         self.logger.info(f"✅ Data orchestrator test: {processing_time:.2f}s")
 
     async def test_end_to_end_pipeline(self, results: Dict[str, Any]):
-        """"Test end-to-end pipeline integration""""
+        """Test end-to-end pipeline integration"""
         self.logger.info("Testing end-to-end pipeline...")
 
         # Create dependencies
@@ -297,7 +324,7 @@ class PipelineTester:
         if not deps.validate():
             results["integration_tests"]["end_to_end"] = {
                 "status": "skipped",
-                "reason": "Dependencies not available"
+                "reason": "Dependencies not available",
             }
             return
 
@@ -322,19 +349,25 @@ class PipelineTester:
             "has_predictions": has_predictions,
             "has_performance_data": has_performance_data,
             "success": success,
-            "status": "passed" if success and has_predictions and total_time < TEST_CONFIG["performance_threshold"] else "slow"
+            "status": "passed"
+            if success
+            and has_predictions
+            and total_time < TEST_CONFIG["performance_threshold"]
+            else "slow",
         }
 
         self.logger.info(f"✅ End-to-end test: {total_time:.2f}s")
 
     async def test_performance_benchmark(self, results: Dict[str, Any]):
-        """"Run performance benchmarking tests"""
+        """Run performance benchmarking tests"""
         self.logger.info("Running performance benchmarks...")
 
         benchmark_times = []
 
         for i in range(TEST_CONFIG["benchmark_iterations"]):
-            self.logger.info(f"Benchmark iteration {i+1}/{TEST_CONFIG['benchmark_iterations']}")
+            self.logger.info(
+                f"Benchmark iteration {i+1}/{TEST_CONFIG['benchmark_iterations']}"
+            )
 
             start_time = time.time()
 
@@ -342,7 +375,9 @@ class PipelineTester:
             deps = DependencyFactory.create_all_dependencies()
             if deps.validate():
                 pipeline = OracleXOptimizedPipeline(deps)
-                await pipeline.run_async("Benchmark test", TEST_CONFIG["test_tickers"][:2])
+                await pipeline.run_async(
+                    "Benchmark test", TEST_CONFIG["test_tickers"][:2]
+                )
 
             iteration_time = time.time() - start_time
             benchmark_times.append(iteration_time)
@@ -357,13 +392,17 @@ class PipelineTester:
             "min_time": min_time,
             "max_time": max_time,
             "times": benchmark_times,
-            "status": "passed" if avg_time < TEST_CONFIG["performance_threshold"] else "slow"
+            "status": "passed"
+            if avg_time < TEST_CONFIG["performance_threshold"]
+            else "slow",
         }
 
-        self.logger.info(f"✅ Benchmark completed: avg={avg_time:.2f}s", min={min_time:.2f}s")
+        self.logger.info(
+            f"✅ Benchmark completed: avg={avg_time:.2f}s, min={min_time:.2f}s"
+        )
 
     def _assess_overall_status(self, results: Dict[str, Any]) -> str:
-        """"Assess overall test status"""
+        """Assess overall test status"""
         performance_tests = results.get("performance_tests", {})
         integration_tests = results.get("integration_tests", {})
         benchmark_results = results.get("benchmark_results", {})
@@ -390,18 +429,19 @@ class PipelineTester:
             return "poor"
 
     def save_results(self, results: Dict[str, Any], filename: str = None):
-        """"Save test results to file""""
+        """Save test results to file"""
         if filename is None:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"test_results_{timestamp}.json"
 
-        with open(filename, 'w') as f:
+        with open(filename, "w") as f:
             json.dump(results, f, indent=2, default=str)
 
         self.logger.info(f"Results saved to {filename}")
 
+
 async def main():
-    """"Main test execution""""
+    """Main test execution"""
     import argparse
 
     parser = argparse.ArgumentParser(description="Oracle-X Optimized Pipeline Tests")
@@ -414,7 +454,7 @@ async def main():
     # Configure logging
     logging.basicConfig(
         level=logging.INFO if not args.verbose else logging.DEBUG,
-        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
 
     try:
@@ -429,41 +469,44 @@ async def main():
             results = await tester.run_comprehensive_tests()
 
         # Display results summary
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("ORACLE-X OPTIMIZED PIPELINE TEST RESULTS")
-        print("="*60)
+        print("=" * 60)
 
         print(f"Overall Status: {results['overall_status'].upper()}")
         print(f"Timestamp: {results['timestamp']}")
         print(f"Components Tested: {len(results['components_tested'])}")
 
-        if 'performance_tests' in results:
+        if "performance_tests" in results:
             print("\nPerformance Tests:")
-            for test_name, test_result in results['performance_tests'].items():
-                status = "✅" if test_result['status'] == 'passed' else "⚠️"
-                print(f"  {status} {test_name}: {test_result.get('processing_time', 0):.3f}s")
+            for test_name, test_result in results["performance_tests"].items():
+                status = "✅" if test_result["status"] == "passed" else "⚠️"
+                print(
+                    f"  {status} {test_name}: {test_result.get('processing_time', 0):.3f}s"
+                )
 
-        if 'integration_tests' in results:
+        if "integration_tests" in results:
             print("\nIntegration Tests:")
-            for test_name, test_result in results['integration_tests'].items():
-                status = "✅" if test_result['status'] == 'passed' else "⚠️"
+            for test_name, test_result in results["integration_tests"].items():
+                status = "✅" if test_result["status"] == "passed" else "⚠️"
                 print(f"  {status} {test_name}")
 
-        if 'benchmark_results' in results:
-            benchmark = results['benchmark_results']
-            print("
-Benchmark Results:")
+        if "benchmark_results" in results:
+            benchmark = results["benchmark_results"]
+            print("\nBenchmark Results:")
             print(f"  Average Time: {benchmark['avg_time']:.3f}s")
-            print(f"  Min/Max Time: {benchmark['min_time']:.3f}s / {benchmark['max_time']:.3f}s")
+            print(
+                f"  Min/Max Time: {benchmark['min_time']:.3f}s / {benchmark['max_time']:.3f}s"
+            )
 
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
 
         # Save results if requested
         if args.save_results:
             tester.save_results(results, args.save_results)
 
         # Exit with appropriate code
-        if results['overall_status'] in ['excellent', 'good']:
+        if results["overall_status"] in ["excellent", "good"]:
             sys.exit(0)
         else:
             sys.exit(1)
@@ -475,6 +518,7 @@ Benchmark Results:")
     except Exception as e:
         print(f"❌ Test Execution Error: {e}")
         sys.exit(1)
+
 
 if __name__ == "__main__":
     asyncio.run(main())

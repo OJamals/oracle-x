@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 
 def ensure_utc(dt: datetime) -> datetime:

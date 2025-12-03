@@ -11,11 +11,17 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-from data_feeds.data_feed_orchestrator import (DataSource, MarketData, Quote,
-                                               SentimentData, get_market_data,
-                                               get_orchestrator, get_quote,
-                                               get_sentiment_data,
-                                               get_system_health)
+from data_feeds.data_feed_orchestrator import (
+    DataSource,
+    MarketData,
+    Quote,
+    SentimentData,
+    get_market_data,
+    get_orchestrator,
+    get_quote,
+    get_sentiment_data,
+    get_system_health,
+)
 
 logger = logging.getLogger(__name__)
 from data_feeds.config_loader import load_config
@@ -44,7 +50,7 @@ class OracleDataProvider:
     def __init__(self):
         self.orchestrator = get_orchestrator()
         self.min_quality_threshold = 60.0
-self.config = load_config()
+        self.config = load_config()
         logger.info("OracleDataProvider initialized with quality validation")
 
     def get_comprehensive_market_intelligence(

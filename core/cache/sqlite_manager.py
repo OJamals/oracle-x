@@ -13,7 +13,7 @@ import logging
 from pathlib import Path
 import threading
 
-from core.types import MarketData, OptionContract, DataSource
+from core.types_internal import MarketData, OptionContract, DataSource
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +46,7 @@ class SQLiteCacheManager:
                 # Check if table exists first
                 cursor = conn.execute(
                     """
-                    SELECT name FROM sqlite_master 
+                    SELECT name FROM sqlite_master
                     WHERE type='table' AND name='cache'
                 """
                 )
@@ -68,14 +68,14 @@ class SQLiteCacheManager:
 
                     conn.execute(
                         """
-                        CREATE INDEX idx_cache_ttl 
+                        CREATE INDEX idx_cache_ttl
                         ON cache(ttl)
                     """
                     )
 
                     conn.execute(
                         """
-                        CREATE INDEX idx_cache_last_accessed 
+                        CREATE INDEX idx_cache_last_accessed
                         ON cache(last_accessed)
                     """
                     )

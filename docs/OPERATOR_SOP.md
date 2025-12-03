@@ -29,9 +29,9 @@ This is your bulletproof daily playbook for running ORACLE-X.
 
 ## ✅ Weekly Maintenance
 
-✔️ Rotate free API keys if needed.  
-✔️ Check feeds for scraping blocks or API changes.  
-✔️ Back up `/signals/` & `/playbooks/` for training data.  
+✔️ Rotate free API keys if needed.
+✔️ Check feeds for scraping blocks or API changes.
+✔️ Back up `/signals/` & `/playbooks/` for training data.
 ✔️ Monitor backtest hit rate for prompt tweaks.
 
 ---

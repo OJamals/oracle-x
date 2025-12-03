@@ -336,7 +336,9 @@ def generate_report():
     for feed in set(test_results["premium_feeds"]):
         print(f"   $ {feed}")
 
-    print(f"\n⚠️  RATE LIMITED FEEDS ({len(test_results['rate_limited_feeds'])} total):")
+    print(
+        f"\n⚠️  RATE LIMITED FEEDS ({len(test_results['rate_limited_feeds'])} total):"
+    )
     for feed in test_results["rate_limited_feeds"]:
         print(f"   ⚠ {feed}")
 

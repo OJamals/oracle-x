@@ -9,9 +9,9 @@ import logging
 from datetime import datetime
 
 # Set up RSS feeds configuration
-os.environ["RSS_FEEDS"] = (
-    "http://feeds.benzinga.com/benzinga,https://www.cnbc.com/id/10001147/device/rss/rss.html,https://www.ft.com/rss/home,https://fortune.com/feed/fortune-feeds/?id=3230629,https://feeds.marketwatch.com/marketwatch/topstories/,https://seekingalpha.com/feed.xml"
-)
+os.environ[
+    "RSS_FEEDS"
+] = "http://feeds.benzinga.com/benzinga,https://www.cnbc.com/id/10001147/device/rss/rss.html,https://www.ft.com/rss/home,https://fortune.com/feed/fortune-feeds/?id=3230629,https://feeds.marketwatch.com/marketwatch/topstories/,https://seekingalpha.com/feed.xml"
 os.environ["RSS_INCLUDE_ALL"] = "1"
 
 # Add project root to path

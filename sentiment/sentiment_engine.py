@@ -46,6 +46,9 @@ try:
 except ImportError:
     HTTPError = Exception  # Fallback if requests not available
 
+from data_feeds.data_types import SentimentData
+from dataclasses import asdict
+
 logger = logging.getLogger(__name__)
 
 
@@ -1269,6 +1272,41 @@ class AdvancedSentimentEngine:
         )
 
         return min(100.0, max(0.0, total_score))
+
+    def get_source_sentiment(
+        self, symbol: str, texts: List[str], source: str
+    ) -> Optional[SentimentData]:
+        """Get SentimentData for texts from specific source using get_symbol_sentiment_summary."""
+        if not texts:
+            return None
+        summary = self.get_symbol_sentiment_summary(
+            symbol, texts, [source] * len(texts)
+        )
+        return SentimentData(
+            symbol=symbol,
+            sentiment_score=float(summary.overall_sentiment),
+            confidence=float(summary.confidence),
+            source=f"{source}_engine",
+            timestamp=summary.timestamp,
+            sample_size=summary.sample_size,
+            raw_data=asdict(summary),
+        )
+
+    def twitter_sentiment(
+        self, symbol: str, texts: List[str]
+    ) -> Optional[SentimentData]:
+        """Twitter-specific sentiment analysis."""
+        return self.get_source_sentiment(symbol, texts, "twitter")
+
+    def reddit_sentiment(
+        self, symbol: str, texts: List[str]
+    ) -> Optional[SentimentData]:
+        """Reddit-specific sentiment analysis."""
+        return self.get_source_sentiment(symbol, texts, "reddit")
+
+    def news_sentiment(self, symbol: str, texts: List[str]) -> Optional[SentimentData]:
+        """News-specific sentiment analysis."""
+        return self.get_source_sentiment(symbol, texts, "news")
 
 
 def get_sentiment_engine() -> AdvancedSentimentEngine:

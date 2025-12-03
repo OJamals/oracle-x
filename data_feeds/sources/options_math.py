@@ -3,8 +3,9 @@ Black–Scholes utilities with dividend yield q, prices, Greeks, and implied vol
 """
 
 from __future__ import annotations
+
 import math
-from typing import Tuple, Dict, Optional
+from typing import Dict, Optional, Tuple
 
 SQRT_2PI = math.sqrt(2.0 * math.pi)
 

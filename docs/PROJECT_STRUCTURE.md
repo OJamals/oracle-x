@@ -42,21 +42,21 @@ Daily raw feeds — versioned JSON. This is your data provenance.
 
 ## 🗂️ `/playbooks/`
 
-Clairvoyant predictions. Each file is your “Tomorrow’s Tape.”  
+Clairvoyant predictions. Each file is your “Tomorrow’s Tape.”
 Used in dashboards + backtest loops.
 
 ---
 
 ## 🏦 `/backtest_tracker/`
 
-Tracks your hit/miss performance over time.  
+Tracks your hit/miss performance over time.
 Includes: `backtest.py`, `results_analyzer.py`, `results_dashboard.py`.
 
 ---
 
 ## 🖥️ `/dashboard/`
 
-Your Streamlit app: Playbook visualizer + Operator Panel.  
+Your Streamlit app: Playbook visualizer + Operator Panel.
 `dashboard/app.py` shows:
 - Playbook details
 - Trade expanders
@@ -67,12 +67,12 @@ Your Streamlit app: Playbook visualizer + Operator Panel.
 
 ## ✅ Key Principle
 
-**`oracle_engine/` = brain**  
-**`vector_db/` = memory**  
-**`data_feeds/` = fresh signals**  
-**`/signals/` = truth**  
-**`/playbooks/` = predictions**  
-**`/backtest_tracker/` = performance**  
+**`oracle_engine/` = brain**
+**`vector_db/` = memory**
+**`data_feeds/` = fresh signals**
+**`/signals/` = truth**
+**`/playbooks/` = predictions**
+**`/backtest_tracker/` = performance**
 **`/dashboard/` = cockpit**
 
 ---

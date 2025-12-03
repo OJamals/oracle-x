@@ -48,7 +48,7 @@ After **every** file modification, you MUST:
 **Output**: Comprehensive plan via `plan_mode_response`
 **Rule**: NO code writing in this mode
 
-### ⚡ ACT MODE  
+### ⚡ ACT MODE
 **Purpose**: Execute approved plans and implement solutions
 **Tools**: All tools available for coding, testing, and deployment
 **Output**: Working solution via `attempt_completion`
@@ -91,7 +91,7 @@ After **every** file modification, you MUST:
 
 ### 🤖 PROMPT GENERATOR MODE
 **Triggers**: "generate", "create", "develop", "build" (when requesting content creation)
-**Critical Rules**: 
+**Critical Rules**:
 - Your knowledge is outdated - MUST verify everything with current web sources
 - **DO NOT CODE DIRECTLY** - Generate research-backed prompts first
 - **MANDATORY RESEARCH PHASE** before any implementation
@@ -124,7 +124,7 @@ After **every** file modification, you MUST:
 ### 🔍 Investigation & Analysis
 `codebase` `search` `searchResults` `usages` `findTestFiles`
 
-### 📝 File Operations  
+### 📝 File Operations
 `editFiles` `new` `readCellOutput`
 
 ### 🧪 Development & Testing

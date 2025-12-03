@@ -61,7 +61,7 @@ print(f'System health: {health}')
 Oracle-X is now a **production-ready, self-learning ML-driven trading system** with the following capabilities:
 
 - 🧠 **Ensemble ML Engine**: RandomForest + Neural Networks + XGBoost
-- 📊 **Advanced Sentiment**: FinBERT + VADER + TextBlob ensemble  
+- 📊 **Advanced Sentiment**: FinBERT + VADER + TextBlob ensemble
 - 🔄 **Comprehensive Backtesting**: Strategy validation with risk metrics
 - 🏭 **Production Pipeline**: Automated deployment with monitoring
 - 📈 **Real-time Processing**: Sub-second prediction generation

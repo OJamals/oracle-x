@@ -75,7 +75,9 @@ def test_enhanced_sentiment_pipeline():
                 sentiment_emoji = (
                     "📈"
                     if data["sentiment"] > 0.1
-                    else "📉" if data["sentiment"] < -0.1 else "➡️"
+                    else "📉"
+                    if data["sentiment"] < -0.1
+                    else "➡️"
                 )
                 print(
                     f"     {sentiment_emoji} {source_name}: {data['sentiment']:.3f} "
@@ -247,7 +249,9 @@ def benchmark_performance():
         if improvement < 0:
             print(f"   ⚡ Speed Improvement: {abs(improvement):.1f}% faster")
         else:
-            print(f"   ⚠️  Speed Change: {improvement:.1f}% slower (more comprehensive)")
+            print(
+                f"   ⚠️  Speed Change: {improvement:.1f}% slower (more comprehensive)"
+            )
 
     except Exception as e:
         print(f"❌ Benchmark Error: {e}")

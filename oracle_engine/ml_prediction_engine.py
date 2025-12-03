@@ -27,8 +27,11 @@ from pathlib import Path
 try:
     import sklearn
     from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
-    from sklearn.metrics import (accuracy_score, classification_report,
-                                 mean_squared_error)
+    from sklearn.metrics import (
+        accuracy_score,
+        classification_report,
+        mean_squared_error,
+    )
     from sklearn.model_selection import cross_val_score, train_test_split
     from sklearn.preprocessing import LabelEncoder, StandardScaler
 

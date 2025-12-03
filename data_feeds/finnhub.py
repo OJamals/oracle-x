@@ -1,6 +1,7 @@
 import os
+from typing import Any, Dict, Optional
+
 import requests
-from typing import Dict, Any, Optional
 
 # Async I/O utilities import with fallback
 AsyncHTTPClient = None

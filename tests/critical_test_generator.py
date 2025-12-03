@@ -466,25 +466,25 @@ class CriticalTestGenerator:
             self.assertTrue(True, \"Module imported successfully\")
         except Exception as e:
             self.fail(f\"Integration smoke test failed: {e}\")
-    
+
     def test_error_handling(self):
         \"\"\"Test error handling patterns\"\"\"
         # Test that the module handles errors gracefully
         self.skipTest(\"Error handling tests need implementation\")
-    
+
     def test_performance_baseline(self):
         \"\"\"Basic performance test\"\"\"
         # Ensure basic operations complete within reasonable time
         import time
         start_time = time.time()
-        
+
         # Perform a basic operation
         try:
             # Basic operation test
             pass
         except Exception:
             pass
-        
+
         elapsed = time.time() - start_time
         self.assertLess(elapsed, 10.0, \"Basic operations should complete within 10 seconds\")
 """
@@ -605,9 +605,7 @@ def main():
 
     if args.run_tests and generator.generated_tests:
         results = generator.run_generated_tests()
-        print(
-            f"\\n📊 Test Results: {sum(results.values())}/{len(results)} files passed"
-        )
+        print(f"\\n📊 Test Results: {sum(results.values())}/{len(results)} files passed")
 
     if args.report:
         report = generator.generate_summary_report()

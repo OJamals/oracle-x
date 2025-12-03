@@ -221,8 +221,7 @@ class MetaLearner:
             return model, {}
 
         try:
-            from sklearn.model_selection import (GridSearchCV,
-                                                 RandomizedSearchCV)
+            from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 
             if config.method == "grid_search":
                 optimizer = GridSearchCV(
@@ -418,8 +417,7 @@ class MetaLearner:
             if not SKLEARN_AVAILABLE:
                 return model
 
-            from sklearn.ensemble import (RandomForestClassifier,
-                                          RandomForestRegressor)
+            from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 
             if len(np.unique(y)) < 10:  # Classification
                 new_model = RandomForestClassifier(n_estimators=100, random_state=42)

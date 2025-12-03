@@ -71,9 +71,7 @@ def main():
 
     print(f"\n📊 Overall Status:")
     if summary["required_missing"] > 0:
-        print(
-            f"   🔴 CRITICAL: {summary['required_missing']} required API keys missing"
-        )
+        print(f"   🔴 CRITICAL: {summary['required_missing']} required API keys missing")
         print(f"   🚫 Production deployment NOT recommended")
     elif summary["missing"] > 0:
         print(f"   🟡 WARNING: {summary['missing']} optional API keys missing")

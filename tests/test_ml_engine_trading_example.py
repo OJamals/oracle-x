@@ -84,12 +84,16 @@ def trading_scenario_example():
                 signal = (
                     "BUY"
                     if direction_pred.prediction > 0.6
-                    else "SELL" if direction_pred.prediction < 0.4 else "HOLD"
+                    else "SELL"
+                    if direction_pred.prediction < 0.4
+                    else "HOLD"
                 )
                 confidence_level = (
                     "HIGH"
                     if direction_pred.confidence > 0.7
-                    else "MEDIUM" if direction_pred.confidence > 0.5 else "LOW"
+                    else "MEDIUM"
+                    if direction_pred.confidence > 0.5
+                    else "LOW"
                 )
 
                 print(
@@ -128,12 +132,16 @@ def trading_scenario_example():
                 risk_level = (
                     "LOW"
                     if pred.uncertainty < 0.2
-                    else "MEDIUM" if pred.uncertainty < 0.4 else "HIGH"
+                    else "MEDIUM"
+                    if pred.uncertainty < 0.4
+                    else "HIGH"
                 )
                 direction_str = (
                     "BULLISH"
                     if pred.prediction > 0.6
-                    else "BEARISH" if pred.prediction < 0.4 else "NEUTRAL"
+                    else "BEARISH"
+                    if pred.prediction < 0.4
+                    else "NEUTRAL"
                 )
 
                 print(
@@ -272,7 +280,9 @@ def backtesting_example():
                         "action": (
                             "BUY"
                             if pred.prediction > 0.6
-                            else "SELL" if pred.prediction < 0.4 else "HOLD"
+                            else "SELL"
+                            if pred.prediction < 0.4
+                            else "HOLD"
                         ),
                     }
                 )

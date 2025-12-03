@@ -246,15 +246,52 @@ class DataFeedConfig:
         )
 
         # Data source toggles from env
-        self.fetch_options_flow = os.environ.get("FETCH_OPTIONS_FLOW", str(self.fetch_options_flow)).lower() == "true"
-        self.fetch_dark_pool_data = os.environ.get("FETCH_DARK_POOL_DATA", str(self.fetch_dark_pool_data)).lower() == "true"
-        self.fetch_market_internals = os.environ.get("FETCH_MARKET_INTERNALS", str(self.fetch_market_internals)).lower() == "true"
-        self.fetch_sentiment_web = os.environ.get("FETCH_SENTIMENT_WEB", str(self.fetch_sentiment_web)).lower() == "true"
-        self.fetch_sentiment_llm = os.environ.get("FETCH_SENTIMENT_LLM", str(self.fetch_sentiment_llm)).lower() == "true"
-        self.fetch_news_yahoo = os.environ.get("FETCH_NEWS_YAHOO", str(self.fetch_news_yahoo)).lower() == "true"
-        self.fetch_finviz_breadth = os.environ.get("FETCH_FINVIZ_BREADTH", str(self.fetch_finviz_breadth)).lower() == "true"
-        self.fetch_earnings_calendar = os.environ.get("FETCH_EARNINGS_CALENDAR", str(self.fetch_earnings_calendar)).lower() == "true"
-        self.enable_premium_feeds = os.environ.get("ENABLE_PREMIUM_FEEDS", str(self.enable_premium_feeds)).lower() == "true"
+        self.fetch_options_flow = (
+            os.environ.get("FETCH_OPTIONS_FLOW", str(self.fetch_options_flow)).lower()
+            == "true"
+        )
+        self.fetch_dark_pool_data = (
+            os.environ.get(
+                "FETCH_DARK_POOL_DATA", str(self.fetch_dark_pool_data)
+            ).lower()
+            == "true"
+        )
+        self.fetch_market_internals = (
+            os.environ.get(
+                "FETCH_MARKET_INTERNALS", str(self.fetch_market_internals)
+            ).lower()
+            == "true"
+        )
+        self.fetch_sentiment_web = (
+            os.environ.get("FETCH_SENTIMENT_WEB", str(self.fetch_sentiment_web)).lower()
+            == "true"
+        )
+        self.fetch_sentiment_llm = (
+            os.environ.get("FETCH_SENTIMENT_LLM", str(self.fetch_sentiment_llm)).lower()
+            == "true"
+        )
+        self.fetch_news_yahoo = (
+            os.environ.get("FETCH_NEWS_YAHOO", str(self.fetch_news_yahoo)).lower()
+            == "true"
+        )
+        self.fetch_finviz_breadth = (
+            os.environ.get(
+                "FETCH_FINVIZ_BREADTH", str(self.fetch_finviz_breadth)
+            ).lower()
+            == "true"
+        )
+        self.fetch_earnings_calendar = (
+            os.environ.get(
+                "FETCH_EARNINGS_CALENDAR", str(self.fetch_earnings_calendar)
+            ).lower()
+            == "true"
+        )
+        self.enable_premium_feeds = (
+            os.environ.get(
+                "ENABLE_PREMIUM_FEEDS", str(self.enable_premium_feeds)
+            ).lower()
+            == "true"
+        )
 
 
 @dataclass
@@ -303,9 +340,9 @@ class OptimizationConfig:
 
 
 @dataclass
-@dataclass
 class CacheConfig:
     """Cache configuration settings"""
+
     redis_url: Optional[str] = None
     default_ttl: int = 300
     lru_size: int = 1000
@@ -315,6 +352,8 @@ class CacheConfig:
         self.redis_url = os.getenv("CACHE_REDIS_URL", self.redis_url)
         self.default_ttl = int(os.getenv("CACHE_DEFAULT_TTL", str(self.default_ttl)))
         self.lru_size = int(os.getenv("CACHE_LRU_SIZE", str(self.lru_size)))
+
+
 class SystemConfig:
     """Complete system configuration"""
 
@@ -322,14 +361,16 @@ class SystemConfig:
     debug_mode: bool = False
     log_level: str = "INFO"
     log_dir: str = "logs"
-    cache: CacheConfig = field(default_factory=CacheConfig)
+    cache: CacheConfig = field(default_factory=lambda: CacheConfig())
 
     # Sub-configurations
-    database: DatabaseConfig = field(default_factory=DatabaseConfig)
-    model: ModelConfig = field(default_factory=ModelConfig)
-    data_feeds: DataFeedConfig = field(default_factory=DataFeedConfig)
-    vector_db: VectorDBConfig = field(default_factory=VectorDBConfig)
-    optimization: OptimizationConfig = field(default_factory=OptimizationConfig)
+    database: DatabaseConfig = field(default_factory=lambda: DatabaseConfig())
+    model: ModelConfig = field(default_factory=lambda: ModelConfig())
+    data_feeds: DataFeedConfig = field(default_factory=lambda: DataFeedConfig())
+    vector_db: VectorDBConfig = field(default_factory=lambda: VectorDBConfig())
+    optimization: OptimizationConfig = field(
+        default_factory=lambda: OptimizationConfig()
+    )
 
     def __post_init__(self):
         """Override from environment variables"""
@@ -479,6 +520,13 @@ class ConfigValidator:
 
 # Create global configuration instance
 config = SystemConfig()
+# Force instantiation of sub-configs to resolve Field descriptors
+config.model = ModelConfig()
+config.database = DatabaseConfig()
+config.data_feeds = DataFeedConfig()
+config.vector_db = VectorDBConfig()
+config.optimization = OptimizationConfig()
+config.cache = CacheConfig()
 
 
 # Backward compatibility functions
@@ -488,11 +536,11 @@ def load_config() -> Dict[str, Any]:
 
 
 def get_openai_model() -> str:
-    return config.model.openai_model
+    return config.model.get_openai_model()
 
 
 def get_non_embedding_model() -> str:
-    return config.model.openai_model
+    return config.model.get_openai_model()
 
 
 def get_embedding_model() -> str:

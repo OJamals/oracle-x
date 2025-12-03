@@ -6,9 +6,9 @@ and custom scraping functions from finviz_scraper.py.
 """
 
 import logging
-from typing import Dict, Optional, List
 from datetime import datetime
 from decimal import Decimal
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 

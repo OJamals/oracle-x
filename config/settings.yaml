@@ -5,6 +5,7 @@ risk_threshold: 0.7
 
 # Data source toggles
 data_sources:
+  # Feature toggles
   fetch_options_flow: true
   fetch_dark_pool_data: true
   fetch_market_internals: true
@@ -14,6 +15,19 @@ data_sources:
   fetch_finviz_breadth: true
   fetch_earnings_calendar: true
   enable_premium_feeds: false  # Requires API keys
+
+  # Provider enabled toggles
+  enabled_sources:
+    yfinance: true
+    finnhub: true
+    iex_cloud: true
+    reddit: true
+    twitter: true
+    fred: true
+    finviz: true
+    yahoo_news: true
+    google_trends: true
+    sec_edgar: true
 
 llm:
   default_model: "x-ai/grok-beta"

@@ -526,8 +526,8 @@ class CacheService:
         try:
             db = AsyncDatabaseManager(self.db_path)
             query = """
-            SELECT key_hash, endpoint, symbol, fetched_at, ttl_seconds, source, 
-                   metadata_json, payload_json, payload_blob, storage_uri, version, status 
+            SELECT key_hash, endpoint, symbol, fetched_at, ttl_seconds, source,
+                   metadata_json, payload_json, payload_blob, storage_uri, version, status
             FROM cache_entries WHERE key_hash = ? LIMIT 1
             """
             rows = await db.execute_query(query, (key_hash,))

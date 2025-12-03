@@ -33,7 +33,7 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from typing import List, Dict, Optional, Any
+from typing import Any, Dict, List, Optional
 
 DEFAULT_DB_PATH = os.getenv("CACHE_DB_PATH", "./model_monitoring.db")
 

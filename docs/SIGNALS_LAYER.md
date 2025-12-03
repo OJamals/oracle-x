@@ -6,12 +6,12 @@ This doc explains how your real-time data feeds work, what they connect to, and 
 
 ## ⚙️ **Signals Folder**
 
-All raw daily scrapes are versioned in:  
+All raw daily scrapes are versioned in:
 `/signals/YYYY-MM-DD.json`
 
-**Why?**  
-✅ Audit your data quality  
-✅ Backtest your Playbooks vs. real conditions  
+**Why?**
+✅ Audit your data quality
+✅ Backtest your Playbooks vs. real conditions
 ✅ Spot which feeds are noisy, stale, or unreliable
 
 ---
@@ -157,8 +157,8 @@ Edit
 
 ## ✅ **Why This Is Solid**
 
-✔️ *Beautifully structured*: easy to skim for new devs  
-✔️ *Exact JSON examples*: you can test your feeds one at a time  
-✔️ *Practical Cron*: run daily, logs versioned  
-✔️ *Local-first*: open-source, no vendor lock  
+✔️ *Beautifully structured*: easy to skim for new devs
+✔️ *Exact JSON examples*: you can test your feeds one at a time
+✔️ *Practical Cron*: run daily, logs versioned
+✔️ *Local-first*: open-source, no vendor lock
 ✔️ *Clear next steps*: plug in premium feeds when you’re ready

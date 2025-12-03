@@ -29,7 +29,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 
-
 # Configure logging
 logger = logging.getLogger(__name__)
 
@@ -660,9 +659,9 @@ Emphasize technical confluence and pattern reliability.
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
                     """
-                    INSERT OR REPLACE INTO prompt_performance 
+                    INSERT OR REPLACE INTO prompt_performance
                     (prompt_id, template_id, market_condition, strategy, success_rate, avg_latency, usage_count, last_used, performance_data)
-                    VALUES (?, ?, ?, ?, ?, ?, 
+                    VALUES (?, ?, ?, ?, ?, ?,
                             COALESCE((SELECT usage_count FROM prompt_performance WHERE prompt_id = ?), 0) + 1,
                             ?, ?)
                 """,
@@ -708,7 +707,7 @@ Emphasize technical confluence and pattern reliability.
             with sqlite3.connect(self.db_path) as conn:
                 conn.execute(
                     """
-                    INSERT INTO prompt_experiments 
+                    INSERT INTO prompt_experiments
                     (experiment_id, variant_a_id, variant_b_id, market_condition, end_time)
                     VALUES (?, ?, ?, ?, ?)
                 """,
@@ -848,7 +847,7 @@ Emphasize technical confluence and pattern reliability.
                            AVG(success_rate) as avg_success,
                            AVG(avg_latency) as avg_latency,
                            SUM(usage_count) as total_usage
-                    FROM prompt_performance 
+                    FROM prompt_performance
                     WHERE last_used >= datetime('now', '-{} days')
                     GROUP BY template_id, market_condition, strategy
                     ORDER BY avg_success DESC
@@ -862,9 +861,9 @@ Emphasize technical confluence and pattern reliability.
                 # Experiment results
                 cursor = conn.execute(
                     """
-                    SELECT experiment_id, variant_a_id, variant_b_id, 
+                    SELECT experiment_id, variant_a_id, variant_b_id,
                            variant_a_performance, variant_b_performance, winner
-                    FROM prompt_experiments 
+                    FROM prompt_experiments
                     WHERE start_time >= datetime('now', '-{} days')
                     AND status = 'completed'
                 """.format(

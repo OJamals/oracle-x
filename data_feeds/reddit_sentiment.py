@@ -1,15 +1,23 @@
 """
-Stub for reddit_sentiment to fix test imports during refactor.
+Reddit sentiment using unified sentiment engine.
 """
 
-def fetch_reddit_sentiment(symbols: list[str], limit: int = 50) -> dict:
-    """Stub implementation for Reddit sentiment data."""
-    return {
-        s: {
-            "sentiment_score": 0.5,
-            "confidence": 0.6,
+from typing import Dict, List
+
+from sentiment.sentiment_engine import get_sentiment_engine
+
+
+def fetch_reddit_sentiment(symbols: List[str], limit: int = 50) -> Dict[str, dict]:
+    """Fetch Reddit sentiment using sentiment engine."""
+    engine = get_sentiment_engine()
+    results = {}
+    dummy_texts = [f"Dummy Reddit post about stock."] * limit
+    for s in symbols:
+        sd = engine.reddit_sentiment(s, dummy_texts)
+        results[s] = {
+            "sentiment_score": sd.sentiment_score if sd else 0.5,
+            "confidence": sd.confidence if sd else 0.6,
             "sample_size": limit,
-            "sample_texts": [f"Stub Reddit post about {s}."] * 3,
+            "sample_texts": dummy_texts[:3],
         }
-        for s in symbols
-    }
+    return results

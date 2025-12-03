@@ -4,23 +4,24 @@ Consolidates multiple data sources with quality validation, intelligent fallback
 Replaces all existing data feed implementations with a single authoritative interface.
 """
 
+import asyncio
+import json
+import logging
 import os
 import time
-import logging
 import warnings
-import asyncio
+from collections import defaultdict, deque
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Union, Any, Tuple, TYPE_CHECKING
-from dataclasses import dataclass, asdict
 from enum import Enum
-import pandas as pd
-import yfinance as yf
-import requests
-import json
 from functools import wraps
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
-from collections import defaultdict, deque
+import pandas as pd
+import requests
+import yfinance as yf
 
 # Async I/O utilities import with fallback
 AsyncHTTPClient = None
@@ -45,44 +46,49 @@ except ImportError:
         return requests.get(url, **kwargs)
 
 
-from data_feeds.models import MarketBreadth, GroupPerformance  # Added import
-from data_feeds.sources.finviz_adapter import FinVizAdapter  # New import
-from data_feeds.sources.news_adapter import NewsAdapter  # Unified news adapter
-from data_feeds.fallback_manager import (
-    FallbackManager,
-    FallbackConfig,
-    FallbackReason,
-)  # New import for intelligent fallback
+from dotenv import load_dotenv
+
+from data_feeds.cache.redis_cache_manager import (  # Redis cache manager
+    RedisCacheManager,
+    get_redis_cache_manager,
+)
 
 # Delegate models and feed for consolidation parity
-from data_feeds.consolidated_data_feed import (
-    ConsolidatedDataFeed,
+from data_feeds.consolidated_data_feed import (  # absolute imports as required (avoid Quote name clash)
     CompanyInfo,
+    ConsolidatedDataFeed,
     NewsItem,
-)  # absolute imports as required (avoid Quote name clash)
+)
 from data_feeds.data_types import (
-    DataSource,
-    DataQuality,
-    Quote,
-    MarketData,
-    SentimentData,
+    DataQuality,  # Shared dataclasses
     DataQualityMetrics,
-)  # Shared dataclasses
-from dotenv import load_dotenv
+    DataSource,
+    MarketData,
+    Quote,
+    SentimentData,
+)
+from data_feeds.fallback_manager import (  # New import for intelligent fallback
+    FallbackConfig,
+    FallbackManager,
+    FallbackReason,
+)
+from data_feeds.models import GroupPerformance, MarketBreadth  # Added import
+from data_feeds.sources.finviz_adapter import FinVizAdapter  # New import
+from data_feeds.sources.news_adapter import NewsAdapter  # Unified news adapter
 from data_feeds.twitter_feed import TwitterSentimentFeed  # New import
-from data_feeds.cache.redis_cache_manager import (
-    get_redis_cache_manager,
-    RedisCacheManager,
-)  # Redis cache manager
 
 # Optional cache services; guard imports so missing dependencies (e.g., schedule) do not break orchestrator
 try:
-    from data_feeds.cache.cache_invalidation_service import get_cache_invalidation_service  # type: ignore
+    from data_feeds.cache.cache_invalidation_service import (
+        get_cache_invalidation_service,
+    )  # type: ignore
 except Exception:
     get_cache_invalidation_service = None  # type: ignore
 
 try:
-    from data_feeds.cache.cache_warming_service import get_cache_warming_service  # type: ignore
+    from data_feeds.cache.cache_warming_service import (
+        get_cache_warming_service,
+    )  # type: ignore
 except Exception:
     get_cache_warming_service = None  # type: ignore
 from data_feeds.cache.cache_service import CacheService  # SQLite-backed cache
@@ -97,18 +103,31 @@ except Exception:
 # Standardized adapter protocol wrappers (additive; not yet used for routing)
 try:
     from data_feeds.adapter_protocol import SourceAdapterProtocol  # type: ignore
-    from data_feeds.adapter_wrappers import (
-        YFinanceAdapterWrapper,
-        FMPAdapterWrapper,
-        FinnhubAdapterWrapper,
+    from data_feeds.adapter_wrappers import (  # type: ignore
         FinanceDatabaseAdapterWrapper,
-    )  # type: ignore
+        FinnhubAdapterWrapper,
+        FMPAdapterWrapper,
+        YFinanceAdapterWrapper,
+    )
 except Exception:
     # Guarded import to avoid any breaking behavior if wrappers are unavailable
     SourceAdapterProtocol = None  # type: ignore
 load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.ERROR)
+
+from data_feeds.orchestrator.validation.data_validator import DataValidator
+from data_feeds.orchestrator.utils.performance_tracker import PerformanceTracker
+from data_feeds.orchestrator.utils.helpers import (
+    _to_decimal,
+    _parse_datetime,
+    _batch_to_decimal,
+    _safe_float,
+    _safe_int,
+    _log_error_and_record,
+)
+from sentiment.sentiment_engine import get_sentiment_engine
+
 logger = logging.getLogger(__name__)
 
 # Reduce noisy third-party warnings and noisy streamlit messages during batch/bare runs.
@@ -856,7 +875,6 @@ class RedditAdapter:
             or current_time - self._cache_timestamp > self._cache_duration
             or debug_bypass
         ):
-
             if not self.rate_limiter.wait_if_needed(self.source):
                 return None
 
@@ -1361,7 +1379,9 @@ class DataFeedOrchestrator:
         loaded_config = None
         if config is None:
             try:
-                from data_feeds.config_loader import load_config as _load_config  # type: ignore
+                from data_feeds.config_loader import (
+                    load_config as _load_config,
+                )  # type: ignore
 
                 loaded_config = _load_config()
             except Exception:
@@ -2674,8 +2694,8 @@ class DataFeedOrchestrator:
 
         # Imports
         try:
-            from data_feeds import options_store as _opts_store  # type: ignore
             from data_feeds import options_math as _opts_math  # type: ignore
+            from data_feeds import options_store as _opts_store  # type: ignore
         except Exception as e:
             logger.error(f"Options modules import failed: {e}")
             return None
@@ -4072,6 +4092,7 @@ def warm_up_popular_tickers(symbols: Optional[List[str]] = None):
 def clear_enhanced_cache():
     """Clear enhanced cache layers (unified interface)"""
     return get_orchestrator().clear_enhanced_cache()
+
 
 def get_advanced_sentiment(self, symbol: str) -> Optional[SentimentData]:
     """Legacy compatibility wrapper for get_advanced_sentiment_data."""

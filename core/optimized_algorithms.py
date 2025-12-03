@@ -821,9 +821,11 @@ def select_optimal_algorithm(
     """
     Select the optimal algorithm based on data characteristics
     """
-    algorithm_name, algorithm_func, confidence = (
-        _algorithm_selector.select_optimal_algorithm(
-            data_size, algorithm_type=data_type
-        )
+    (
+        algorithm_name,
+        algorithm_func,
+        confidence,
+    ) = _algorithm_selector.select_optimal_algorithm(
+        data_size, algorithm_type=data_type
     )
     return algorithm_func

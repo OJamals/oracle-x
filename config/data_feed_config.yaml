@@ -7,27 +7,27 @@ data_sources:
     - fmp           # 250 calls/day
     - finnhub       # 60 calls/minute
     - alpha_vantage # 5 calls/minute
-  
+
   historical:
     - yfinance      # Free, unlimited
     - fmp           # 250 calls/day
     - finnhub       # 60 calls/minute
-  
+
   company_info:
     - yfinance      # Free, comprehensive
     - fmp           # 250 calls/day
     - finnhub       # 60 calls/minute
-  
+
   financial_statements:
     - fmp           # Best quality financials
     - financetoolkit # Uses FMP under hood
     - yfinance      # Basic financials
-  
+
   news:
     - finnhub       # Good quality, real-time
     - yfinance      # Basic news
     - alpha_vantage # News sentiment
-  
+
   # Added priorities for new orchestrator endpoints and Twelve Data preference
   priority:
     quote:
@@ -49,16 +49,16 @@ rate_limits:
   finnhub:
     calls: 60
     period: 60  # 60 calls per minute
-  
+
   fmp:
     calls: 250
     period: 86400  # 250 calls per day
-  
+
   alpha_vantage:
     calls: 5
     period: 60  # 5 calls per minute
     daily_limit: 500
-  
+
   # Added provider-specific granular limits for new providers
   twelve_data:
     quote: { rps: 5, rpm: 60, burst: 5 }

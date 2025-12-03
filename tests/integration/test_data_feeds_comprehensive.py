@@ -706,7 +706,9 @@ def main():
             else (
                 "❌"
                 if result["status"] == "FAIL"
-                else "⚠️" if result["status"] == "SKIP" else "🚨"
+                else "⚠️"
+                if result["status"] == "SKIP"
+                else "🚨"
             )
         )
         timing_str = f" ({result['timing_ms']:.0f}ms)" if result["timing_ms"] else ""

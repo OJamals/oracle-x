@@ -1,10 +1,11 @@
-import requests
-from bs4 import BeautifulSoup
-import random
-import time
-import yaml
 import math
 import os
+import random
+import time
+
+import requests
+import yaml
+from bs4 import BeautifulSoup
 
 # Optimized HTTP client import with fallback
 try:

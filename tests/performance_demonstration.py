@@ -270,9 +270,11 @@ def demonstrate_algorithm_selection():
     for data, description in test_cases:
         try:
             characteristics = selector.analyze_data_characteristics(data)
-            algorithm_name, algorithm_func, confidence = (
-                selector.select_optimal_algorithm(data)
-            )
+            (
+                algorithm_name,
+                algorithm_func,
+                confidence,
+            ) = selector.select_optimal_algorithm(data)
             result = algorithm_func(data)
             results.append(
                 {

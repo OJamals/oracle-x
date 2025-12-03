@@ -2,6 +2,7 @@
 Stub for options_flow to fix test imports during refactor.
 """
 
+
 def fetch_options_flow(symbols: list[str]) -> dict:
     """Stub implementation for options flow data."""
     return {

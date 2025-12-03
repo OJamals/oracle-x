@@ -111,9 +111,7 @@ class MLEngineTestSuite:
                 self.ml_engine, "sentiment_engine"
             ), "Sentiment engine not found"
 
-            logger.info(
-                f"📊 Engine has {len(self.ml_engine.models)} models initialized"
-            )
+            logger.info(f"📊 Engine has {len(self.ml_engine.models)} models initialized")
             logger.info(f"📊 Model types: {list(self.ml_engine.models.keys())}")
 
             return True
@@ -169,9 +167,7 @@ class MLEngineTestSuite:
                     test_symbol, []
                 )
                 if sentiment:
-                    logger.info(
-                        f"💭 Sentiment score: {sentiment.overall_sentiment:.3f}"
-                    )
+                    logger.info(f"💭 Sentiment score: {sentiment.overall_sentiment:.3f}")
                 else:
                     logger.info("💭 No sentiment data available")
             except Exception as e:
@@ -396,7 +392,9 @@ class MLEngineTestSuite:
                 logger.info(
                     f"🗄️  Same result: {result1.prediction == result2.prediction}"
                 )
-                logger.info(f"🗄️  Cache entries: {len(self.ml_engine.prediction_cache)}")
+                logger.info(
+                    f"🗄️  Cache entries: {len(self.ml_engine.prediction_cache)}"
+                )
 
                 # Second should be faster (cached)
                 if second_duration < first_duration:

@@ -334,9 +334,14 @@ class PipelineResult:
 
 @runtime_checkable
 class OrchestratorProtocol(Protocol):
-    def get_market_data(self, *args, **kwargs): ...  # pragma: no cover
-    def get_options_analytics(self, *args, **kwargs): ...  # pragma: no cover
-    def get_quote(self, *args, **kwargs): ...  # pragma: no cover
+    def get_market_data(self, *args, **kwargs):
+        ...  # pragma: no cover
+
+    def get_options_analytics(self, *args, **kwargs):
+        ...  # pragma: no cover
+
+    def get_quote(self, *args, **kwargs):
+        ...  # pragma: no cover
 
 
 class BaseOptionsPipeline:
@@ -2500,7 +2505,6 @@ class EnhancedOracleOptionsPipeline(BaseOptionsPipeline):
             ]
 
             for option_type, strike in strategies:
-
                 # Calculate expiry date (30 days out)
                 expiry_date = datetime.now() + timedelta(days=30)
 

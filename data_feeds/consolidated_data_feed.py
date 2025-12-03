@@ -4,26 +4,27 @@ A comprehensive financial data aggregator that unifies multiple data sources
 with intelligent fallback, caching, and rate limiting.
 """
 
-import os
-import time
-import logging
 import asyncio
+import json
+import logging
+import os
+import threading
+import time
+from collections import defaultdict
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from decimal import Decimal
-from typing import Dict, List, Optional, Union, Any
-from dataclasses import dataclass, asdict
 from enum import Enum
-import pandas as pd
-import yfinance as yf
+from functools import wraps
+from typing import Any, Dict, List, Optional, Union
+
 import finnhub
+import pandas as pd
 import requests
 import requests_cache
-from financedatabase import Equities, ETFs, Funds, Indices, Currencies
+import yfinance as yf
 from dotenv import load_dotenv
-import json
-from functools import wraps
-import threading
-from collections import defaultdict
+from financedatabase import Currencies, Equities, ETFs, Funds, Indices
 
 # Optimized HTTP client import with fallback
 try:
@@ -45,7 +46,7 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 # Data Models
 # ============================================================================
-from data_feeds.cache.cache_service import CacheService, CacheEntry
+from data_feeds.cache.cache_service import CacheEntry, CacheService
 
 
 class DataSource(Enum):
@@ -592,8 +593,8 @@ class InvestinyAdapter(SourceAdapter):
         # Import investiny functions
         try:
             from investiny.historical import historical_data
-            from investiny.search import search_assets
             from investiny.info import info
+            from investiny.search import search_assets
 
             self.historical_data = historical_data
             self.search_assets = search_assets
@@ -1084,14 +1085,14 @@ class StockdexAdapter(SourceAdapter):
         result = self._get_cached_or_fetch(f"financials_{symbol}", "financials", fetch)
         return result if result is not None else {}
 
-
-# ============================================================================
-# Main Consolidated Data Feed
-# ============================================================================
-
+        # ============================================================================
+        # Main Consolidated Data Feed
+        # ============================================================================
 
         self.cache_service = CacheService()
         # self.cache = DataCache()  # Deprecated, use cache_service
+
+
 class ConsolidatedDataFeed:
     def __init__(self):
         self.cache = DataCache()

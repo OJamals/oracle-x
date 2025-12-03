@@ -6,10 +6,11 @@ consolidated sentiment analysis, and SourceAdapterProtocol compliance.
 """
 
 import logging
-import requests
-from typing import Dict, List, Optional, Any, Set
 from datetime import datetime
+from typing import Any, Dict, List, Optional, Set
 from urllib.parse import urljoin
+
+import requests
 
 from data_feeds.adapter_protocol import SourceAdapterProtocol
 from data_feeds.consolidated_data_feed import NewsItem
@@ -18,9 +19,9 @@ from data_feeds.data_types import SentimentData
 # Import sentiment engine
 try:
     from sentiment.sentiment_engine import (
-        get_sentiment_engine,
-        analyze_symbol_sentiment,
         SentimentSummary,
+        analyze_symbol_sentiment,
+        get_sentiment_engine,
     )
 
     ADVANCED_SENTIMENT_AVAILABLE = True
@@ -188,8 +189,9 @@ class NewsAdapter(SourceAdapterProtocol):
         self, source_key: str, rss_url: str, symbol: str, limit: int
     ) -> List[Dict[str, Any]]:
         """Fetch articles from RSS feed with retry logic"""
-        import feedparser
         import time
+
+        import feedparser
 
         max_retries = 3
         retry_delay = 2

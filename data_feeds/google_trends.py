@@ -6,7 +6,7 @@ empty mapping so downstream code remains functional without conditional
 imports. Re-enable by replacing this stub with a working implementation.
 """
 
-from typing import Dict, Any, Iterable
+from typing import Any, Dict, Iterable
 
 DISABLED_REASON = "google_trends_disabled_due_to_rate_limits"
 

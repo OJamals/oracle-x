@@ -57,13 +57,13 @@ class TestScenarioTreeExtraction(unittest.TestCase):
         # Create sample output with scenario_tree as a dict pattern
         self.dict_pattern = """
         The market analysis suggests the following probabilities:
-        
+
         "scenario_tree": {
             "base_case": "55% - Range-bound trading continues.",
             "bull_case": "25% - Breakout above resistance.",
             "bear_case": "20% - Breakdown below support."
         }
-        
+
         These probabilities reflect current market conditions.
         """
 
@@ -102,7 +102,7 @@ class TestScenarioTreeExtraction(unittest.TestCase):
         # Create sample fallback dict-like output (when strict=False)
         self.dict_like = """
         Here's what I think:
-        
+
         {
             "base_case": "60% - Trades flat",
             "bull_case": "25% - Moves higher",

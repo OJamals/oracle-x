@@ -16,11 +16,16 @@ Implementation notes:
 
 from __future__ import annotations
 
-from typing import Protocol, Set, Optional, Dict, Any, runtime_checkable
+from typing import Any, Dict, Optional, Protocol, Set, runtime_checkable
+
 from pandas import DataFrame
 
 # Reuse shared dataclasses and types where applicable
-from data_feeds.consolidated_data_feed import Quote, CompanyInfo, NewsItem  # type: ignore
+from data_feeds.consolidated_data_feed import (
+    CompanyInfo,  # type: ignore
+    NewsItem,
+    Quote,
+)
 from data_feeds.data_types import MarketData  # type: ignore
 
 
@@ -66,11 +71,14 @@ class SourceAdapterProtocol(Protocol):
         }
     """
 
-    def __init__(self, cache, rate_limiter, performance_tracker) -> None: ...
+    def __init__(self, cache, rate_limiter, performance_tracker) -> None:
+        ...
 
-    def capabilities(self) -> Set[str]: ...
+    def capabilities(self) -> Set[str]:
+        ...
 
-    def fetch_quote(self, symbol: str) -> Optional[Quote]: ...
+    def fetch_quote(self, symbol: str) -> Optional[Quote]:
+        ...
 
     def fetch_historical(
         self,
@@ -79,12 +87,17 @@ class SourceAdapterProtocol(Protocol):
         interval: Optional[str] = None,
         from_date: Optional[str] = None,
         to_date: Optional[str] = None,
-    ) -> Optional[MarketData | DataFrame]: ...
+    ) -> Optional[MarketData | DataFrame]:
+        ...
 
-    def fetch_company_info(self, symbol: str) -> Optional[CompanyInfo]: ...
+    def fetch_company_info(self, symbol: str) -> Optional[CompanyInfo]:
+        ...
 
-    def fetch_news(self, symbol: str, limit: int = 10) -> list[NewsItem]: ...
+    def fetch_news(self, symbol: str, limit: int = 10) -> list[NewsItem]:
+        ...
 
-    def fetch_sentiment(self, symbol: str, **kwargs) -> Any: ...
+    def fetch_sentiment(self, symbol: str, **kwargs) -> Any:
+        ...
 
-    def health(self) -> Dict[str, Any]: ...
+    def health(self) -> Dict[str, Any]:
+        ...
